@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback Triage Agent 展示入口</title>
+  <style>
+    :root {
+      --ink: #101418;
+      --muted: #5e6975;
+      --paper: #f6f1e8;
+      --panel: rgba(255, 252, 246, 0.88);
+      --panel-strong: #fffaf0;
+      --line: rgba(16, 20, 24, 0.14);
+      --green: #184c3f;
+      --teal: #1b7f79;
+      --amber: #b4691f;
+      --red: #a33a32;
+      --blue: #244c89;
+      --shadow: 0 24px 70px rgba(16, 20, 24, 0.14);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(27, 127, 121, 0.22), transparent 28%),
+        radial-gradient(circle at 82% 4%, rgba(180, 105, 31, 0.18), transparent 30%),
+        linear-gradient(180deg, #f8f3ea 0%, #f0eadf 52%, #f8f3ea 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: rgba(16, 20, 24, 0.08);
+      border: 1px solid rgba(16, 20, 24, 0.1);
+      border-radius: 7px;
+      padding: 2px 6px;
+      font-size: 0.92em;
+    }
+
+    .grain {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: 0.18;
+      mix-blend-mode: multiply;
+      background-image:
+        linear-gradient(90deg, rgba(16, 20, 24, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(16, 20, 24, 0.035) 1px, transparent 1px);
+      background-size: 13px 13px;
+      z-index: 1;
+    }
+
+    .nav {
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+      width: min(1120px, calc(100% - 32px));
+      margin: 18px auto 0;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      border: 1px solid rgba(16, 20, 24, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 252, 246, 0.78);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 14px 40px rgba(16, 20, 24, 0.09);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px 6px 7px;
+      font-weight: 740;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: conic-gradient(from 210deg, var(--green), var(--teal), var(--amber), var(--green));
+      box-shadow: inset 0 0 0 6px rgba(255, 250, 240, 0.88);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      padding: 10px 12px;
+      border-radius: 999px;
+      color: #26313b;
+      font-size: 14px;
+    }
+
+    .nav-links a:hover { background: rgba(16, 20, 24, 0.08); }
+
+    main {
+      position: relative;
+      z-index: 2;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      min-height: 760px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(310px, 0.72fr);
+      gap: 34px;
+      align-items: center;
+      padding: 92px 0 132px;
+    }
+
+    h1 {
+      max-width: 1120px;
+      margin: 0;
+      font-size: clamp(44px, 6vw, 82px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .inline-signal {
+      display: inline-block;
+      width: clamp(78px, 10vw, 140px);
+      height: clamp(34px, 4.6vw, 56px);
+      margin: 0 10px;
+      border-radius: 999px;
+      vertical-align: middle;
+      background:
+        linear-gradient(135deg, rgba(24, 76, 63, 0.95), rgba(27, 127, 121, 0.82)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.2) 0 8px, transparent 8px 16px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.26), 0 14px 34px rgba(24, 76, 63, 0.2);
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin-top: 26px;
+      font-size: clamp(18px, 2vw, 23px);
+      line-height: 1.55;
+      color: #394650;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 34px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--ink);
+      font-weight: 720;
+      transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+    }
+
+    .button:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(16, 20, 24, 0.13); }
+    .button.primary { background: var(--ink); color: #fffdf8; }
+    .button.secondary { background: rgba(255, 252, 246, 0.72); color: var(--ink); }
+
+    .hero-visual {
+      position: relative;
+      min-height: 520px;
+      border-radius: 36px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.72), transparent 24%),
+        linear-gradient(145deg, rgba(16, 20, 24, 0.96), rgba(29, 55, 60, 0.92));
+      box-shadow: var(--shadow);
+      transform: rotate(1.5deg);
+    }
+
+    .hero-visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.88), transparent);
+    }
+
+    .screen-card {
+      position: absolute;
+      z-index: 2;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 22px;
+      background: rgba(255, 252, 246, 0.92);
+      box-shadow: 0 22px 70px rgba(0,0,0,0.24);
+      overflow: hidden;
+    }
+
+    .screen-card.input {
+      width: 72%;
+      top: 34px;
+      left: 30px;
+    }
+
+    .screen-card.output {
+      width: 70%;
+      right: 26px;
+      bottom: 32px;
+    }
+
+    .screen-head {
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(16,20,24,0.1);
+      font-size: 12px;
+      font-weight: 760;
+      color: #394650;
+    }
+
+    .dots { display: flex; gap: 5px; }
+    .dots span { width: 8px; height: 8px; border-radius: 50%; background: #c7d0d9; }
+    .mini-table { padding: 14px; display: grid; gap: 8px; }
+    .mini-row { display: grid; grid-template-columns: 62px 1fr 42px; gap: 8px; align-items: center; font-size: 12px; }
+    .mini-row span { height: 24px; border-radius: 8px; background: rgba(16,20,24,0.08); display: block; }
+    .mini-row strong { color: var(--green); }
+    .result-list { padding: 14px; display: grid; gap: 10px; }
+    .result-item {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+    }
+    .result-item b { display: block; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 760;
+      background: rgba(16,20,24,0.08);
+    }
+    .pill.danger { color: #fff; background: var(--red); }
+    .pill.warn { color: #2b1b08; background: #efbd70; }
+    .pill.ok { color: #fff; background: var(--green); }
+
+    section { padding: 118px 0; }
+
+    .section-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .section-kicker::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: currentColor;
+    }
+
+    .section-title {
+      max-width: 930px;
+      margin: 0 0 18px;
+      font-size: clamp(34px, 4vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .section-copy {
+      max-width: 760px;
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .bento {
+      margin-top: 38px;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-auto-flow: dense;
+      gap: 16px;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      min-height: 260px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 16px 46px rgba(16, 20, 24, 0.08);
+      transition: transform 260ms ease, box-shadow 260ms ease;
+    }
+
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .tall { min-height: 360px; }
+
+    .card h3 {
+      margin: 0 0 14px;
+      font-size: 25px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.68;
+      font-size: 16px;
+    }
+
+    .metric-grid {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.62);
+      border: 1px solid rgba(16,20,24,0.08);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .flow {
+      margin-top: 28px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(16,20,24,0.08);
+      font-size: 14px;
+    }
+
+    .flow-step i {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--green);
+      font-style: normal;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .distribution {
+      margin-top: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: minmax(130px, 210px) 1fr 38px;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .track {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(16,20,24,0.1);
+    }
+
+    .fill {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--teal));
+    }
+
+    .review-stack {
+      margin-top: 38px;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .accordion {
+      display: grid;
+      gap: 12px;
+    }
+
+    .accordion-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      overflow: hidden;
+      cursor: pointer;
+      transition: background 220ms ease;
+    }
+
+    .accordion-card[aria-expanded="true"] { background: var(--panel-strong); }
+    .accordion-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px 20px;
+      font-weight: 780;
+    }
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 280ms ease;
+    }
+    .accordion-card[aria-expanded="true"] .accordion-body { max-height: 180px; }
+    .accordion-body p { padding: 0 20px 18px; margin: 0; color: var(--muted); line-height: 1.65; }
+
+    .report-panel {
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: #101418;
+      color: #fffaf0;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .report-panel h3 { margin: 0 0 12px; font-size: 28px; }
+    .report-panel p { color: rgba(255,250,240,0.76); line-height: 1.7; margin: 0 0 22px; }
+    .report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 24px 0; }
+    .report-chip {
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 15px;
+      background: rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    .report-chip strong { display: block; font-size: 22px; margin-bottom: 4px; }
+
+    .marquee {
+      margin-top: 34px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: move 22s linear infinite;
+    }
+
+    .marquee span {
+      padding: 14px 24px;
+      color: #394650;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    @keyframes move {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .command-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 18px;
+      border-radius: 18px;
+      overflow-x: auto;
+      background: #101418;
+      color: #fffaf0;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 18px 44px rgba(16,20,24,0.16);
+    }
+
+    pre code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .footer {
+      padding: 88px 0 46px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      color: var(--muted);
+    }
+
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(28px) scale(0.98);
+      transition: opacity 700ms ease, transform 700ms ease;
+    }
+
+    [data-reveal].visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    @media (max-width: 900px) {
+      .nav { align-items: flex-start; border-radius: 28px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 78px; }
+      .hero-visual { min-height: 420px; transform: none; }
+      section { padding: 78px 0; }
+      .bento { grid-template-columns: 1fr; }
+      .span-7, .span-6, .span-5, .span-4 { grid-column: span 1; }
+      .metric-grid, .review-stack, .footer { grid-template-columns: 1fr; }
+      .bar { grid-template-columns: 1fr; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <nav class="nav" aria-label="项目导航">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>Feedback Triage Agent</span>
+    </a>
+    <div class="nav-links">
+      <a href="#problem">解决什么</a>
+      <a href="#agent">Agent 做了什么</a>
+      <a href="#review">人工复核</a>
+      <a href="#report">样例报告</a>
+      <a href="#reproduce">复现</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div data-reveal>
+        <h1>把零散用户评论<span class="inline-signal" aria-hidden="true"></span>整理成可复核的问题卡片。</h1>
+        <p class="hero-copy">
+          这是一个反馈分诊工作流 Agent。它读取 CSV 评论，按固定工具计划完成字段检查、规则/LLM 初稿、风险识别、人工复核队列和报告导出。它不是开放式聊天机器人。
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="demo-report.html">查看样例报告</a>
+          <a class="button secondary" href="#reproduce">查看复现命令</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" data-reveal aria-label="输入 CSV 到问题卡片的示意图">
+        <div class="screen-card input">
+          <div class="screen-head">
+            <span>data/ai_app_reviews.csv</span>
+            <span class="dots"><span></span><span></span><span></span></span>
+          </div>
+          <div class="mini-table">
+            <div class="mini-row"><strong>DB_001</strong><span></span><em>2</em></div>
+            <div class="mini-row"><strong>DS_004</strong><span></span><em>4</em></div>
+            <div class="mini-row"><strong>KM_010</strong><span></span><em>1</em></div>
+          </div>
+        </div>
+        <div class="screen-card output">
+          <div class="screen-head">
+            <span>output_ask</span>
+            <span class="pill ok">rules fallback</span>
+          </div>
+          <div class="result-list">
+            <div class="result-item"><span class="pill danger">P0</span><b>隐私/投诉风险</b><span>复核</span></div>
+            <div class="result-item"><span class="pill warn">P1</span><b>性能与稳定性</b><span>跟进</span></div>
+            <div class="result-item"><span class="pill ok">P2</span><b>产品定位需求</b><span>记录</span></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="problem" data-reveal>
+      <span class="section-kicker">项目解决什么问题</span>
+      <h2 class="section-title">产品团队不缺评论，缺的是能追溯依据的分诊结果。</h2>
+      <p class="section-copy">
+        应用商店、社区和客服里的反馈常常混在一起：有人在抱怨模型不准，有人在说页面卡住，也有人提出企业知识库这种新需求。这个项目把评论整理为结构化表格、问题卡片、QA 报告和人工复核队列，方便产品面试官和技术读者检查每一步判断。
+      </p>
+
+      <div class="bento">
+        <article class="card span-7 tall">
+          <h3>真实样例数据来自 AI 应用评论</h3>
+          <p>展示页读取的是当前仓库里的 `data/output_ask` 结果，由 `data/ai_app_reviews.csv` 跑出。样本覆盖豆包、DeepSeek、Kimi，来源包括 App Store、应用宝和小米应用商店。</p>
+          <div class="metric-grid">
+            <div class="metric"><strong>30</strong><span>总样本数</span></div>
+            <div class="metric"><strong>21</strong><span>进入人工复核队列</span></div>
+            <div class="metric"><strong>7</strong><span>Agent run log 固定步骤</span></div>
+          </div>
+        </article>
+
+        <article class="card span-5 tall">
+          <h3>输入只要求五列 CSV</h3>
+          <p>当前 Agent 的标准输入字段是 `id`、`source`、`app_name`、`review_text`、`rating`。旧项目数据先通过准备脚本转换为这个格式，再进入同一套 Agent runner。</p>
+          <div class="marquee" aria-hidden="true">
+            <div class="marquee-track">
+              <span>id</span><span>source</span><span>app_name</span><span>review_text</span><span>rating</span>
+              <span>id</span><span>source</span><span>app_name</span><span>review_text</span><span>rating</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card span-4">
+          <h3>输出不是一句总结</h3>
+          <p>它会生成 `issue_cards.md`、`qa_report.md`、`run_log.md`、`triage_results.csv` 和静态 `report.html`。</p>
+        </article>
+
+        <article class="card span-4">
+          <h3>LLM 是可选初稿</h3>
+          <p>没有 `DEEPSEEK_API_KEY` 时，本轮自动 fallback 到 `rules.py`。优先级和复核队列仍由本地规则处理。</p>
+        </article>
+
+        <article class="card span-4">
+          <h3>人工复核不是装饰</h3>
+          <p>P0、低置信度、多问题命中、文本过短等样本不会被自动闭环，会进入复核列表。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="agent" data-reveal>
+      <span class="section-kicker">Agent 做了什么</span>
+      <h2 class="section-title">固定七步，不靠临场发挥。</h2>
+      <p class="section-copy">
+        主流程保持稳定：读取输入、校验字段、分诊分类、识别 badcase、生成问题卡片、QA 检查、导出报告。自然语言 `ask` 命令只是入口，内部仍调用同一个 runner。
+      </p>
+      <div class="bento">
+        <article class="card span-6 tall">
+          <h3>运行计划</h3>
+          <div class="flow">
+            <div class="flow-step"><i>1</i><span><strong>load_feedback</strong><br>读取 CSV，记录行数和字段。</span></div>
+            <div class="flow-step"><i>2</i><span><strong>validate_schema</strong><br>检查必填字段和空值。</span></div>
+            <div class="flow-step"><i>3</i><span><strong>classify_feedback</strong><br>可选 DeepSeek 初稿，失败或无 key 时使用规则。</span></div>
+            <div class="flow-step"><i>4</i><span><strong>detect_badcases</strong><br>识别 P0、低置信度、多问题命中等复核原因。</span></div>
+            <div class="flow-step"><i>5</i><span><strong>generate_issue_cards</strong><br>为每条反馈生成可读问题卡。</span></div>
+            <div class="flow-step"><i>6</i><span><strong>qa_check</strong><br>汇总分布、fallback、复核队列。</span></div>
+            <div class="flow-step"><i>7</i><span><strong>export_report</strong><br>导出 markdown 和 CSV 结果。</span></div>
+          </div>
+        </article>
+
+        <article class="card span-6 tall">
+          <h3>真实输出分布</h3>
+          <div class="distribution">
+            <div class="bar"><span>不明确/其他</span><div class="track"><span class="fill" style="width:100%"></span></div><strong>13</strong></div>
+            <div class="bar"><span>用户预期与产品定位</span><div class="track"><span class="fill" style="width:46%"></span></div><strong>6</strong></div>
+            <div class="bar"><span>模型能力问题</span><div class="track"><span class="fill" style="width:31%"></span></div><strong>4</strong></div>
+            <div class="bar"><span>性能与稳定性</span><div class="track"><span class="fill" style="width:23%"></span></div><strong>3</strong></div>
+            <div class="bar"><span>交互体验问题</span><div class="track"><span class="fill" style="width:15%"></span></div><strong>2</strong></div>
+            <div class="bar"><span>账号/隐私、内容安全</span><div class="track"><span class="fill" style="width:8%"></span></div><strong>2</strong></div>
+          </div>
+          <div class="distribution" aria-label="优先级分布">
+            <div class="bar"><span>P1</span><div class="track"><span class="fill" style="width:100%; background:linear-gradient(90deg,var(--amber),#e4a13d)"></span></div><strong>19</strong></div>
+            <div class="bar"><span>P2</span><div class="track"><span class="fill" style="width:47%; background:linear-gradient(90deg,var(--blue),#6284bd)"></span></div><strong>9</strong></div>
+            <div class="bar"><span>P0</span><div class="track"><span class="fill" style="width:11%; background:linear-gradient(90deg,var(--red),#db6c5e)"></span></div><strong>2</strong></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="review" data-reveal>
+      <span class="section-kicker">为什么还需要人工复核</span>
+      <h2 class="section-title">Agent 可以排序和标记风险，但不能替产品负责人签字。</h2>
+      <p class="section-copy">
+        反馈里经常有多重问题、强烈情绪、隐私风险或上下文缺口。这个项目的边界是“先分诊，再交给人复核”，而不是自动决定产品动作。
+      </p>
+
+      <div class="review-stack">
+        <div class="accordion" aria-label="人工复核原因">
+          <article class="accordion-card" aria-expanded="true" tabindex="0">
+            <div class="accordion-head"><span>P0 或投诉风险</span><span>必须复核</span></div>
+            <div class="accordion-body"><p>例如隐私泄露、扣费、数据丢失、投诉、卸载等关键词。它们会影响信任和业务风险，不能只看规则结论。</p></div>
+          </article>
+          <article class="accordion-card" aria-expanded="false" tabindex="0">
+            <div class="accordion-head"><span>低置信度分类</span><span>补上下文</span></div>
+            <div class="accordion-body"><p>当评论过短或没有命中明确关键词时，Agent 会把它放入复核队列，避免把含糊反馈包装成确定结论。</p></div>
+          </article>
+          <article class="accordion-card" aria-expanded="false" tabindex="0">
+            <div class="accordion-head"><span>同时命中多个问题</span><span>拆分处理</span></div>
+            <div class="accordion-body"><p>同一条评论可能同时包含模型质量、页面卡顿、复制交互。它需要人工拆成多个可跟进问题，而不是合并成一个泛泛建议。</p></div>
+          </article>
+        </div>
+
+        <aside class="report-panel">
+          <h3>本次样例报告的复核压力</h3>
+          <p>在 `data/output_ask` 中，30 条样本里有 21 条进入人工复核。这个比例高，不是系统失败，而是说明样例数据里有大量低置信度、多问题或高风险评论。</p>
+          <div class="report-grid">
+            <div class="report-chip"><strong>21</strong>人工复核样本</div>
+            <div class="report-chip"><strong>2</strong>P0 样本</div>
+            <div class="report-chip"><strong>False</strong>LLM 使用情况</div>
+            <div class="report-chip"><strong>True</strong>fallback 到规则</div>
+          </div>
+          <a class="button primary" href="demo-report.html">打开完整 HTML 报告</a>
+        </aside>
+      </div>
+    </section>
+
+    <section id="report" data-reveal>
+      <span class="section-kicker">最后输出了什么</span>
+      <h2 class="section-title">面试官可以看页面，技术读者可以追文件。</h2>
+      <p class="section-copy">
+        展示页面向不会跑 CLI 的读者；样例报告展示真实导出结果；原始 markdown 和 CSV 仍保留，便于检查 run log、QA 和每条问题卡片。
+      </p>
+      <div class="bento">
+        <article class="card span-4">
+          <h3>issue_cards.md</h3>
+          <p>每条反馈一张问题卡，包含代表样本 ID、摘要、问题类型、优先级、用户需求、产品建议和复核原因。</p>
+        </article>
+        <article class="card span-4">
+          <h3>qa_report.md</h3>
+          <p>记录总览、LLM 是否使用、fallback 原因、字段缺失、分布和本轮判断边界。</p>
+        </article>
+        <article class="card span-4">
+          <h3>triage_results.csv</h3>
+          <p>结构化结果可继续分析，包含 `classification_source`、`llm_error` 和人工复核标记。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="reproduce" data-reveal>
+      <span class="section-kicker">技术读者如何复现</span>
+      <h2 class="section-title">从数据准备到样例报告，命令是可复跑的。</h2>
+      <p class="section-copy">以下命令在项目根目录执行。展示页本身不需要 Python 环境，只有重新生成数据和报告时才需要。</p>
+      <div class="command-list">
+        <pre><code>python scripts/prepare_ai_app_reviews.py</code></pre>
+        <pre><code>python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"</code></pre>
+        <pre><code>python -m feedback_triage_agent.cli report --output data/output_ask</code></pre>
+        <pre><code>python -m feedback_triage_agent.cli inspect --output data/output_ask</code></pre>
+        <pre><code>python -m pytest</code></pre>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>
+        <h2 class="section-title" style="margin-bottom:14px;">保留边界，才方便复核。</h2>
+        <p class="section-copy">不接数据库、不做 Streamlit、不接后端、不做 RAG，不把 API key 写进代码。这个展示入口只解释项目，不替代 Agent 主流程。</p>
+      </div>
+      <a class="button secondary" href="#top">回到顶部</a>
+    </footer>
+  </main>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('[data-reveal]').forEach((node) => observer.observe(node));
+
+    document.querySelectorAll('.accordion-card').forEach((card) => {
+      const toggle = () => {
+        document.querySelectorAll('.accordion-card').forEach((item) => item.setAttribute('aria-expanded', 'false'));
+        card.setAttribute('aria-expanded', 'true');
+      };
+      card.addEventListener('click', toggle);
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggle();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

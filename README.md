@@ -1,5 +1,12 @@
 # Feedback Triage Agent v0.3
 
+## 展示入口
+
+如果只是想了解项目，不需要先运行 CLI。可以直接在浏览器打开：
+
+- `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
+- `docs/demo-report.html`: 基于 `data/output_ask` 真实导出结果生成的样例 HTML 报告。
+
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
 v0.3 支持可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
