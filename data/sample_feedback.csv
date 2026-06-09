@@ -1,0 +1,14 @@
+id,source,app_name,review_text,rating
+fb001,app_store,ChatMate,"回答经常答非所问，还会编造不存在的资料，做工作总结很不放心。",2
+fb002,xiaohongshu,ChatMate,"界面入口太深，我找不到历史记录导出按钮，操作流程不清楚。",3
+fb003,app_store,ChatMate,"最近打开很慢，生成一半就闪退，昨天的草稿也丢了。",1
+fb004,app_store,ChatMate,"已经开了会员还是提示要付费，担心被重复扣费，想退款。",1
+fb005,community,ChatMate,"有人用它生成辱骂内容和敏感图片，希望加强审核。",2
+fb006,support_ticket,ChatMate,"更换手机后登录不上，聊天记录同步失败，里面有客户资料。",1
+fb007,user_interview,ChatMate,"我以为它可以直接做完整PPT，但实际更像聊天助手，期望边界不清楚。",3
+fb008,app_store,ChatMate,"挺好用，建议增加夜间模式。",5
+fb009,app_store,ChatMate,"差",1
+fb010,app_store,ChatMate,"生成答案不准确，而且页面经常卡住，复制按钮也失灵。",2
+fb011,community,ChatMate,"希望支持团队知识库和审批流，适合企业办公场景。",4
+fb012,app_store,ChatMate,"自动扣费后没有明显提醒，我准备投诉并卸载。",1
+

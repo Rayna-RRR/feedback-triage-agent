@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# secrets
+.env
+.env.local
+*.key
+
+# copied source data from old project
+data/source_ai_app_feedback/

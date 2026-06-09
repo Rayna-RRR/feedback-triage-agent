@@ -1,0 +1,2 @@
+[console_scripts]
+feedback-triage-agent = feedback_triage_agent.cli:main
