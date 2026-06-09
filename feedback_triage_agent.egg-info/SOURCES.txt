@@ -4,6 +4,7 @@ feedback_triage_agent/__init__.py
 feedback_triage_agent/agent.py
 feedback_triage_agent/cli.py
 feedback_triage_agent/exporters.py
+feedback_triage_agent/html_report.py
 feedback_triage_agent/llm_client.py
 feedback_triage_agent/models.py
 feedback_triage_agent/prompts.py
@@ -16,6 +17,7 @@ feedback_triage_agent.egg-info/entry_points.txt
 feedback_triage_agent.egg-info/requires.txt
 feedback_triage_agent.egg-info/top_level.txt
 tests/test_agent.py
+tests/test_cli.py
 tests/test_llm_client.py
 tests/test_rules.py
 tests/test_tools.py

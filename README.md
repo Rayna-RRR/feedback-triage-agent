@@ -1,10 +1,10 @@
-# Feedback Triage Agent v0.2
+# Feedback Triage Agent v0.3
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.2 支持可选 DeepSeek API。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
+v0.3 支持可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
 
-本项目不接数据库、不做 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现，作为 v0.3 后续扩展。
+本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
 ## 解决的问题
 
@@ -13,6 +13,8 @@ AI 产品团队经常面对来自应用商店、社区、客服工单、访谈�
 这个项目展示一条最小闭环：
 
 用户反馈 CSV -> Agent 固定计划 -> 工具调用 -> 状态记录 -> 人工复核队列 -> 问题卡片 -> QA 报告
+
+当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：自然语言入口只负责解析本地任务意图，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
 
 ## Agent 工作流
 
@@ -77,6 +79,20 @@ python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --outpu
 python -m feedback_triage_agent.cli inspect --output data/output
 ```
 
+使用自然语言入口运行分诊：
+
+```bash
+python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"
+```
+
+`ask` 会从任务文本中识别 CSV 输入路径；未指定输出目录时默认写入 `data/output_ask`。如果任务中包含“不要用 LLM”或“只用规则”，会关闭 LLM；如果包含“生成 HTML 报告”或“网页报告”，会在分诊完成后额外生成 `report.html`。
+
+从已有输出目录生成静态 HTML 报告：
+
+```bash
+python -m feedback_triage_agent.cli report --output data/output_ask
+```
+
 运行测试：
 
 ```bash
@@ -89,8 +105,9 @@ python -m pytest
 - `data/output/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
 - `data/output/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
 - `data/output/triage_results.csv`: 结构化分诊结果，包含 `classification_source` 和 `llm_error`，可用于后续分析或页面展示。
+- `data/output/report.html`: 本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、问题卡片摘要、run log 和判断边界。
 
-## v0.2 范围
+## v0.3 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
@@ -98,15 +115,19 @@ python -m pytest
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
 - 所有 LLM 输出都必须经过 QA 检查和人工复核队列判断。
 - 使用 Typer + Rich 提供本地 CLI 体验。
+- 使用 `ask` 命令提供最小自然语言任务入口，但不改变固定 Agent 计划。
+- 使用 `report` 命令生成不依赖 CDN 和远程资源的静态 HTML 报告。
 - 使用 pytest 覆盖规则、工具和完整 Agent 流程。
+
+暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
 
 ## 后续可扩展方向
 
-- 增加 Streamlit 或轻量 Web UI 展示问题卡片和复核队列。
+- 增加更完整的复核台或轻量 Web UI 展示问题卡片和复核队列。
 - 支持多文件输入、去重、聚类和趋势分析。
 - 引入真实业务标签体系和人工标注结果，评估分类准确率。
 - 将 P0 样本推送到工单系统或告警渠道。
-- v0.3 再考虑 RAG、向量数据库和文档检索，用于引入产品文档、FAQ 或历史工单上下文。
+- 后续再考虑 RAG、向量数据库和文档检索，用于引入产品文档、FAQ 或历史工单上下文。
 
 ## 作品集价值
 

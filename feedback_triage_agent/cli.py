@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -8,9 +9,10 @@ from rich.table import Table
 
 from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
+from feedback_triage_agent.html_report import ReportInputError, generate_html_report
 
 
-app = typer.Typer(help="Feedback Triage Agent v0.1", no_args_is_help=True)
+app = typer.Typer(help="Feedback Triage Agent v0.3", no_args_is_help=True)
 console = Console()
 
 
@@ -41,6 +43,50 @@ def render_run_summary(state) -> None:
         console.print(output_table)
 
 
+def infer_input_path(task: str) -> Path:
+    match = re.search(r"([A-Za-z0-9_./\\-]+\.csv)", task)
+    if not match:
+        raise ValueError("无法识别输入文件，请在任务中写明 CSV 路径，例如 data/ai_app_reviews.csv。")
+    return Path(match.group(1))
+
+
+def infer_output_dir(task: str) -> Path:
+    match = re.search(r"(?:输出到|输出目录|保存到)\s*([A-Za-z0-9_./\\-]+)", task)
+    if match:
+        return Path(match.group(1))
+    return Path("data/output_ask")
+
+
+def should_disable_llm(task: str) -> bool:
+    compact = re.sub(r"\s+", "", task.lower())
+    return any(
+        phrase in compact
+        for phrase in [
+            "不要用llm",
+            "不用llm",
+            "不使用llm",
+            "关闭llm",
+            "只用规则",
+            "仅用规则",
+            "仅使用规则",
+            "规则版",
+        ]
+    )
+
+
+def should_generate_html_report(task: str) -> bool:
+    compact = re.sub(r"\s+", "", task.lower())
+    return any(
+        phrase in compact
+        for phrase in [
+            "生成html报告",
+            "html报告",
+            "网页报告",
+            "静态html",
+        ]
+    )
+
+
 @app.command()
 def run(
     input_path: Path = typer.Option(
@@ -69,6 +115,52 @@ def run(
 
     if state.run_log and state.run_log[-1].status == "error":
         raise typer.Exit(code=1)
+
+
+@app.command()
+def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -> None:
+    """Run triage from a small natural-language task description."""
+
+    try:
+        input_path = infer_input_path(task)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+
+    if not input_path.exists():
+        console.print(f"[red]识别到输入文件 {input_path}，但文件不存在。请检查路径后重试。[/red]")
+        raise typer.Exit(code=1)
+
+    output = infer_output_dir(task)
+    llm_requested = not should_disable_llm(task)
+    html_requested = should_generate_html_report(task)
+
+    console.print(
+        Panel(
+            (
+                f"input={input_path}\n"
+                f"output={output}\n"
+                f"llm_requested={llm_requested}\n"
+                f"html_report={html_requested}"
+            ),
+            title="Parsed Ask Task",
+        )
+    )
+
+    agent = FeedbackTriageAgent(input_path=input_path, output_dir=output, llm_requested=llm_requested)
+    state = agent.run()
+    render_run_summary(state)
+
+    if state.run_log and state.run_log[-1].status == "error":
+        raise typer.Exit(code=1)
+
+    if html_requested:
+        try:
+            report_path = generate_html_report(output)
+        except ReportInputError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1)
+        console.print(f"[green]HTML report generated:[/green] {report_path}")
 
 
 @app.command()
@@ -111,6 +203,25 @@ def inspect(
             str(row.get("human_review_reasons", "")),
         )
     console.print(table)
+
+
+@app.command()
+def report(
+    output: Path = typer.Option(
+        Path("data/output"),
+        "--output",
+        "-o",
+        help="Directory containing exported triage files.",
+    ),
+) -> None:
+    """Generate a static HTML report from an existing output directory."""
+
+    try:
+        report_path = generate_html_report(output)
+    except ReportInputError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+    console.print(f"[green]HTML report generated:[/green] {report_path}")
 
 
 @app.command()
