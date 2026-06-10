@@ -2,7 +2,7 @@
 
 ## 项目目的
 
-Feedback Triage Agent 是一个本地 CLI Agent Demo，用于模拟 AI 产品团队处理用户反馈的分诊流程。项目重点不是模型能力，而是展示工具调用、状态记录、LLM 初稿、规则 fallback、人工复核队列和报告导出的完整链路。
+Feedback Triage Agent 是一个本地 CLI + FastAPI Web App Agent Demo，用于模拟 AI 产品团队处理用户反馈的分诊流程。项目重点不是模型能力，而是展示工具调用、状态记录、LLM 初稿、规则 fallback、人工复核队列和报告导出的完整链路。
 
 ## 运行命令
 
@@ -11,6 +11,8 @@ python -m feedback_triage_agent.cli demo
 python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output
 python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output --no-llm
 python -m feedback_triage_agent.cli inspect --output data/output
+python -m feedback_triage_agent.cli ask "分析 data/sample_feedback.csv，只用规则，生成 HTML 报告"
+python -m feedback_triage_agent.web_app
 ```
 
 ## 测试命令
@@ -23,7 +25,7 @@ pytest
 
 - 不接真实外部 API。
 - 不接数据库。
-- 不做 Web UI。
+- 不扩展为生产级复杂 Web UI、登录系统或后台管理平台。
 - 不做爬虫。
 - 不做复杂 RAG。
 - 不接向量数据库。
@@ -38,7 +40,7 @@ pytest
 - `run_log.md` 包含 7 个固定工具步骤。
 - `run_log.md` 和 `qa_report.md` 记录 LLM 是否使用、fallback 情况和人工复核原因。
 - pytest 全部通过。
-- README 清楚说明 v0.2 支持 DeepSeek API，RAG 暂不实现，并保留人工复核边界。
+- README 清楚说明 v0.4 支持 DeepSeek API、CLI/Web Ask 入口，RAG 暂不实现，并保留人工复核边界。
 
 ## 修改规则
 

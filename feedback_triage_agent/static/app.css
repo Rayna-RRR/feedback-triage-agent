@@ -55,13 +55,15 @@ label {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 .source-card:focus-within,
 .check-card:focus-within {
   outline: 3px solid rgba(13, 110, 253, 0.18);
@@ -700,7 +702,8 @@ label {
 }
 
 input[type="file"],
-input[type="text"] {
+input[type="text"],
+textarea {
   width: 100%;
   padding: 12px 13px;
   border: 1px solid var(--line-strong);
@@ -720,9 +723,43 @@ input[type="file"]::file-selector-button {
 }
 
 input[type="file"]:focus,
-input[type="text"]:focus {
+input[type="text"]:focus,
+textarea:focus {
   outline: 3px solid rgba(13, 110, 253, 0.14);
   border-color: var(--blue);
+}
+
+.ask-card textarea {
+  min-height: 112px;
+  margin-top: 8px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.ask-upload {
+  margin: 0 0 16px;
+}
+
+.ask-upload small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.ask-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.ask-actions small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.ask-actions button {
+  flex: 0 0 auto;
 }
 
 .submit-card {
@@ -1182,7 +1219,8 @@ tbody tr:hover {
 
   .page-title,
   .card-header,
-  .submit-card {
+  .submit-card,
+  .ask-actions {
     display: grid;
     justify-content: stretch;
   }

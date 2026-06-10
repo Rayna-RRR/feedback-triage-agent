@@ -11,6 +11,7 @@
   </div>
   <div class="page-actions">
     <span class="status-badge status-success">rules.py fallback ready</span>
+    <a class="button button-outline" href="#ask-entry">自然语言 Ask</a>
     <a class="button button-outline" href="#run-form">配置运行</a>
   </div>
 </section>
@@ -81,6 +82,28 @@
     <p>P0、低置信度、多问题命中样本不会被页面自动判定为完成。</p>
   </article>
 </section>
+
+<form class="card ask-card" id="ask-entry" action="/ask" method="post" enctype="multipart/form-data" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Natural language task</p>
+      <h2>自然语言 Ask 入口</h2>
+    </div>
+    <span class="status-badge status-info">same 7-tool plan</span>
+  </div>
+  <p class="card-copy">先上传 CSV，再描述运行要求。也可以不上传，直接在任务中写明本地 CSV 路径。分类、优先级、QA、fallback 和人工复核仍由原 Agent runner 负责。</p>
+  <div class="upload-row ask-upload">
+    <label for="ask_upload_file">1. 上传 CSV</label>
+    <input id="ask_upload_file" name="upload_file" type="file" accept=".csv,text/csv">
+    <small>上传文件优先于任务中填写的本地路径，必须包含 review_text 字段。</small>
+  </div>
+  <label for="ask_task">任务描述</label>
+  <textarea id="ask_task" name="task" rows="4">只用规则，生成 HTML 报告</textarea>
+  <div class="ask-actions">
+    <small>未上传时可写“分析 data/sample_feedback.csv”；支持识别“只用规则”“不要用 LLM”“生成 HTML 报告”等意图。</small>
+    <button type="submit">解析任务并运行</button>
+  </div>
+</form>
 
 <form class="run-form" id="run-form" action="/run" method="post" enctype="multipart/form-data">
   <section class="card section-card" id="data-source" data-reveal>

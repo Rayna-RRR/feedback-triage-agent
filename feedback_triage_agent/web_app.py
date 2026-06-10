@@ -16,7 +16,17 @@ from fastapi.templating import Jinja2Templates
 
 from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
-from feedback_triage_agent.html_report import ReportInputError, generate_html_report, parse_bullet_map, parse_run_log
+from feedback_triage_agent.html_report import (
+    ReportInputError,
+    generate_html_report,
+    parse_bullet_map,
+    parse_run_log,
+)
+from feedback_triage_agent.task_parser import (
+    infer_input_path,
+    should_disable_llm,
+    should_generate_html_report,
+)
 from feedback_triage_agent.web_models import DownloadFile, WebRunData
 
 
@@ -84,6 +94,10 @@ def create_run_dir(output_name: str = "") -> Path:
     return run_dir
 
 
+def cleanup_failed_run(run_dir: Path) -> None:
+    shutil.rmtree(run_dir, ignore_errors=True)
+
+
 def validate_run_id(run_id: str) -> None:
     if not re.match(r"^run_\d{8}_\d{6}(?:_[A-Za-z0-9_-]+)*(?:_\d{2})?$", run_id):
         raise ValueError("运行目录名称不合法。")
@@ -128,6 +142,25 @@ def verify_outputs(output_dir: Path) -> None:
     missing = [filename for filename in REQUIRED_WEB_OUTPUTS if not (output_dir / filename).exists()]
     if missing:
         raise ValueError("Agent 输出文件缺失: " + "，".join(missing))
+
+
+def execute_agent_run(
+    input_path: Path,
+    run_dir: Path,
+    *,
+    llm_requested: bool,
+    generate_html: bool,
+) -> None:
+    validate_csv_input(input_path)
+    agent = FeedbackTriageAgent(input_path=input_path, output_dir=run_dir, llm_requested=llm_requested)
+    state = agent.run()
+    if state.run_log and state.run_log[-1].status == "error":
+        raise ValueError(state.run_log[-1].output_summary)
+
+    verify_outputs(run_dir)
+    if generate_html:
+        generate_html_report(run_dir)
+    create_outputs_zip(run_dir)
 
 
 def boolish(value: object) -> bool:
@@ -255,22 +288,66 @@ async def run_agent(
             if not input_path.exists():
                 raise ValueError(f"内置数据文件不存在: {input_path}")
 
-        validate_csv_input(input_path)
-
         llm_requested = boolish(use_llm) and not boolish(rule_only)
-        agent = FeedbackTriageAgent(input_path=input_path, output_dir=run_dir, llm_requested=llm_requested)
-        state = agent.run()
-        if state.run_log and state.run_log[-1].status == "error":
-            raise ValueError(state.run_log[-1].output_summary)
-
-        verify_outputs(run_dir)
-        if boolish(generate_html):
-            generate_html_report(run_dir)
-        create_outputs_zip(run_dir)
+        execute_agent_run(
+            input_path,
+            run_dir,
+            llm_requested=llm_requested,
+            generate_html=boolish(generate_html),
+        )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:
+        cleanup_failed_run(run_dir)
         return render_index(request, str(exc), status_code=400)
     except Exception:
+        cleanup_failed_run(run_dir)
         return render_index(request, "Agent 运行失败，请检查输入 CSV 后重试。", status_code=500)
+
+    return RedirectResponse(url=f"/runs/{run_dir.name}", status_code=303)
+
+
+@app.post("/ask")
+def ask_agent(
+    request: Request,
+    task: str = Form(""),
+    upload_file: Optional[UploadFile] = File(None),
+):
+    task = task.strip()
+    if not task:
+        return render_index(request, "请输入自然语言任务。", status_code=400)
+
+    has_upload = upload_file is not None and bool(upload_file.filename)
+    if not has_upload:
+        try:
+            input_path = infer_input_path(task)
+        except ValueError as exc:
+            return render_index(request, f"{exc}，或者先上传 CSV 文件。", status_code=400)
+
+        if not input_path.is_absolute():
+            input_path = PROJECT_ROOT / input_path
+        if not input_path.exists():
+            return render_index(request, f"识别到输入文件 {input_path}，但文件不存在。", status_code=400)
+
+    run_dir = create_run_dir("ask")
+    try:
+        if has_upload:
+            if not upload_file.filename.lower().endswith(".csv"):
+                raise ValueError("上传文件必须是 CSV 格式。")
+            input_path = run_dir / "input.csv"
+            with input_path.open("wb") as file:
+                shutil.copyfileobj(upload_file.file, file)
+
+        execute_agent_run(
+            input_path,
+            run_dir,
+            llm_requested=not should_disable_llm(task),
+            generate_html=should_generate_html_report(task),
+        )
+    except (ValueError, ReportInputError, FileNotFoundError) as exc:
+        cleanup_failed_run(run_dir)
+        return render_index(request, str(exc), status_code=400)
+    except Exception:
+        cleanup_failed_run(run_dir)
+        return render_index(request, "Agent 运行失败，请检查自然语言任务和输入 CSV 后重试。", status_code=500)
 
     return RedirectResponse(url=f"/runs/{run_dir.name}", status_code=303)
 

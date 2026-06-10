@@ -14,7 +14,7 @@ python -m feedback_triage_agent.web_app
 http://127.0.0.1:8000
 ```
 
-Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
+Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持自然语言 Ask、选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
 
 ## 展示入口
 
@@ -22,6 +22,16 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 - `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
 - `docs/demo-report.html`: 基于 `data/output_ask` 真实导出结果生成的样例 HTML 报告。
+
+作品集截图位于 `docs/assets/screenshots/`：
+
+- `feedback_agent_01_home.png`: 项目首页与能力总览。
+- `feedback_agent_02_ask.png`: 自然语言 Ask 上传入口。
+- `feedback_agent_03_run_config.png`: 结构化运行配置。
+- `feedback_agent_04_summary.png`: 运行总览与分布。
+- `feedback_agent_05_review_queue.png`: 人工复核队列。
+- `feedback_agent_06_issue_cards.png`: 问题卡片摘要。
+- `feedback_agent_07_downloads.png`: 下载文件区。
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
@@ -116,6 +126,8 @@ python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出
 
 `ask` 会从任务文本中识别 CSV 输入路径；未指定输出目录时默认写入 `data/output_ask`。如果任务中包含“不要用 LLM”或“只用规则”，会关闭 LLM；如果包含“生成 HTML 报告”或“网页报告”，会在分诊完成后额外生成 `report.html`。
 
+Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
+
 从已有输出目录生成静态 HTML 报告：
 
 ```bash
@@ -134,14 +146,14 @@ python -m pytest
 - `data/output/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
 - `data/output/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
 - `data/output/triage_results.csv`: 结构化分诊结果，包含 `classification_source` 和 `llm_error`，可用于后续分析或页面展示。
-- `data/output/report.html`: 本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、问题卡片摘要、run log 和判断边界。
+- `data/output/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、问题卡片摘要、run log 和判断边界。
 
 ## v0.4 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
-- Web App 支持内置样例、AI 应用评论数据和用户上传 CSV。
+- Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
 - Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
 - 使用关键词和启发式规则完成优先级判断、fallback 和人工复核识别。
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
@@ -155,7 +167,7 @@ python -m pytest
 
 ## 后续可扩展方向
 
-- 增加更完整的复核台或轻量 Web UI 展示问题卡片和复核队列。
+- 增加人工复核动作、处理状态和结果回写，但仍保持本地轻量边界。
 - 支持多文件输入、去重、聚类和趋势分析。
 - 引入真实业务标签体系和人工标注结果，评估分类准确率。
 - 将 P0 样本推送到工单系统或告警渠道。
