@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}分诊结果 - {{ run.run_id }}{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/" class="sidebar-link">
+  <span class="nav-icon nav-icon-run" aria-hidden="true"></span>
+  <span>重新配置</span>
+</a>
+<a href="#overview" class="sidebar-link is-active" data-default-active>
+  <span class="nav-icon nav-icon-dashboard" aria-hidden="true"></span>
+  <span>运行总览</span>
+</a>
+<a href="#review-queue" class="sidebar-link">
+  <span class="nav-icon nav-icon-review" aria-hidden="true"></span>
+  <span>复核队列</span>
+</a>
+<a href="#issue-cards" class="sidebar-link">
+  <span class="nav-icon nav-icon-cards" aria-hidden="true"></span>
+  <span>问题卡片</span>
+</a>
+<a href="#run-log" class="sidebar-link">
+  <span class="nav-icon nav-icon-log" aria-hidden="true"></span>
+  <span>Run log</span>
+</a>
+<a href="#downloads" class="sidebar-link">
+  <span class="nav-icon nav-icon-files" aria-hidden="true"></span>
+  <span>下载文件</span>
+</a>
+{% endblock %}
+
+{% block sidebar_note %}
+<strong>复核边界</strong>
+<span>DeepSeek 仅生成初稿，P0、低置信度和多问题样本仍需人工复核。</span>
+{% endblock %}
+
+{% block content %}
+<section class="page-title" data-reveal>
+  <div>
+    <p class="breadcrumb">Dashboard / Triage Results</p>
+    <h1>分诊结果</h1>
+    <p class="run-id">{{ run.run_id | replace("_", "_<wbr>") | safe }}</p>
+  </div>
+  <div class="page-actions">
+    <span class="status-badge status-success">运行完成</span>
+    <a class="button button-outline" href="/">再跑一次</a>
+  </div>
+</section>
+
+<section class="summary-strip" aria-label="本轮关键指标" data-reveal>
+  <article>
+    <span>有效样本</span>
+    <strong>{{ run.metrics.valid_samples }}</strong>
+  </article>
+  <article>
+    <span>问题卡片</span>
+    <strong>{{ run.metrics.issue_cards }}</strong>
+  </article>
+  <article>
+    <span>人工复核</span>
+    <strong>{{ run.metrics.human_review_count }}</strong>
+  </article>
+  <article>
+    <span>Fallback</span>
+    <strong>{{ run.metrics.fallback }}</strong>
+  </article>
+</section>
+
+<section class="card run-summary-card" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Output directory</p>
+      <h2>本轮输出位置</h2>
+    </div>
+    <span class="status-badge status-info">web run</span>
+  </div>
+  <code class="output-code">{{ run.metrics.output_dir }}</code>
+</section>
+
+<section id="overview" data-reveal>
+  <div class="section-heading">
+    <p class="card-kicker">Overview</p>
+    <h2>运行总览</h2>
+  </div>
+  <div class="metrics-grid">
+    <article class="metric-card">
+      <span>总样本数</span>
+      <strong>{{ run.metrics.total_samples }}</strong>
+      <em class="status-badge status-info">input</em>
+    </article>
+    <article class="metric-card">
+      <span>有效样本数</span>
+      <strong>{{ run.metrics.valid_samples }}</strong>
+      <em class="status-badge status-success">validated</em>
+    </article>
+    <article class="metric-card">
+      <span>问题卡片数</span>
+      <strong>{{ run.metrics.issue_cards }}</strong>
+      <em class="status-badge status-info">cards</em>
+    </article>
+    <article class="metric-card metric-warning">
+      <span>人工复核队列</span>
+      <strong>{{ run.metrics.human_review_count }}</strong>
+      <em class="status-badge status-warning">review</em>
+    </article>
+    <article class="metric-card">
+      <span>LLM used</span>
+      <strong>{{ run.metrics.llm_used }}</strong>
+      <em class="status-badge status-muted">optional</em>
+    </article>
+    <article class="metric-card">
+      <span>fallback</span>
+      <strong>{{ run.metrics.fallback }}</strong>
+      <em class="status-badge status-muted">rules.py</em>
+    </article>
+  </div>
+</section>
+
+<section class="dashboard-grid" data-reveal>
+  <article class="card chart-card">
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Issue categories</p>
+        <h2>问题类型分布</h2>
+      </div>
+    </div>
+    <div class="bars">
+      {% for item in run.category_distribution %}
+      <div class="bar-row">
+        <span>{{ item.name }}</span>
+        <div class="bar-track"><i style="width: {{ item.percent }}%"></i></div>
+        <strong>{{ item.count }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card chart-card">
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Priority</p>
+        <h2>优先级分布</h2>
+      </div>
+    </div>
+    <div class="bars">
+      {% for item in run.priority_distribution %}
+      <div class="bar-row priority-{{ item.name|lower }}">
+        <span>{{ item.name }}</span>
+        <div class="bar-track"><i style="width: {{ item.percent }}%"></i></div>
+        <strong>{{ item.count }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="card table-card" id="review-queue" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Human review queue</p>
+      <h2>需要人判断的样本</h2>
+    </div>
+    <span class="status-badge status-warning">{{ run.metrics.human_review_count }} queued</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>问题类型</th><th>优先级</th><th>复核原因</th></tr>
+      </thead>
+      <tbody>
+        {% for item in run.review_items %}
+        <tr class="{{ item.risk_class }}">
+          <td><strong>{{ item.id }}</strong></td>
+          <td>{{ item.issue_category }}</td>
+          <td><span class="priority-pill priority-{{ item.priority|lower }}">{{ item.priority }}</span></td>
+          <td>{{ item.human_review_reasons }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">无</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card issue-section" id="issue-cards" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Issue cards</p>
+      <h2>问题卡片摘要</h2>
+    </div>
+  </div>
+  <div class="issue-grid">
+    {% for card in run.issue_cards %}
+    <article class="issue-card {% if card.needs_human_review %}needs-review{% endif %}">
+      <div class="issue-top">
+        <strong>{{ card.id }}</strong>
+        <span class="priority-pill priority-{{ card.priority|lower }}">{{ card.priority }}</span>
+      </div>
+      <h3>{{ card.issue_category }}</h3>
+      <p>{{ card.summary }}</p>
+      <small>产品建议</small>
+      <p>{{ card.product_suggestion }}</p>
+      {% if card.needs_human_review %}
+      <div class="review-badge status-badge status-warning">需要人工复核：{{ card.human_review_reasons }}</div>
+      {% else %}
+      <div class="review-badge status-badge status-success">无需人工复核</div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card table-card" id="run-log" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Agent run log</p>
+      <h2>固定七步工具链</h2>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>步骤</th><th>状态</th><th>输入摘要</th><th>输出摘要</th><th>下一步</th></tr>
+      </thead>
+      <tbody>
+        {% for step in run.run_steps %}
+        <tr>
+          <td><strong>{{ step.step }}</strong></td>
+          <td><span class="status-badge status-{{ step.status }}">{{ step.status }}</span></td>
+          <td>{{ step.input_summary }}</td>
+          <td>{{ step.output_summary }}</td>
+          <td>{{ step.next_action }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card download-section" id="downloads" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Downloads</p>
+      <h2>下载区</h2>
+      <p class="card-subtitle">保存本轮输出文件</p>
+    </div>
+    <span class="status-badge status-info">6 files</span>
+  </div>
+  <div class="download-grid">
+    {% for item in run.downloads %}
+      {% if item.exists %}
+      <a href="/runs/{{ run.run_id }}/download/{{ item.name }}">{{ item.label }}<span>{{ item.name }}</span></a>
+      {% else %}
+      <span class="disabled-download">{{ item.label }}<small>{{ item.name }} 未生成</small></span>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

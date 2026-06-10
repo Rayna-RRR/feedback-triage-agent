@@ -1,0 +1,315 @@
+from __future__ import annotations
+
+import re
+import shutil
+import zipfile
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
+
+import pandas as pd
+import uvicorn
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from feedback_triage_agent import __version__
+from feedback_triage_agent.agent import FeedbackTriageAgent
+from feedback_triage_agent.html_report import ReportInputError, generate_html_report, parse_bullet_map, parse_run_log
+from feedback_triage_agent.web_models import DownloadFile, WebRunData
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_DIR = Path(__file__).resolve().parent
+DATA_DIR = PROJECT_ROOT / "data"
+WEB_RUNS_DIR = DATA_DIR / "web_runs"
+TEMPLATES_DIR = PACKAGE_DIR / "templates"
+STATIC_DIR = PACKAGE_DIR / "static"
+
+SAMPLE_FEEDBACK_PATH = DATA_DIR / "sample_feedback.csv"
+AI_REVIEWS_PATH = DATA_DIR / "ai_app_reviews.csv"
+
+REQUIRED_WEB_OUTPUTS = [
+    "issue_cards.md",
+    "qa_report.md",
+    "run_log.md",
+    "triage_results.csv",
+]
+DOWNLOADS = [
+    ("issue_cards.md", "问题卡片 Markdown"),
+    ("qa_report.md", "QA 报告 Markdown"),
+    ("run_log.md", "Agent run log"),
+    ("triage_results.csv", "结构化 CSV"),
+    ("report.html", "静态 HTML 报告"),
+    ("outputs.zip", "全部输出 zip"),
+]
+
+
+app = FastAPI(title="Feedback Triage Agent Web App", version=__version__)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+
+def render_index(request: Request, error: Optional[str] = None, status_code: int = 200):
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "error": error,
+            "version": __version__,
+            "sample_exists": SAMPLE_FEEDBACK_PATH.exists(),
+            "ai_reviews_exists": AI_REVIEWS_PATH.exists(),
+        },
+        status_code=status_code,
+    )
+
+
+def sanitize_name(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "-", value.strip())
+    return cleaned.strip("-")[:40]
+
+
+def create_run_dir(output_name: str = "") -> Path:
+    WEB_RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    suffix = sanitize_name(output_name)
+    base_name = f"run_{timestamp}" + (f"_{suffix}" if suffix else "")
+    run_dir = WEB_RUNS_DIR / base_name
+    counter = 2
+    while run_dir.exists():
+        run_dir = WEB_RUNS_DIR / f"{base_name}_{counter:02d}"
+        counter += 1
+    run_dir.mkdir(parents=True)
+    return run_dir
+
+
+def validate_run_id(run_id: str) -> None:
+    if not re.match(r"^run_\d{8}_\d{6}(?:_[A-Za-z0-9_-]+)*(?:_\d{2})?$", run_id):
+        raise ValueError("运行目录名称不合法。")
+
+
+def get_run_dir(run_id: str) -> Path:
+    validate_run_id(run_id)
+    run_dir = WEB_RUNS_DIR / run_id
+    if not run_dir.exists():
+        raise FileNotFoundError("找不到这次运行的输出目录。")
+    return run_dir
+
+
+def validate_csv_input(path: Path) -> None:
+    try:
+        dataframe = pd.read_csv(path, nrows=5)
+    except Exception as exc:
+        raise ValueError(f"CSV 无法读取，请检查文件编码和格式: {exc}") from exc
+    if "review_text" not in dataframe.columns:
+        raise ValueError("CSV 缺少 review_text 字段。请提供包含原始评论文本的 CSV。")
+
+
+def resolve_builtin_source(data_source: str) -> Path:
+    if data_source == "sample":
+        return SAMPLE_FEEDBACK_PATH
+    if data_source == "ai_reviews":
+        return AI_REVIEWS_PATH
+    raise ValueError("没有选择数据源。")
+
+
+def create_outputs_zip(output_dir: Path) -> Path:
+    zip_path = output_dir / "outputs.zip"
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for filename in REQUIRED_WEB_OUTPUTS + ["report.html"]:
+            path = output_dir / filename
+            if path.exists():
+                archive.write(path, arcname=filename)
+    return zip_path
+
+
+def verify_outputs(output_dir: Path) -> None:
+    missing = [filename for filename in REQUIRED_WEB_OUTPUTS if not (output_dir / filename).exists()]
+    if missing:
+        raise ValueError("Agent 输出文件缺失: " + "，".join(missing))
+
+
+def boolish(value: object) -> bool:
+    normalized = str(value).strip().lower()
+    return normalized in {"true", "1", "yes", "y", "on"}
+
+
+def frame_distribution(values: pd.Series) -> List[Dict[str, object]]:
+    counts = values.fillna("").astype(str).replace("", "未填写").value_counts()
+    max_count = int(counts.max()) if len(counts) else 0
+    rows = []
+    for name, count in counts.items():
+        rows.append(
+            {
+                "name": name,
+                "count": int(count),
+                "percent": 0 if max_count == 0 else int(round(int(count) / max_count * 100)),
+            }
+        )
+    return rows
+
+
+def read_results(run_id: str) -> WebRunData:
+    output_dir = get_run_dir(run_id)
+    verify_outputs(output_dir)
+
+    results = pd.read_csv(output_dir / "triage_results.csv").fillna("")
+    qa_values = parse_bullet_map((output_dir / "qa_report.md").read_text(encoding="utf-8"))
+    run_steps = parse_run_log((output_dir / "run_log.md").read_text(encoding="utf-8"))
+
+    review_mask = results["needs_human_review"].map(boolish)
+    review_items = [
+        {
+            "id": row.get("id", ""),
+            "issue_category": row.get("issue_category", ""),
+            "priority": row.get("priority", ""),
+            "human_review_reasons": row.get("human_review_reasons", ""),
+            "risk_class": risk_class(row.get("priority", ""), row.get("human_review_reasons", "")),
+        }
+        for _, row in results[review_mask].iterrows()
+    ]
+
+    issue_cards = [
+        {
+            "id": row.get("id", ""),
+            "issue_category": row.get("issue_category", ""),
+            "priority": row.get("priority", ""),
+            "summary": row.get("summary", ""),
+            "product_suggestion": row.get("product_suggestion", ""),
+            "needs_human_review": boolish(row.get("needs_human_review", "")),
+            "human_review_reasons": row.get("human_review_reasons", ""),
+        }
+        for _, row in results.iterrows()
+    ]
+
+    downloads = [
+        DownloadFile(name=name, label=label, exists=(output_dir / name).exists())
+        for name, label in DOWNLOADS
+    ]
+
+    metrics: Dict[str, object] = {
+        "total_samples": qa_values.get("总样本数", len(results)),
+        "valid_samples": qa_values.get("有效样本数", len(results)),
+        "issue_cards": len(issue_cards),
+        "human_review_count": qa_values.get("需要人工复核样本数", len(review_items)),
+        "llm_used": qa_values.get("是否使用 LLM", "False"),
+        "fallback": qa_values.get("是否 fallback 到 rules.py", "False"),
+        "output_dir": str(output_dir),
+    }
+
+    return WebRunData(
+        run_id=run_id,
+        output_dir=output_dir,
+        metrics=metrics,
+        category_distribution=frame_distribution(results["issue_category"]),
+        priority_distribution=frame_distribution(results["priority"]),
+        review_items=review_items,
+        issue_cards=issue_cards,
+        run_steps=run_steps,
+        downloads=downloads,
+    )
+
+
+def risk_class(priority: object, reasons: object) -> str:
+    text = f"{priority} {reasons}"
+    if "P0" in text:
+        return "risk-p0"
+    if "低置信度" in text:
+        return "risk-low-confidence"
+    if "多个问题" in text:
+        return "risk-multi"
+    return ""
+
+
+@app.get("/")
+def index(request: Request):
+    return render_index(request)
+
+
+@app.post("/run")
+async def run_agent(
+    request: Request,
+    data_source: str = Form(""),
+    use_llm: Optional[str] = Form(None),
+    rule_only: Optional[str] = Form(None),
+    output_name: str = Form(""),
+    generate_html: Optional[str] = Form("on"),
+    upload_file: Optional[UploadFile] = File(None),
+):
+    if not data_source:
+        return render_index(request, "请选择一个数据源，或上传 CSV 文件。", status_code=400)
+
+    run_dir = create_run_dir(output_name)
+    try:
+        if data_source == "upload":
+            if upload_file is None or not upload_file.filename:
+                raise ValueError("请选择要上传的 CSV 文件。")
+            if not upload_file.filename.lower().endswith(".csv"):
+                raise ValueError("上传文件必须是 CSV 格式。")
+            input_path = run_dir / "input.csv"
+            with input_path.open("wb") as file:
+                shutil.copyfileobj(upload_file.file, file)
+        else:
+            input_path = resolve_builtin_source(data_source)
+            if not input_path.exists():
+                raise ValueError(f"内置数据文件不存在: {input_path}")
+
+        validate_csv_input(input_path)
+
+        llm_requested = boolish(use_llm) and not boolish(rule_only)
+        agent = FeedbackTriageAgent(input_path=input_path, output_dir=run_dir, llm_requested=llm_requested)
+        state = agent.run()
+        if state.run_log and state.run_log[-1].status == "error":
+            raise ValueError(state.run_log[-1].output_summary)
+
+        verify_outputs(run_dir)
+        if boolish(generate_html):
+            generate_html_report(run_dir)
+        create_outputs_zip(run_dir)
+    except (ValueError, ReportInputError, FileNotFoundError) as exc:
+        return render_index(request, str(exc), status_code=400)
+    except Exception:
+        return render_index(request, "Agent 运行失败，请检查输入 CSV 后重试。", status_code=500)
+
+    return RedirectResponse(url=f"/runs/{run_dir.name}", status_code=303)
+
+
+@app.get("/runs/{run_id}")
+def results(request: Request, run_id: str):
+    try:
+        run_data = read_results(run_id)
+    except (ValueError, FileNotFoundError) as exc:
+        return render_index(request, str(exc), status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "results.html",
+        {"run": run_data, "version": __version__},
+    )
+
+
+@app.get("/runs/{run_id}/download/{filename}")
+def download(run_id: str, filename: str):
+    allowed = {name for name, _label in DOWNLOADS}
+    if filename not in allowed:
+        raise HTTPException(status_code=404, detail="文件不允许下载。")
+    try:
+        output_dir = get_run_dir(run_id)
+    except (ValueError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="找不到这次运行。")
+    path = output_dir / filename
+    if filename == "outputs.zip" and not path.exists():
+        create_outputs_zip(output_dir)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="文件不存在。")
+    return FileResponse(path, filename=filename)
+
+
+def main() -> None:
+    url = "http://127.0.0.1:8000"
+    print(f"Feedback Triage Agent Web App running at {url}")
+    uvicorn.run("feedback_triage_agent.web_app:app", host="127.0.0.1", port=8000)
+
+
+if __name__ == "__main__":
+    main()

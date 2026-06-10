@@ -14,3 +14,6 @@ __pycache__/
 
 # copied source data from old project
 data/source_ai_app_feedback/
+
+# generated Web App runs
+data/web_runs/

@@ -587,6 +587,7 @@
       <a href="#agent">Agent 做了什么</a>
       <a href="#review">人工复核</a>
       <a href="#report">样例报告</a>
+      <a href="#webapp">实际操作</a>
       <a href="#reproduce">复现</a>
     </div>
   </nav>
@@ -774,12 +775,36 @@
       </div>
     </section>
 
+    <section id="webapp" data-reveal>
+      <span class="section-kicker">想实际操作？</span>
+      <h2 class="section-title">启动本地 Web App，就能在网页里跑一次分诊。</h2>
+      <p class="section-copy">
+        v0.4 新增 FastAPI 本地原型。它支持使用内置样例、使用 AI 应用评论数据、上传自己的 CSV、运行 Agent、查看结果页，并下载 `issue_cards.md`、`qa_report.md`、`run_log.md`、`triage_results.csv`、`report.html` 和 zip 包。
+      </p>
+      <div class="bento">
+        <article class="card span-6">
+          <h3>本地启动命令</h3>
+          <pre><code>python -m feedback_triage_agent.web_app</code></pre>
+          <p style="margin-top:16px;">启动后打开 <code>http://127.0.0.1:8000</code>。Web App 不接数据库、不做登录、不接生产系统。</p>
+        </article>
+        <article class="card span-6">
+          <h3>网页里可以做什么</h3>
+          <div class="flow">
+            <div class="flow-step"><i>1</i><span>选择 `sample_feedback.csv`、`ai_app_reviews.csv` 或上传 CSV。</span></div>
+            <div class="flow-step"><i>2</i><span>选择是否使用 LLM 初稿、是否只用规则、是否生成 HTML 报告。</span></div>
+            <div class="flow-step"><i>3</i><span>点击“开始分诊”，在结果页查看总览、分布、复核队列、问题卡片和 run log。</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section id="reproduce" data-reveal>
       <span class="section-kicker">技术读者如何复现</span>
       <h2 class="section-title">从数据准备到样例报告，命令是可复跑的。</h2>
       <p class="section-copy">以下命令在项目根目录执行。展示页本身不需要 Python 环境，只有重新生成数据和报告时才需要。</p>
       <div class="command-list">
         <pre><code>python scripts/prepare_ai_app_reviews.py</code></pre>
+        <pre><code>python -m feedback_triage_agent.web_app</code></pre>
         <pre><code>python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"</code></pre>
         <pre><code>python -m feedback_triage_agent.cli report --output data/output_ask</code></pre>
         <pre><code>python -m feedback_triage_agent.cli inspect --output data/output_ask</code></pre>
@@ -790,7 +815,7 @@
     <footer class="footer">
       <div>
         <h2 class="section-title" style="margin-bottom:14px;">保留边界，才方便复核。</h2>
-        <p class="section-copy">不接数据库、不做 Streamlit、不接后端、不做 RAG，不把 API key 写进代码。这个展示入口只解释项目，不替代 Agent 主流程。</p>
+        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.4 Web App 只跑本地服务，不接生产系统。</p>
       </div>
       <a class="button secondary" href="#top">回到顶部</a>
     </footer>

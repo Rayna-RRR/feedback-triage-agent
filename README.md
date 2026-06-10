@@ -1,15 +1,31 @@
-# Feedback Triage Agent v0.3
+# Feedback Triage Agent v0.4
+
+## 本地 Web App
+
+想实际操作分诊流程，可以启动本地 Web App：
+
+```bash
+python -m feedback_triage_agent.web_app
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:8000
+```
+
+Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
 
 ## 展示入口
 
-如果只是想了解项目，不需要先运行 CLI。可以直接在浏览器打开：
+如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接在浏览器打开：
 
 - `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
 - `docs/demo-report.html`: 基于 `data/output_ask` 真实导出结果生成的样例 HTML 报告。
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.3 支持可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
+v0.4 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -61,6 +77,12 @@ export DEEPSEEK_TIMEOUT_SECONDS="20"
 不设置 `DEEPSEEK_API_KEY` 时，命令会自动使用规则版分诊。若 API 调用失败，本轮会在 `run_log.md` 和 `qa_report.md` 中记录 fallback 原因，并继续使用 `rules.py`。
 
 ## 运行命令
+
+启动本地 Web App：
+
+```bash
+python -m feedback_triage_agent.web_app
+```
 
 运行内置 demo：
 
@@ -114,10 +136,13 @@ python -m pytest
 - `data/output/triage_results.csv`: 结构化分诊结果，包含 `classification_source` 和 `llm_error`，可用于后续分析或页面展示。
 - `data/output/report.html`: 本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、问题卡片摘要、run log 和判断边界。
 
-## v0.3 范围
+## v0.4 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
+- 使用 FastAPI + Jinja2 提供本地 Web App 原型。
+- Web App 支持内置样例、AI 应用评论数据和用户上传 CSV。
+- Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
 - 使用关键词和启发式规则完成优先级判断、fallback 和人工复核识别。
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
 - 所有 LLM 输出都必须经过 QA 检查和人工复核队列判断。

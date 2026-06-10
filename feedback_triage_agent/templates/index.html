@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Triage Agent Web App{% endblock %}
+
+{% block content %}
+<section class="page-title" data-reveal>
+  <div>
+    <p class="breadcrumb">Home / Feedback Triage</p>
+    <h1>反馈分诊后台</h1>
+    <p>把用户反馈 CSV 整理成问题分类、优先级、人工复核队列、问题卡片、QA 报告和 run log。</p>
+  </div>
+  <div class="page-actions">
+    <span class="status-badge status-success">rules.py fallback ready</span>
+    <a class="button button-outline" href="#run-form">配置运行</a>
+  </div>
+</section>
+
+{% if error %}
+<section class="alert-card" role="alert" data-reveal>
+  <strong>无法运行</strong>
+  <p>{{ error }}</p>
+</section>
+{% endif %}
+
+<section class="dashboard-grid" data-reveal>
+  <article class="card command-card">
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Agent workflow</p>
+        <h2>本地反馈分诊工作台</h2>
+      </div>
+      <span class="status-badge status-info">7 tools</span>
+    </div>
+    <p class="card-copy">选择数据源后运行现有 Agent runner。LLM 初稿、规则 fallback、QA 检查和人工复核边界仍由原有代码负责。</p>
+    <div class="step-rail" aria-label="固定工具链">
+      <span>load</span>
+      <span>validate</span>
+      <span>classify</span>
+      <span>badcase</span>
+      <span>cards</span>
+      <span>QA</span>
+      <span>export</span>
+    </div>
+  </article>
+
+  <article class="card readiness-card">
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Required schema</p>
+        <h2>输入与输出</h2>
+      </div>
+      <span class="status-badge status-success">local only</span>
+    </div>
+    <dl class="definition-list">
+      <div>
+        <dt>输入字段</dt>
+        <dd>id, source, app_name, review_text, rating</dd>
+      </div>
+      <div>
+        <dt>输出文件</dt>
+        <dd>issue_cards.md, qa_report.md, run_log.md, triage_results.csv, report.html</dd>
+      </div>
+    </dl>
+  </article>
+</section>
+
+<section class="status-panel" aria-label="项目状态" data-reveal>
+  <article>
+    <span class="status-badge status-success">Input</span>
+    <strong>CSV 反馈数据</strong>
+    <p>读取内置样例、AI 应用评论数据，或上传包含 review_text 的 CSV。</p>
+  </article>
+  <article>
+    <span class="status-badge status-info">Agent</span>
+    <strong>固定七步工具链</strong>
+    <p>字段检查、分类、优先级、badcase、问题卡片、QA 和导出保持原流程。</p>
+  </article>
+  <article>
+    <span class="status-badge status-warning">Review</span>
+    <strong>人工复核保留</strong>
+    <p>P0、低置信度、多问题命中样本不会被页面自动判定为完成。</p>
+  </article>
+</section>
+
+<form class="run-form" id="run-form" action="/run" method="post" enctype="multipart/form-data">
+  <section class="card section-card" id="data-source" data-reveal>
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Data source</p>
+        <h2>选择要分诊的 CSV</h2>
+      </div>
+      <span class="status-badge status-info">review_text required</span>
+    </div>
+
+    <div class="source-grid">
+      <label class="source-card">
+        <input type="radio" name="data_source" value="sample">
+        <span>
+          <strong>使用内置 demo 数据</strong>
+          <small>data/sample_feedback.csv{% if not sample_exists %}（文件缺失）{% endif %}</small>
+        </span>
+      </label>
+
+      <label class="source-card">
+        <input type="radio" name="data_source" value="ai_reviews" checked>
+        <span>
+          <strong>使用 AI 应用评论数据</strong>
+          <small>data/ai_app_reviews.csv{% if not ai_reviews_exists %}（文件缺失）{% endif %}</small>
+        </span>
+      </label>
+
+      <label class="source-card">
+        <input type="radio" name="data_source" value="upload">
+        <span>
+          <strong>上传自己的 CSV 文件</strong>
+          <small>只接受 .csv，必须包含 review_text 字段</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="upload-row" id="upload-row">
+      <label for="upload_file">上传 CSV</label>
+      <input id="upload_file" name="upload_file" type="file" accept=".csv,text/csv">
+    </div>
+  </section>
+
+  <section class="card section-card" id="run-options" data-reveal>
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">Run options</p>
+        <h2>控制本轮运行方式</h2>
+      </div>
+      <span class="status-badge status-warning">manual review preserved</span>
+    </div>
+
+    <div class="options-grid">
+      <label class="check-card">
+        <input type="checkbox" name="use_llm" value="on" checked>
+        <span>
+          <strong>使用 LLM 初稿</strong>
+          <small>有 DEEPSEEK_API_KEY 时尝试调用；没有 key 会 fallback 到 rules.py</small>
+        </span>
+      </label>
+
+      <label class="check-card">
+        <input type="checkbox" name="rule_only" value="on">
+        <span>
+          <strong>只用规则版</strong>
+          <small>关闭 LLM 初稿，直接使用本地规则分诊</small>
+        </span>
+      </label>
+
+      <label class="check-card">
+        <input type="checkbox" name="generate_html" value="on" checked>
+        <span>
+          <strong>生成 HTML 报告</strong>
+          <small>额外导出 report.html，便于本地打开和截图</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label for="output_name">输出目录名（可选）</label>
+      <input id="output_name" name="output_name" type="text" placeholder="例如 interview-demo">
+      <small>实际目录会写入 data/web_runs/run_YYYYMMDD_HHMMSS/，自定义名称会追加在后面。</small>
+    </div>
+  </section>
+
+  <section class="card submit-card" id="reports" data-reveal>
+    <div>
+      <p class="card-kicker">Ready to run</p>
+      <h2>生成分诊结果和报告文件</h2>
+      <p>运行过程在本机完成，不接数据库、不上传到远程服务。</p>
+    </div>
+    <button type="submit">开始分诊</button>
+  </section>
+</form>
+{% endblock %}

@@ -12,7 +12,7 @@ from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.html_report import ReportInputError, generate_html_report
 
 
-app = typer.Typer(help="Feedback Triage Agent v0.3", no_args_is_help=True)
+app = typer.Typer(help="Feedback Triage Agent v0.4", no_args_is_help=True)
 console = Console()
 
 
