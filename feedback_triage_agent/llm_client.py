@@ -33,11 +33,19 @@ class DeepSeekConfig:
         api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
         if not api_key:
             raise LLMUnavailableError("DEEPSEEK_API_KEY 未设置，使用规则版分诊")
+        base_url = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
+        model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
+        try:
+            timeout_seconds = int(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", "20"))
+        except ValueError as exc:
+            raise LLMUnavailableError("DEEPSEEK_TIMEOUT_SECONDS 必须是正整数") from exc
+        if not base_url or not model or timeout_seconds <= 0:
+            raise LLMUnavailableError("DeepSeek 配置无效，使用规则版分诊")
         return cls(
             api_key=api_key,
-            base_url=os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip(),
-            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip(),
-            timeout_seconds=int(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", "20")),
+            base_url=base_url,
+            model=model,
+            timeout_seconds=timeout_seconds,
         )
 
 
@@ -93,6 +101,9 @@ class DeepSeekClient:
             content = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise LLMCallError("DeepSeek 响应结构无法解析") from exc
+
+        if not isinstance(content, str):
+            raise LLMCallError("DeepSeek 响应内容不是文本")
 
         try:
             draft_data = json.loads(strip_json_fence(content))

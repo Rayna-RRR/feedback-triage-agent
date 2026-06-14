@@ -25,8 +25,10 @@ from feedback_triage_agent.html_report import (
 from feedback_triage_agent.task_parser import (
     infer_input_path,
     should_disable_llm,
+    should_enable_llm,
     should_generate_html_report,
 )
+from feedback_triage_agent.rules import REQUIRED_FIELDS
 from feedback_triage_agent.web_models import DownloadFile, WebRunData
 
 
@@ -39,6 +41,9 @@ STATIC_DIR = PACKAGE_DIR / "static"
 
 SAMPLE_FEEDBACK_PATH = DATA_DIR / "sample_feedback.csv"
 AI_REVIEWS_PATH = DATA_DIR / "ai_app_reviews.csv"
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+MAX_INPUT_ROWS = 5000
+MAX_LLM_ROWS = 100
 
 REQUIRED_WEB_OUTPUTS = [
     "issue_cards.md",
@@ -111,13 +116,27 @@ def get_run_dir(run_id: str) -> Path:
     return run_dir
 
 
-def validate_csv_input(path: Path) -> None:
+def validate_csv_input(path: Path) -> int:
     try:
-        dataframe = pd.read_csv(path, nrows=5)
+        dataframe = pd.read_csv(path, nrows=MAX_INPUT_ROWS + 1)
     except Exception as exc:
         raise ValueError(f"CSV 无法读取，请检查文件编码和格式: {exc}") from exc
-    if "review_text" not in dataframe.columns:
-        raise ValueError("CSV 缺少 review_text 字段。请提供包含原始评论文本的 CSV。")
+    missing = [field for field in REQUIRED_FIELDS if field not in dataframe.columns]
+    if missing:
+        raise ValueError("CSV 缺少必填字段: " + "，".join(missing))
+    if len(dataframe) > MAX_INPUT_ROWS:
+        raise ValueError(f"CSV 超过 {MAX_INPUT_ROWS} 行限制，请拆分后重试。")
+    return len(dataframe)
+
+
+def save_upload(upload_file: UploadFile, destination: Path) -> None:
+    total_bytes = 0
+    with destination.open("wb") as file:
+        while chunk := upload_file.file.read(1024 * 1024):
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                raise ValueError("上传文件超过 5 MB 限制。")
+            file.write(chunk)
 
 
 def resolve_builtin_source(data_source: str) -> Path:
@@ -151,7 +170,9 @@ def execute_agent_run(
     llm_requested: bool,
     generate_html: bool,
 ) -> None:
-    validate_csv_input(input_path)
+    row_count = validate_csv_input(input_path)
+    if llm_requested and row_count > MAX_LLM_ROWS:
+        raise ValueError(f"启用 LLM 时最多处理 {MAX_LLM_ROWS} 条反馈，请拆分输入或使用规则模式。")
     agent = FeedbackTriageAgent(input_path=input_path, output_dir=run_dir, llm_requested=llm_requested)
     state = agent.run()
     if state.run_log and state.run_log[-1].status == "error":
@@ -191,7 +212,11 @@ def read_results(run_id: str) -> WebRunData:
     qa_values = parse_bullet_map((output_dir / "qa_report.md").read_text(encoding="utf-8"))
     run_steps = parse_run_log((output_dir / "run_log.md").read_text(encoding="utf-8"))
 
-    review_mask = results["needs_human_review"].map(boolish)
+    review_mask = (
+        results["needs_human_review"].map(boolish)
+        if "needs_human_review" in results
+        else pd.Series(False, index=results.index)
+    )
     review_items = [
         {
             "id": row.get("id", ""),
@@ -281,8 +306,7 @@ async def run_agent(
             if not upload_file.filename.lower().endswith(".csv"):
                 raise ValueError("上传文件必须是 CSV 格式。")
             input_path = run_dir / "input.csv"
-            with input_path.open("wb") as file:
-                shutil.copyfileobj(upload_file.file, file)
+            save_upload(upload_file, input_path)
         else:
             input_path = resolve_builtin_source(data_source)
             if not input_path.exists():
@@ -333,13 +357,12 @@ def ask_agent(
             if not upload_file.filename.lower().endswith(".csv"):
                 raise ValueError("上传文件必须是 CSV 格式。")
             input_path = run_dir / "input.csv"
-            with input_path.open("wb") as file:
-                shutil.copyfileobj(upload_file.file, file)
+            save_upload(upload_file, input_path)
 
         execute_agent_run(
             input_path,
             run_dir,
-            llm_requested=not should_disable_llm(task),
+            llm_requested=should_enable_llm(task) and not should_disable_llm(task),
             generate_html=should_generate_html_report(task),
         )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:

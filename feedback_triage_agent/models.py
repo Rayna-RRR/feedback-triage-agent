@@ -55,8 +55,10 @@ class ClassifiedFeedback(BaseModel):
     review_text: str
     rating: int
     issue_category: IssueCategory
+    rule_issue_category: IssueCategory
     priority: Priority
     confidence: float = Field(ge=0, le=1)
+    rule_confidence: float = Field(ge=0, le=1)
     matched_categories: List[str] = Field(default_factory=list)
     matched_keywords: Dict[str, List[str]] = Field(default_factory=dict)
     summary: str
@@ -65,6 +67,7 @@ class ClassifiedFeedback(BaseModel):
     needs_human_review: bool = False
     human_review_reasons: List[str] = Field(default_factory=list)
     classification_source: ClassificationSource = "rules"
+    llm_rule_disagreement: bool = False
     llm_error: Optional[str] = None
 
 
@@ -140,11 +143,12 @@ class AgentRunState(BaseModel):
     missing_columns: List[str] = Field(default_factory=list)
     missing_values: Dict[str, List[str]] = Field(default_factory=dict)
     invalid_records: List[str] = Field(default_factory=list)
+    duplicate_ids: List[str] = Field(default_factory=list)
     human_review_queue: List[str] = Field(default_factory=list)
     qa_summary: Dict[str, Any] = Field(default_factory=dict)
     run_log: List[RunStepLog] = Field(default_factory=list)
     output_paths: Dict[str, Path] = Field(default_factory=dict)
-    llm_requested: bool = True
+    llm_requested: bool = False
     llm_available: bool = False
     llm_used: bool = False
     llm_provider: str = "deepseek"

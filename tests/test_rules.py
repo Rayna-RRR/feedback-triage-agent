@@ -53,3 +53,12 @@ def test_low_confidence_when_no_keywords_match() -> None:
     assert result.confidence < 0.6
     assert "分类低置信度" in reasons
 
+
+def test_negated_or_resolved_risk_phrases_do_not_escalate_priority() -> None:
+    stable = classify_feedback_record(make_record("从来没有崩溃，运行很稳定。", 5))
+    refunded = classify_feedback_record(make_record("退款很快，客服处理得很好。", 5))
+    responsive = classify_feedback_record(make_record("页面不卡，速度很快。", 5))
+
+    assert stable.priority == "P2"
+    assert refunded.priority == "P2"
+    assert responsive.priority == "P2"

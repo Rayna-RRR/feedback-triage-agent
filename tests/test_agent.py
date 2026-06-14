@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from feedback_triage_agent.agent import FeedbackTriageAgent
+from feedback_triage_agent.html_report import generate_html_report
 
 
 def test_agent_runs_full_flow_and_exports_files(tmp_path: Path, monkeypatch) -> None:
@@ -30,3 +31,17 @@ def test_agent_runs_full_flow_and_exports_files(tmp_path: Path, monkeypatch) -> 
         "export_report",
     ]:
         assert step_name in run_log
+
+
+def test_empty_csv_exports_headers_and_generates_html(tmp_path: Path) -> None:
+    input_path = tmp_path / "empty.csv"
+    input_path.write_text("id,source,app_name,review_text,rating\n", encoding="utf-8")
+    output_dir = tmp_path / "output"
+
+    state = FeedbackTriageAgent(input_path=input_path, output_dir=output_dir).run()
+    report_path = generate_html_report(output_dir)
+
+    assert len(state.run_log) == 7
+    results = (output_dir / "triage_results.csv").read_text(encoding="utf-8")
+    assert results.startswith("id,source,app_name,review_text,rating")
+    assert report_path.exists()

@@ -8,6 +8,30 @@ import pandas as pd
 from feedback_triage_agent.models import AgentRunState, ClassifiedFeedback, IssueCard, RunStepLog
 
 
+TRIAGE_RESULT_COLUMNS = [
+    "id",
+    "source",
+    "app_name",
+    "review_text",
+    "rating",
+    "issue_category",
+    "rule_issue_category",
+    "priority",
+    "confidence",
+    "rule_confidence",
+    "matched_categories",
+    "matched_keywords",
+    "summary",
+    "user_need",
+    "product_suggestion",
+    "needs_human_review",
+    "human_review_reasons",
+    "classification_source",
+    "llm_rule_disagreement",
+    "llm_error",
+]
+
+
 def render_issue_cards(cards: List[IssueCard]) -> str:
     lines = ["# Issue Cards", ""]
     if not cards:
@@ -83,6 +107,8 @@ def render_qa_report(state: AgentRunState) -> str:
             lines.append(f"- {field} 缺失样本: {', '.join(ids)}")
     else:
         lines.append("- 缺失值: 无")
+    duplicate_ids = summary.get("duplicate_ids", [])
+    lines.append(f"- 重复 ID: {'、'.join(duplicate_ids) if duplicate_ids else '无'}")
     lines.append("")
 
     lines.extend(render_count_map("各问题类型分布", summary.get("category_distribution", {})))
@@ -100,14 +126,24 @@ def render_qa_report(state: AgentRunState) -> str:
     else:
         lines.append("- 无")
     lines.append("")
+    disagreement_ids = summary.get("llm_rule_disagreement_ids", [])
+    lines.extend(
+        [
+            "## LLM 与规则分类分歧",
+            "",
+            f"- 分歧样本: {', '.join(disagreement_ids) if disagreement_ids else '无'}",
+            "",
+        ]
+    )
 
     lines.extend(
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.4 可选使用 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
+            "- v0.4.1 默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
             "- 没有 API key 或 API 调用失败时自动 fallback 到 rules.py。",
-            "- 优先级、QA 检查和人工复核队列仍由本地规则执行。",
+            "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",
+            "- LLM 与规则分类不一致时保留两套结论并强制进入人工复核。",
             "- LLM 和规则输出都只作为初筛草稿，P0 和低置信样本必须人工复核。",
             "- 未接入真实用户画像、日志、支付系统或客服工单上下文。",
             "- 多问题反馈不会自动拆分为多个独立需求，只保留多命中标记。",
@@ -148,19 +184,26 @@ def classified_feedback_to_frame(items: List[ClassifiedFeedback]) -> pd.DataFram
                 "review_text": item.review_text,
                 "rating": item.rating,
                 "issue_category": item.issue_category,
+                "rule_issue_category": item.rule_issue_category,
                 "priority": item.priority,
                 "confidence": item.confidence,
+                "rule_confidence": item.rule_confidence,
                 "matched_categories": "；".join(item.matched_categories),
+                "matched_keywords": "；".join(
+                    f"{category}:{','.join(keywords)}"
+                    for category, keywords in item.matched_keywords.items()
+                ),
                 "summary": item.summary,
                 "user_need": item.user_need,
                 "product_suggestion": item.product_suggestion,
                 "needs_human_review": item.needs_human_review,
                 "human_review_reasons": "；".join(item.human_review_reasons),
                 "classification_source": item.classification_source,
+                "llm_rule_disagreement": item.llm_rule_disagreement,
                 "llm_error": item.llm_error or "",
             }
         )
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=TRIAGE_RESULT_COLUMNS)
 
 
 def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[str, Path]:

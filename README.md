@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.4
+# Feedback Triage Agent v0.4.1
 
 ## 本地 Web App
 
@@ -35,7 +35,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.4 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。设置 `DEEPSEEK_API_KEY` 后，LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、QA 检查、fallback 和人工复核队列仍由本地规则负责。没有 API key 或 API 调用失败时，项目会自动使用规则版流程。
+v0.4.1 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask` 命令和静态 HTML 报告。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。LLM 只生成分类、摘要、用户需求和产品建议初稿；优先级、规则证据、QA 检查、fallback 和人工复核队列仍由本地规则负责。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -84,7 +84,7 @@ export DEEPSEEK_API_BASE="https://api.deepseek.com"
 export DEEPSEEK_TIMEOUT_SECONDS="20"
 ```
 
-不设置 `DEEPSEEK_API_KEY` 时，命令会自动使用规则版分诊。若 API 调用失败，本轮会在 `run_log.md` 和 `qa_report.md` 中记录 fallback 原因，并继续使用 `rules.py`。
+不设置 `DEEPSEEK_API_KEY` 时，命令会使用规则版分诊。若明确启用 LLM 但 API key 缺失、配置无效或调用失败，本轮会在 `run_log.md` 和 `qa_report.md` 中记录 fallback 原因，并继续使用 `rules.py`。
 
 ## 运行命令
 
@@ -106,7 +106,13 @@ python -m feedback_triage_agent.cli demo
 python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output
 ```
 
-强制关闭 LLM，仅使用规则：
+明确启用 LLM：
+
+```bash
+python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output --llm
+```
+
+显式关闭 LLM，仅使用规则：
 
 ```bash
 python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output --no-llm
@@ -124,9 +130,9 @@ python -m feedback_triage_agent.cli inspect --output data/output
 python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"
 ```
 
-`ask` 会从任务文本中识别 CSV 输入路径；未指定输出目录时默认写入 `data/output_ask`。如果任务中包含“不要用 LLM”或“只用规则”，会关闭 LLM；如果包含“生成 HTML 报告”或“网页报告”，会在分诊完成后额外生成 `report.html`。
+`ask` 会从任务文本中识别 CSV 输入路径，支持带空格、中文和 Windows 盘符的路径；未指定输出目录时默认写入 `data/output_ask`。LLM 默认关闭，只有任务明确包含“使用 LLM”或“使用 DeepSeek”才会启用；如果包含“生成 HTML 报告”或“网页报告”，会在分诊完成后额外生成 `report.html`。
 
-Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
+Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。上传限制为 5 MB / 5000 行，启用 LLM 时单次最多处理 100 条。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
 
 从已有输出目录生成静态 HTML 报告：
 
@@ -145,18 +151,19 @@ python -m pytest
 - `data/output/issue_cards.md`: 每条反馈对应的问题卡片，包含标题、样本 ID、摘要、类型、优先级、用户需求、产品建议和人工复核原因。
 - `data/output/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
 - `data/output/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
-- `data/output/triage_results.csv`: 结构化分诊结果，包含 `classification_source` 和 `llm_error`，可用于后续分析或页面展示。
-- `data/output/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、问题卡片摘要、run log 和判断边界。
+- `<output-dir>/triage_results.csv`: 结构化分诊结果，分别记录最终分类、规则分类、规则置信度、规则关键词、LLM/规则分歧、`classification_source` 和 `llm_error`。
+- `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.4 范围
+## v0.4.1 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
 - Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
-- 使用关键词和启发式规则完成优先级判断、fallback 和人工复核识别。
+- 使用关键词、否定语义和启发式规则完成优先级判断、fallback 和人工复核识别。
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
+- LLM 与规则分类不一致时保留两套证据并强制进入人工复核。
 - 所有 LLM 输出都必须经过 QA 检查和人工复核队列判断。
 - 使用 Typer + Rich 提供本地 CLI 体验。
 - 使用 `ask` 命令提供最小自然语言任务入口，但不改变固定 Agent 计划。

@@ -67,7 +67,7 @@ def test_detect_badcases_builds_human_review_queue(tmp_path: Path) -> None:
         "id,source,app_name,review_text,rating\n"
         'a001,app_store,ChatMate,"闪退后内容丢失，想投诉。",1\n',
     )
-    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out")
+    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out", llm_requested=False)
     load_feedback(state)
     validate_schema(state)
     classify_feedback(state)
@@ -87,7 +87,7 @@ def test_classify_feedback_falls_back_to_rules_without_api_key(tmp_path: Path, m
         "id,source,app_name,review_text,rating\n"
         'a001,app_store,ChatMate,"回答答非所问。",2\n',
     )
-    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out")
+    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out", llm_requested=True)
     load_feedback(state)
     validate_schema(state)
 
@@ -119,7 +119,7 @@ def test_classify_feedback_uses_llm_draft_then_rules_qa(tmp_path: Path, monkeypa
         "id,source,app_name,review_text,rating\n"
         'a001,app_store,ChatMate,"差",1\n',
     )
-    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out")
+    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out", llm_requested=True)
     load_feedback(state)
     validate_schema(state)
     classify_feedback(state)
@@ -132,3 +132,78 @@ def test_classify_feedback_uses_llm_draft_then_rules_qa(tmp_path: Path, monkeypa
     assert result.status == "warning"
     assert "文本过短" in item.human_review_reasons
     assert "product_suggestion 为空或过泛" in item.human_review_reasons
+
+
+def test_validate_schema_keeps_valid_row_when_duplicate_id_has_missing_value(tmp_path: Path) -> None:
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"",2\n'
+        'a001,app_store,ChatMate,"回答不准确。",2\n',
+    )
+    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out")
+    load_feedback(state)
+
+    result = validate_schema(state)
+
+    assert result.status == "warning"
+    assert [record.review_text for record in state.records] == ["回答不准确。"]
+
+
+def test_validate_schema_reports_duplicate_valid_ids(tmp_path: Path) -> None:
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"回答不准确。",2\n'
+        'a001,app_store,ChatMate,"页面卡住。",2\n',
+    )
+    state = AgentRunState(input_path=csv_path, output_dir=tmp_path / "out")
+    load_feedback(state)
+
+    result = validate_schema(state)
+
+    assert result.status == "warning"
+    assert state.duplicate_ids == ["a001"]
+    assert len(state.records) == 2
+
+    classify_feedback(state)
+    detect_badcases(state)
+    assert all("重复 ID" in item.human_review_reasons for item in state.classified_feedback)
+
+
+def test_llm_rule_disagreement_is_traceable_and_requires_review(tmp_path: Path, monkeypatch) -> None:
+    class FakeDeepSeekClient:
+        model = "deepseek-chat"
+
+        def draft_feedback(self, record):
+            return LLMFeedbackDraft(
+                issue_category="会员与商业化问题",
+                summary="订阅问题",
+                user_need="明确扣费",
+                product_suggestion="核查扣费链路和退款说明",
+            )
+
+    monkeypatch.setattr("feedback_triage_agent.tools.DeepSeekClient", lambda: FakeDeepSeekClient())
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"回答不准确。",3\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        llm_requested=True,
+    )
+    load_feedback(state)
+    validate_schema(state)
+    classify_feedback(state)
+    detect_badcases(state)
+
+    item = state.classified_feedback[0]
+    assert item.issue_category == "会员与商业化问题"
+    assert item.rule_issue_category == "模型能力问题"
+    assert item.llm_rule_disagreement is True
+    assert "LLM 与规则分类不一致" in item.human_review_reasons

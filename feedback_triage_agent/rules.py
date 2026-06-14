@@ -188,6 +188,13 @@ SUGGESTION_BY_CATEGORY = {
 }
 
 GENERIC_SUGGESTIONS = {"", "优化体验", "继续观察", "后续优化", "待确认"}
+NEGATION_PREFIXES = ("没有", "未", "不", "无", "从未", "从来没有", "并未", "不会", "不再")
+POSITIVE_RISK_CONTEXTS = {
+    "退款": ("退款成功", "已退款", "退款很快", "顺利退款", "退款到账"),
+    "扣费": ("没有扣费", "未扣费", "不会扣费"),
+    "崩溃": ("没有崩溃", "从未崩溃", "不会崩溃"),
+    "闪退": ("没有闪退", "从未闪退", "不会闪退"),
+}
 
 
 def normalize_for_matching(text: str) -> str:
@@ -201,12 +208,35 @@ def summarize_text(text: str, max_length: int = 42) -> str:
     return f"{cleaned[:max_length]}..."
 
 
+def keyword_is_negated(text: str, start: int) -> bool:
+    prefix = text[max(0, start - 6) : start]
+    return any(prefix.endswith(negation) for negation in NEGATION_PREFIXES)
+
+
+def keyword_has_positive_risk_context(text: str, keyword: str) -> bool:
+    return any(phrase in text for phrase in POSITIVE_RISK_CONTEXTS.get(keyword, ()))
+
+
+def contains_actionable_keyword(text: str, keyword: str, *, priority_check: bool = False) -> bool:
+    start = text.find(keyword)
+    while start >= 0:
+        if not keyword_is_negated(text, start):
+            if not priority_check or not keyword_has_positive_risk_context(text, keyword):
+                return True
+        start = text.find(keyword, start + len(keyword))
+    return False
+
+
 def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
     normalized = normalize_for_matching(text)
     scores: Dict[str, int] = {}
     matched_keywords: Dict[str, List[str]] = {}
     for category, keywords in CATEGORY_KEYWORDS.items():
-        hits = [keyword for keyword in keywords if keyword.lower() in normalized]
+        hits = [
+            keyword
+            for keyword in keywords
+            if contains_actionable_keyword(normalized, keyword.lower())
+        ]
         scores[category] = len(hits)
         if hits:
             matched_keywords[category] = hits
@@ -238,11 +268,17 @@ def calculate_confidence(scores: Dict[str, int], matched_categories: List[str]) 
 
 def determine_priority(text: str, rating: int) -> str:
     normalized = normalize_for_matching(text)
-    if any(keyword.lower() in normalized for keyword in P0_KEYWORDS):
+    if any(
+        contains_actionable_keyword(normalized, keyword.lower(), priority_check=True)
+        for keyword in P0_KEYWORDS
+    ):
         return "P0"
     if rating <= 2:
         return "P1"
-    if any(keyword.lower() in normalized for keyword in P1_KEYWORDS):
+    if any(
+        contains_actionable_keyword(normalized, keyword.lower(), priority_check=True)
+        for keyword in P1_KEYWORDS
+    ):
         return "P1"
     return "P2"
 
@@ -286,6 +322,8 @@ def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
         reasons.append("分类低置信度")
     if len(feedback.matched_categories) > 1:
         reasons.append("同时命中多个问题类型")
+    if feedback.llm_rule_disagreement:
+        reasons.append("LLM 与规则分类不一致")
     if is_product_suggestion_too_generic(feedback.product_suggestion):
         reasons.append("product_suggestion 为空或过泛")
     if feedback.priority == "P0":
@@ -307,8 +345,10 @@ def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
         review_text=record.review_text,
         rating=record.rating,
         issue_category=category,  # type: ignore[arg-type]
+        rule_issue_category=category,  # type: ignore[arg-type]
         priority=priority,  # type: ignore[arg-type]
         confidence=confidence,
+        rule_confidence=confidence,
         matched_categories=matched_categories,
         matched_keywords=matched_keywords,
         summary=summary,

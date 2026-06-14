@@ -3,7 +3,7 @@
 ## 1. load_feedback
 
 - 状态: success
-- 输入摘要: path=data/sample_feedback.csv
+- 输入摘要: path=/Users/rayna/Documents/feedback-triage-agent/data/sample_feedback.csv
 - 输出摘要: loaded 12 rows, 5 columns
 - warnings: 无
 - 下一步动作: validate_schema
@@ -18,10 +18,10 @@
 
 ## 3. classify_feedback
 
-- 状态: warning
-- 输入摘要: records=12, llm_requested=True
-- 输出摘要: classified=12, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=True, categories={'模型能力问题': 1, '交互体验问题': 3, '性能与稳定性问题': 1, '会员与商业化问题': 2, '内容安全与合规问题': 1, '账号、隐私与数据问题': 1, '用户预期与产品定位问题': 2, '不明确/其他': 1}
-- warnings: LLM 不可用或调用失败，已 fallback 到 rules.py
+- 状态: success
+- 输入摘要: records=12, llm_requested=False
+- 输出摘要: classified=12, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=False, categories={'模型能力问题': 1, '交互体验问题': 3, '性能与稳定性问题': 1, '会员与商业化问题': 2, '内容安全与合规问题': 1, '账号、隐私与数据问题': 1, '用户预期与产品定位问题': 2, '不明确/其他': 1}
+- warnings: 无
 - 下一步动作: detect_badcases
 
 ## 4. detect_badcases
@@ -51,7 +51,7 @@
 ## 7. export_report
 
 - 状态: success
-- 输入摘要: output_dir=data/output
+- 输入摘要: output_dir=/Users/rayna/Documents/feedback-triage-agent/data/output
 - 输出摘要: exported issue_cards.md, qa_report.md, run_log.md, triage_results.csv
 - warnings: 无
 - 下一步动作: done

@@ -46,3 +46,10 @@ def test_deepseek_response_parser_accepts_json_content() -> None:
     assert draft.issue_category == "模型能力问题"
     assert draft.product_suggestion == "补充失败样本并加强事实性检查"
 
+
+def test_deepseek_config_rejects_invalid_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("DEEPSEEK_TIMEOUT_SECONDS", "invalid")
+
+    with pytest.raises(LLMUnavailableError):
+        DeepSeekConfig.from_env()

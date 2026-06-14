@@ -17,11 +17,12 @@
 
 ## 当前范围
 
-v0.4 实现一个本地 CLI + FastAPI Web App Demo：
+v0.4.1 实现一个本地 CLI + FastAPI Web App Demo：
 
 - 读取 `sample_feedback.csv`。
 - 校验必填字段。
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
+- 默认使用规则模式，只有用户明确启用时才向 DeepSeek 发送反馈文本。
 - 没有 API key 或 API 调用失败时，自动 fallback 到规则版分类。
 - 使用规则判断优先级。
 - 识别人工复核样本。
@@ -56,6 +57,7 @@ CSV 至少包含：
 - 同时命中多个问题类型。
 - 产品建议为空或过泛。
 - P0 样本。
+- LLM 与规则分类不一致。
 
 LLM 输出不能绕过人工复核边界。即使分类、摘要、用户需求和产品建议来自 DeepSeek，也必须经过本地 QA 和 badcase 识别。
 

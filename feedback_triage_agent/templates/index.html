@@ -136,7 +136,7 @@
         <input type="radio" name="data_source" value="upload">
         <span>
           <strong>上传自己的 CSV 文件</strong>
-          <small>只接受 .csv，必须包含 review_text 字段</small>
+          <small>只接受 .csv，最大 5 MB / 5000 行，必须包含五个必填字段</small>
         </span>
       </label>
     </div>
@@ -158,10 +158,10 @@
 
     <div class="options-grid">
       <label class="check-card">
-        <input type="checkbox" name="use_llm" value="on" checked>
+        <input type="checkbox" name="use_llm" value="on">
         <span>
           <strong>使用 LLM 初稿</strong>
-          <small>有 DEEPSEEK_API_KEY 时尝试调用；没有 key 会 fallback 到 rules.py</small>
+          <small>勾选后会把反馈文本发送给 DeepSeek；最多处理 100 条</small>
         </span>
       </label>
 
@@ -193,7 +193,7 @@
     <div>
       <p class="card-kicker">Ready to run</p>
       <h2>生成分诊结果和报告文件</h2>
-      <p>运行过程在本机完成，不接数据库、不上传到远程服务。</p>
+      <p>规则模式完全在本机运行；仅在明确启用 LLM 时把反馈文本发送给 DeepSeek。</p>
     </div>
     <button type="submit">开始分诊</button>
   </section>

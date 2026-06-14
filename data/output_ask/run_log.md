@@ -18,10 +18,10 @@
 
 ## 3. classify_feedback
 
-- 状态: warning
-- 输入摘要: records=30, llm_requested=True
-- 输出摘要: classified=30, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=True, categories={'用户预期与产品定位问题': 6, '交互体验问题': 2, '不明确/其他': 13, '性能与稳定性问题': 3, '账号、隐私与数据问题': 1, '内容安全与合规问题': 1, '模型能力问题': 4}
-- warnings: LLM 不可用或调用失败，已 fallback 到 rules.py
+- 状态: success
+- 输入摘要: records=30, llm_requested=False
+- 输出摘要: classified=30, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=False, categories={'用户预期与产品定位问题': 6, '交互体验问题': 2, '不明确/其他': 13, '性能与稳定性问题': 3, '账号、隐私与数据问题': 1, '内容安全与合规问题': 1, '模型能力问题': 4}
+- warnings: 无
 - 下一步动作: detect_badcases
 
 ## 4. detect_badcases

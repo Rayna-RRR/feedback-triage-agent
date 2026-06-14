@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.cli import app, infer_input_path
+from feedback_triage_agent.task_parser import infer_output_dir
 
 
 runner = CliRunner()
@@ -21,6 +22,13 @@ def test_ask_command_can_infer_input_path() -> None:
     path = infer_input_path("分析 data/ai_app_reviews.csv，输出问题卡片和人工复核队列")
 
     assert path == Path("data/ai_app_reviews.csv")
+
+
+def test_ask_command_parses_paths_with_spaces_and_windows_drive() -> None:
+    task = r"分析 C:\My Data\reviews.csv，输出到 C:\My Reports"
+
+    assert infer_input_path(task) == Path(r"C:\My Data\reviews.csv")
+    assert infer_output_dir(task) == Path(r"C:\My Reports")
 
 
 def test_ask_command_runs_agent_and_generates_html_report(tmp_path: Path, monkeypatch) -> None:

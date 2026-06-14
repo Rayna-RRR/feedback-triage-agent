@@ -63,6 +63,7 @@ def parse_issue_cards(markdown: str) -> List[Dict[str, str]]:
                 "summary": values.get("用户原话摘要", ""),
                 "category": values.get("问题类型", ""),
                 "priority": values.get("优先级", ""),
+                "user_need": values.get("用户需求", ""),
                 "suggestion": values.get("产品建议", ""),
                 "review_reasons": values.get("需要人工复核的原因", ""),
             }
@@ -139,8 +140,11 @@ def generate_html_report(output_dir: Path) -> Path:
     run_steps = parse_run_log(run_log_markdown)
     boundaries = parse_boundary_items(qa_markdown)
 
-    review_mask = results["needs_human_review"].map(boolish) if "needs_human_review" in results else pd.Series([], dtype=bool)
-    review_items = results[review_mask] if len(results) else results
+    if "needs_human_review" in results:
+        review_mask = results["needs_human_review"].map(boolish)
+        review_items = results[review_mask]
+    else:
+        review_items = results.iloc[0:0]
 
     metrics = {
         "总样本数": qa_values.get("总样本数", len(results)),
@@ -169,6 +173,7 @@ def generate_html_report(output_dir: Path) -> Path:
             card["category"],
             card["priority"],
             card["summary"],
+            card["user_need"],
             card["suggestion"],
         ]
         for card in issue_cards
@@ -229,7 +234,7 @@ def generate_html_report(output_dir: Path) -> Path:
     {render_table(["ID", "问题类型", "优先级", "原因"], review_rows)}
 
     <h2>问题卡片摘要</h2>
-    {render_table(["ID", "标题", "问题类型", "优先级", "摘要", "产品建议"], card_rows)}
+    {render_table(["ID", "标题", "问题类型", "优先级", "摘要", "用户需求", "产品建议"], card_rows)}
 
     <h2>Agent Run Log 七步摘要</h2>
     {render_table(["步骤", "状态", "输出摘要", "Warnings", "下一步"], run_rows)}

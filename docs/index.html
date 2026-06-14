@@ -779,7 +779,7 @@
       <span class="section-kicker">想实际操作？</span>
       <h2 class="section-title">启动本地 Web App，就能在网页里跑一次分诊。</h2>
       <p class="section-copy">
-        v0.4 新增 FastAPI 本地原型。它支持自然语言 Ask、使用内置样例、使用 AI 应用评论数据、上传自己的 CSV、运行 Agent、查看结果页，并下载 `issue_cards.md`、`qa_report.md`、`run_log.md`、`triage_results.csv`、`report.html` 和 zip 包。
+        v0.4.1 完善 FastAPI 本地原型。规则模式默认在本机运行；只有用户明确启用时才把反馈文本发送给 DeepSeek。它支持自然语言 Ask、内置样例、上传 CSV、运行 Agent、查看结果页并下载报告。
       </p>
       <div class="bento">
         <article class="card span-6">
@@ -815,7 +815,7 @@
     <footer class="footer">
       <div>
         <h2 class="section-title" style="margin-bottom:14px;">保留边界，才方便复核。</h2>
-        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.4 Web App 只跑本地服务，不接生产系统。</p>
+        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.4.1 Web App 不接生产系统，启用 LLM 时会明确提示反馈文本将发送给 DeepSeek。</p>
       </div>
       <a class="button secondary" href="#top">回到顶部</a>
     </footer>
@@ -832,8 +832,9 @@
 
     document.querySelectorAll('.accordion-card').forEach((card) => {
       const toggle = () => {
+        const expanded = card.getAttribute('aria-expanded') === 'true';
         document.querySelectorAll('.accordion-card').forEach((item) => item.setAttribute('aria-expanded', 'false'));
-        card.setAttribute('aria-expanded', 'true');
+        card.setAttribute('aria-expanded', String(!expanded));
       };
       card.addEventListener('click', toggle);
       card.addEventListener('keydown', (event) => {

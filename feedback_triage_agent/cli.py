@@ -13,11 +13,12 @@ from feedback_triage_agent.task_parser import (
     infer_input_path,
     infer_output_dir,
     should_disable_llm,
+    should_enable_llm,
     should_generate_html_report,
 )
 
 
-app = typer.Typer(help="Feedback Triage Agent v0.4", no_args_is_help=True)
+app = typer.Typer(help=f"Feedback Triage Agent v{__version__}", no_args_is_help=True)
 console = Console()
 
 
@@ -63,7 +64,7 @@ def run(
         help="Directory for exported reports.",
     ),
     llm: bool = typer.Option(
-        True,
+        False,
         "--llm/--no-llm",
         help="Use DeepSeek when DEEPSEEK_API_KEY is available.",
     ),
@@ -93,7 +94,7 @@ def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -
         raise typer.Exit(code=1)
 
     output = infer_output_dir(task)
-    llm_requested = not should_disable_llm(task)
+    llm_requested = should_enable_llm(task) and not should_disable_llm(task)
     html_requested = should_generate_html_report(task)
 
     console.print(
@@ -193,7 +194,7 @@ def demo() -> None:
     input_path = root / "data" / "sample_feedback.csv"
     output = root / "data" / "output"
     console.print(Panel("Running bundled sample demo", title="Feedback Triage Agent"))
-    agent = FeedbackTriageAgent(input_path=input_path, output_dir=output, llm_requested=True)
+    agent = FeedbackTriageAgent(input_path=input_path, output_dir=output, llm_requested=False)
     state = agent.run()
     render_run_summary(state)
 

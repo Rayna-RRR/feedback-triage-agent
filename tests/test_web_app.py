@@ -150,7 +150,8 @@ def test_web_upload_csv_missing_review_text_shows_clear_error(tmp_path: Path, mo
     )
 
     assert response.status_code == 400
-    assert "CSV 缺少 review_text 字段" in response.text
+    assert "CSV 缺少必填字段" in response.text
+    assert "review_text" in response.text
     assert "Traceback" not in response.text
     assert list(web_app.WEB_RUNS_DIR.iterdir()) == []
 

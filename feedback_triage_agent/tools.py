@@ -47,7 +47,17 @@ def load_feedback(state: AgentRunState) -> ToolResult:
             next_action="stop",
         )
 
-    dataframe = pd.read_csv(input_path)
+    try:
+        dataframe = pd.read_csv(input_path)
+    except (OSError, UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        return ToolResult(
+            step_name="load_feedback",
+            status="error",
+            input_summary=f"path={input_path}",
+            output_summary="input CSV could not be read",
+            warnings=[f"CSV 读取失败: {exc}"],
+            next_action="stop",
+        )
     state.columns = [str(column) for column in dataframe.columns]
     state.raw_records = dataframe.to_dict("records")
 
@@ -71,26 +81,31 @@ def validate_schema(state: AgentRunState) -> ToolResult:
     state.missing_columns = [field for field in REQUIRED_FIELDS if field not in state.columns]
     state.missing_values = {}
     state.invalid_records = []
+    state.duplicate_ids = []
     state.records = []
 
     if not state.missing_columns:
+        missing_row_indexes = set()
         for field in REQUIRED_FIELDS:
-            missing_ids = [
-                row_label(row, index)
-                for index, row in enumerate(state.raw_records)
-                if is_blank(row.get(field))
-            ]
+            missing_ids = []
+            for index, row in enumerate(state.raw_records):
+                if is_blank(row.get(field)):
+                    missing_row_indexes.add(index)
+                    missing_ids.append(row_label(row, index))
             if missing_ids:
                 state.missing_values[field] = missing_ids
 
         for index, row in enumerate(state.raw_records):
             current_id = row_label(row, index)
-            if any(current_id in ids for ids in state.missing_values.values()):
+            if index in missing_row_indexes:
                 continue
             try:
                 state.records.append(FeedbackRecord.model_validate(row))
             except ValidationError as exc:
                 state.invalid_records.append(f"{current_id}: {exc.errors()[0]['msg']}")
+
+        id_counts = Counter(record.id for record in state.records)
+        state.duplicate_ids = sorted(record_id for record_id, count in id_counts.items() if count > 1)
 
     warnings = []
     if state.missing_columns:
@@ -99,6 +114,8 @@ def validate_schema(state: AgentRunState) -> ToolResult:
         warnings.append("存在必填字段空值")
     if state.invalid_records:
         warnings.append("存在无法通过 pydantic 校验的样本")
+    if state.duplicate_ids:
+        warnings.append("存在重复 id，后续结果需按行核对")
 
     return ToolResult(
         step_name="validate_schema",
@@ -111,6 +128,7 @@ def validate_schema(state: AgentRunState) -> ToolResult:
             "missing_columns": state.missing_columns,
             "missing_values": state.missing_values,
             "invalid_records": state.invalid_records,
+            "duplicate_ids": state.duplicate_ids,
         },
     )
 
@@ -125,7 +143,7 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
             llm_client = DeepSeekClient()
             state.llm_available = True
             state.llm_model = llm_client.model
-        except LLMUnavailableError as exc:
+        except (LLMUnavailableError, ValueError) as exc:
             state.llm_available = False
             state.llm_fallback_used = True
             fallback_reasons.append(str(exc))
@@ -157,6 +175,7 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
             state.llm_used = True
             state.llm_success_count += 1
             item.issue_category = draft.issue_category
+            item.llm_rule_disagreement = draft.issue_category != item.rule_issue_category
             item.summary = draft.summary
             item.user_need = draft.user_need
             item.product_suggestion = draft.product_suggestion
@@ -197,6 +216,8 @@ def detect_badcases(state: AgentRunState) -> ToolResult:
 
     for item in state.classified_feedback:
         reasons = detect_human_review_reasons(item)
+        if item.id in state.duplicate_ids:
+            reasons.append("重复 ID")
         item.human_review_reasons = reasons
         item.needs_human_review = bool(reasons)
         if item.needs_human_review:
@@ -256,14 +277,18 @@ def qa_check(state: AgentRunState) -> ToolResult:
         "missing_columns": state.missing_columns,
         "missing_values": state.missing_values,
         "invalid_records": state.invalid_records,
+        "duplicate_ids": state.duplicate_ids,
         "category_distribution": category_distribution,
         "priority_distribution": priority_distribution,
         "human_review_ids": state.human_review_queue,
         "human_review_count": len(state.human_review_queue),
+        "llm_rule_disagreement_ids": [
+            item.id for item in state.classified_feedback if item.llm_rule_disagreement
+        ],
     }
 
     warnings = []
-    if state.missing_columns or state.missing_values or state.invalid_records:
+    if state.missing_columns or state.missing_values or state.invalid_records or state.duplicate_ids:
         warnings.append("schema 或字段值存在 QA 风险")
     if state.human_review_queue:
         warnings.append("存在人工复核队列")
