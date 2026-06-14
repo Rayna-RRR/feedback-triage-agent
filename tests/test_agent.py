@@ -17,7 +17,13 @@ def test_agent_runs_full_flow_and_exports_files(tmp_path: Path, monkeypatch) -> 
     assert len(state.issue_cards) == 12
     assert state.human_review_queue
 
-    for filename in ["issue_cards.md", "qa_report.md", "run_log.md", "triage_results.csv"]:
+    for filename in [
+        "issue_cards.md",
+        "qa_report.md",
+        "run_log.md",
+        "triage_results.csv",
+        "review_decisions.csv",
+    ]:
         assert (output_dir / filename).exists()
 
     run_log = (output_dir / "run_log.md").read_text(encoding="utf-8")
@@ -43,5 +49,5 @@ def test_empty_csv_exports_headers_and_generates_html(tmp_path: Path) -> None:
 
     assert len(state.run_log) == 7
     results = (output_dir / "triage_results.csv").read_text(encoding="utf-8")
-    assert results.startswith("id,source,app_name,review_text,rating")
+    assert results.startswith("record_key,id,source,app_name,review_text,rating")
     assert report_path.exists()

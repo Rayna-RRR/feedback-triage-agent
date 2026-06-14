@@ -6,9 +6,11 @@ from typing import Dict, List
 import pandas as pd
 
 from feedback_triage_agent.models import AgentRunState, ClassifiedFeedback, IssueCard, RunStepLog
+from feedback_triage_agent.review import write_review_decisions
 
 
 TRIAGE_RESULT_COLUMNS = [
+    "record_key",
     "id",
     "source",
     "app_name",
@@ -140,14 +142,15 @@ def render_qa_report(state: AgentRunState) -> str:
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.5 默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
-            "- 没有 API key 或 API 调用失败时自动 fallback 到 rules.py。",
+            "- v0.6 默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
+            "- 明确启用 LLM 但没有 API key 或调用失败时自动 fallback 到 rules.py。",
             "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",
             "- LLM 与规则分类不一致时保留两套结论并强制进入人工复核。",
             "- LLM 和规则输出都只作为初筛草稿，P0 和低置信样本必须人工复核。",
             "- 未接入真实用户画像、日志、支付系统或客服工单上下文。",
             "- 多问题反馈不会自动拆分为多个独立需求，只保留多命中标记。",
             "- rules.py 可通过本地人工标注 golden set 持续评测，但小样本指标不代表生产准确率。",
+            "- 人工复核通过 review_decisions.csv 回写到独立 reviewed 结果，不覆盖原始分诊文件。",
             "- 暂不实现 RAG、向量数据库或文档检索。",
             "",
         ]
@@ -179,6 +182,7 @@ def classified_feedback_to_frame(items: List[ClassifiedFeedback]) -> pd.DataFram
     for item in items:
         rows.append(
             {
+                "record_key": item.record_key,
                 "id": item.id,
                 "source": item.source,
                 "app_name": item.app_name,
@@ -214,15 +218,18 @@ def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[st
     qa_report_path = state.output_dir / "qa_report.md"
     run_log_path = state.output_dir / "run_log.md"
     results_csv_path = state.output_dir / "triage_results.csv"
+    review_decisions_path = state.output_dir / "review_decisions.csv"
 
     issue_cards_path.write_text(render_issue_cards(state.issue_cards), encoding="utf-8")
     qa_report_path.write_text(render_qa_report(state), encoding="utf-8")
     run_log_path.write_text(render_run_log(final_logs), encoding="utf-8")
     classified_feedback_to_frame(state.classified_feedback).to_csv(results_csv_path, index=False)
+    write_review_decisions(state.classified_feedback, review_decisions_path)
 
     return {
         "issue_cards": issue_cards_path,
         "qa_report": qa_report_path,
         "run_log": run_log_path,
         "triage_results": results_csv_path,
+        "review_decisions": review_decisions_path,
     }

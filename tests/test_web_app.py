@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from feedback_triage_agent import web_app
@@ -48,6 +49,7 @@ def test_web_run_sample_feedback_success(tmp_path: Path, monkeypatch) -> None:
     run_id = result_url.rsplit("/", 1)[-1]
     run_dir = web_app.WEB_RUNS_DIR / run_id
     assert (run_dir / "triage_results.csv").exists()
+    assert (run_dir / "review_decisions.csv").exists()
     assert (run_dir / "report.html").exists()
     assert (run_dir / "outputs.zip").exists()
 
@@ -168,3 +170,25 @@ def test_web_results_page_download_links_work(tmp_path: Path, monkeypatch) -> No
     download_response = client.get(f"/runs/{run_id}/download/triage_results.csv")
     assert download_response.status_code == 200
     assert "id,source,app_name,review_text" in download_response.text
+
+
+def test_web_can_apply_uploaded_review_decisions(tmp_path: Path, monkeypatch) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+    response = post_builtin_run(client, "sample")
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    run_dir = web_app.WEB_RUNS_DIR / run_id
+    decisions = pd.read_csv(run_dir / "review_decisions.csv").fillna("")
+    decisions.loc[0, "decision"] = "confirm"
+    content = decisions.to_csv(index=False).encode("utf-8")
+
+    apply_response = client.post(
+        f"/runs/{run_id}/reviews/apply",
+        files={"decisions_file": ("review_decisions.csv", content, "text/csv")},
+        follow_redirects=False,
+    )
+
+    assert apply_response.status_code == 303
+    assert (run_dir / "triage_results_reviewed.csv").exists()
+    assert (run_dir / "review_summary.md").exists()
+    result_response = client.get(apply_response.headers["location"])
+    assert "人工复核决策已应用" in result_response.text

@@ -50,6 +50,7 @@ class ClassifiedFeedback(BaseModel):
     """A feedback row after triage."""
 
     id: str
+    record_key: str
     source: str
     app_name: str
     review_text: str

@@ -17,7 +17,7 @@
 
 ## 当前范围
 
-v0.5 实现一个本地 CLI + FastAPI Web App Demo：
+v0.6 实现一个本地 CLI + FastAPI Web App Demo：
 
 - 读取 `sample_feedback.csv`。
 - 校验必填字段。
@@ -30,6 +30,8 @@ v0.5 实现一个本地 CLI + FastAPI Web App Demo：
 - CLI 和 Web App 都支持自然语言 `ask` 入口，并可生成静态 HTML 报告。
 - 支持在本地 Web App 中选择内置数据、上传 CSV、查看结果并下载输出。
 - 支持对本地人工标注 golden set 运行规则质量评测和回归门槛。
+- 自动生成 `review_decisions.csv`，并通过 CLI/Web 应用人工确认、调整或保持开放的决策。
+- 人工复核结果写入独立文件，不覆盖原始分诊证据。
 - 暂不实现 RAG、向量数据库和文档检索。
 
 ## 输入数据
@@ -48,6 +50,9 @@ CSV 至少包含：
 - `qa_report.md`: 面向流程 QA 的统计、LLM 使用情况、fallback 和边界说明。
 - `run_log.md`: 面向 Agent 可解释性的工具调用、LLM/fallback 和下一步动作记录。
 - `triage_results.csv`: 面向后续分析的结构化结果。
+- `review_decisions.csv`: 人工复核决策模板。
+- `triage_results_reviewed.csv`: 应用人工决策后的独立结果。
+- `review_summary.md`: 人工复核状态摘要。
 
 ## 人工复核边界
 

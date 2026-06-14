@@ -591,6 +591,24 @@ button.is-pressed,
   gap: 16px;
 }
 
+.review-upload-form {
+  display: grid;
+  gap: 10px;
+  margin: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.review-upload-form small {
+  color: var(--muted);
+}
+
+.review-upload-form button {
+  justify-self: start;
+}
+
 .source-card,
 .check-card {
   position: relative;

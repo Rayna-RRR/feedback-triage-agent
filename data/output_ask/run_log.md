@@ -52,6 +52,6 @@
 
 - 状态: success
 - 输入摘要: output_dir=data/output_ask
-- 输出摘要: exported issue_cards.md, qa_report.md, run_log.md, triage_results.csv
+- 输出摘要: exported issue_cards.md, qa_report.md, run_log.md, triage_results.csv, review_decisions.csv
 - warnings: 无
 - 下一步动作: done

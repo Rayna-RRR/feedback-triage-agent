@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.5
+# Feedback Triage Agent v0.6
 
 ## 本地 Web App
 
@@ -35,7 +35,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.5 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask`、静态 HTML 报告和规则质量评测。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。
+v0.6 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask`、静态 HTML 报告、规则质量评测和本地人工复核回写。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -156,15 +156,33 @@ python -m feedback_triage_agent.cli evaluate \
 
 评测输入包含人工维护的 `expected_issue_category`、`expected_priority` 和 `expected_human_review`。命令输出逐样本结果与 Markdown 报告，并对分类、优先级、人工复核判断、P0 precision 和 P0 recall 执行最低 90% 的回归门槛。当前 24 条 golden set 全部通过；这只是小规模回归集，不代表生产数据准确率。
 
+应用人工复核决策：
+
+```bash
+python -m feedback_triage_agent.cli review-apply --output data/output
+```
+
+每次 Agent 运行都会生成 `review_decisions.csv`。人工可将 `decision` 填为：
+
+- `confirm`: 确认原分类和优先级并关闭复核。
+- `adjust`: 填写 `final_issue_category` 和 `final_priority` 后关闭复核。
+- `keep_open`: 保持人工复核状态。
+- `pending`: 尚未处理。
+
+命令生成 `triage_results_reviewed.csv` 和 `review_summary.md`，不会覆盖原始 `triage_results.csv`。Web 结果页也支持下载、编辑并重新上传该 CSV。
+
 ## 输出文件说明
 
-- `data/output/issue_cards.md`: 每条反馈对应的问题卡片，包含标题、样本 ID、摘要、类型、优先级、用户需求、产品建议和人工复核原因。
-- `data/output/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
-- `data/output/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
+- `<output-dir>/issue_cards.md`: 每条反馈对应的问题卡片，包含标题、样本 ID、摘要、类型、优先级、用户需求、产品建议和人工复核原因。
+- `<output-dir>/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
+- `<output-dir>/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
 - `<output-dir>/triage_results.csv`: 结构化分诊结果，分别记录最终分类、规则分类、规则置信度、规则关键词、LLM/规则分歧、`classification_source` 和 `llm_error`。
+- `<output-dir>/review_decisions.csv`: 待人工填写的复核决策模板，使用唯一 `record_key` 区分重复 ID。
+- `<output-dir>/triage_results_reviewed.csv`: 应用人工决策后的独立结果文件。
+- `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.5 范围
+## v0.6 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
@@ -180,13 +198,15 @@ python -m feedback_triage_agent.cli evaluate \
 - 使用 `report` 命令生成不依赖 CDN 和远程资源的静态 HTML 报告。
 - 使用 `evaluate` 命令对人工标注 golden set 生成逐样本误差和质量指标。
 - 评测覆盖分类准确率、优先级准确率、人工复核判断准确率、P0 precision 和 P0 recall。
+- 自动导出 `review_decisions.csv`，支持确认、调整和保持开放三种人工动作。
+- CLI/Web 可应用复核决策，生成 reviewed 结果和复核摘要，保留原始分诊证据。
 - 使用 pytest 覆盖规则、工具和完整 Agent 流程。
 
 暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
 
 ## 后续可扩展方向
 
-- 增加人工复核动作、处理状态和结果回写，但仍保持本地轻量边界。
+- 增加多人复核冲突处理和决策版本历史，但仍保持本地轻量边界。
 - 支持多文件输入、去重、聚类和趋势分析。
 - 扩充真实业务标签体系和盲测数据，避免只针对当前 golden set 调整规则。
 - 将 P0 样本推送到工单系统或告警渠道。

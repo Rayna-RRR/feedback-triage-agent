@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 from typer.testing import CliRunner
 
 from feedback_triage_agent.agent import FeedbackTriageAgent
@@ -80,3 +81,21 @@ def test_report_command_shows_clear_error_when_outputs_are_missing(tmp_path: Pat
 
     assert result.exit_code == 1
     assert "请先运行 run 命令" in result.output
+
+
+def test_review_apply_command_creates_reviewed_outputs(tmp_path: Path) -> None:
+    input_path = tmp_path / "feedback.csv"
+    output_dir = tmp_path / "output"
+    write_csv(input_path)
+    FeedbackTriageAgent(input_path=input_path, output_dir=output_dir, llm_requested=False).run()
+    decisions_path = output_dir / "review_decisions.csv"
+    decisions = pd.read_csv(decisions_path).fillna("")
+    decisions.loc[0, "decision"] = "confirm"
+    decisions.to_csv(decisions_path, index=False)
+
+    result = runner.invoke(app, ["review-apply", "--output", str(output_dir)])
+
+    assert result.exit_code == 0
+    assert (output_dir / "triage_results_reviewed.csv").exists()
+    assert (output_dir / "review_summary.md").exists()
+    assert "Reviewed" in result.output

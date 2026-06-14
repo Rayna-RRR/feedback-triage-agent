@@ -152,8 +152,9 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
 
     classified = []
     disable_llm_after_failure = False
-    for record in state.records:
+    for index, record in enumerate(state.records, start=1):
         item = classify_feedback_record(record)
+        item.record_key = f"{record.id}::{index}"
         if llm_client is None or disable_llm_after_failure:
             if disable_llm_after_failure:
                 item.classification_source = "llm_fallback"
@@ -312,7 +313,10 @@ def export_report(state: AgentRunState) -> ToolResult:
         step_name="export_report",
         status="success",
         input_summary=f"output_dir={state.output_dir}",
-        output_summary="exported issue_cards.md, qa_report.md, run_log.md, triage_results.csv",
+        output_summary=(
+            "exported issue_cards.md, qa_report.md, run_log.md, "
+            "triage_results.csv, review_decisions.csv"
+        ),
         next_action="done",
     )
     final_logs = state.run_log + [RunStepLog.from_tool_result(result)]

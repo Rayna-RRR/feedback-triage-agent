@@ -662,12 +662,12 @@
 
         <article class="card span-4">
           <h3>输出不是一句总结</h3>
-          <p>它会生成 `issue_cards.md`、`qa_report.md`、`run_log.md`、`triage_results.csv` 和静态 `report.html`。</p>
+          <p>它会生成问题卡片、QA、run log、结构化结果、`review_decisions.csv` 和静态报告；人工决策可继续生成 reviewed 结果。</p>
         </article>
 
         <article class="card span-4">
           <h3>LLM 是可选初稿</h3>
-          <p>没有 `DEEPSEEK_API_KEY` 时，本轮自动 fallback 到 `rules.py`。优先级和复核队列仍由本地规则处理。</p>
+          <p>LLM 默认关闭；明确启用但没有 `DEEPSEEK_API_KEY` 时自动 fallback 到 `rules.py`。优先级和复核队列仍由本地规则处理。</p>
         </article>
 
         <article class="card span-4">
@@ -779,7 +779,7 @@
       <span class="section-kicker">想实际操作？</span>
       <h2 class="section-title">启动本地 Web App，就能在网页里跑一次分诊。</h2>
       <p class="section-copy">
-        v0.5 完善 FastAPI 本地原型并加入规则质量评测。规则模式默认在本机运行；只有用户明确启用时才把反馈文本发送给 DeepSeek。人工标注 golden set 用于检查分类、优先级和 P0 风险规则是否退化。
+        v0.6 加入本地人工复核闭环。Agent 自动导出 review_decisions.csv，人工确认或调整后生成独立 reviewed 结果；原始分诊证据不会被覆盖。golden set 继续用于检查规则退化。
       </p>
       <div class="bento">
         <article class="card span-6">
@@ -809,6 +809,7 @@
         <pre><code>python -m feedback_triage_agent.cli report --output data/output_ask</code></pre>
         <pre><code>python -m feedback_triage_agent.cli inspect --output data/output_ask</code></pre>
         <pre><code>python -m feedback_triage_agent.cli evaluate --input data/evaluation_feedback.csv --output data/evaluation_output</code></pre>
+        <pre><code>python -m feedback_triage_agent.cli review-apply --output data/output</code></pre>
         <pre><code>python -m pytest</code></pre>
       </div>
     </section>
@@ -816,7 +817,7 @@
     <footer class="footer">
       <div>
         <h2 class="section-title" style="margin-bottom:14px;">保留边界，才方便复核。</h2>
-        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.5 Web App 不接生产系统，启用 LLM 时会明确提示反馈文本将发送给 DeepSeek。</p>
+        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.6 Web App 不接生产系统，复核结果通过本地 CSV 保存。</p>
       </div>
       <a class="button secondary" href="#top">回到顶部</a>
     </footer>

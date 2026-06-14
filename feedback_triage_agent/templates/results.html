@@ -61,10 +61,27 @@
     <strong>{{ run.metrics.human_review_count }}</strong>
   </article>
   <article>
+    <span>已复核</span>
+    <strong>{{ run.metrics.reviewed_count }}</strong>
+  </article>
+  <article>
     <span>Fallback</span>
     <strong>{{ run.metrics.fallback }}</strong>
   </article>
 </section>
+
+{% if review_message %}
+<section class="alert-card" role="status" data-reveal>
+  <strong>复核已更新</strong>
+  <p>{{ review_message }}</p>
+</section>
+{% endif %}
+{% if review_error %}
+<section class="alert-card" role="alert" data-reveal>
+  <strong>复核文件无法应用</strong>
+  <p>{{ review_error }}</p>
+</section>
+{% endif %}
 
 <section class="card run-summary-card" data-reveal>
   <div class="card-header">
@@ -181,6 +198,12 @@
       </tbody>
     </table>
   </div>
+  <form action="/runs/{{ run.run_id }}/reviews/apply" method="post" enctype="multipart/form-data" class="review-upload-form">
+    <label for="decisions_file">应用人工复核决策</label>
+    <input id="decisions_file" name="decisions_file" type="file" accept=".csv,text/csv" required>
+    <small>先下载 review_decisions.csv，填写 confirm、adjust 或 keep_open，再上传。原始结果不会被覆盖。</small>
+    <button type="submit">应用复核结果</button>
+  </form>
 </section>
 
 <section class="card issue-section" id="issue-cards" data-reveal>
@@ -245,7 +268,7 @@
       <h2>下载区</h2>
       <p class="card-subtitle">保存本轮输出文件</p>
     </div>
-    <span class="status-badge status-info">6 files</span>
+    <span class="status-badge status-info">{{ run.downloads|length }} files</span>
   </div>
   <div class="download-grid">
     {% for item in run.downloads %}

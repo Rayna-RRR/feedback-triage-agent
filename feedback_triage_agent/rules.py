@@ -378,6 +378,7 @@ def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
     summary = summarize_text(record.review_text)
     return ClassifiedFeedback(
         id=record.id,
+        record_key=record.id,
         source=record.source,
         app_name=record.app_name,
         review_text=record.review_text,

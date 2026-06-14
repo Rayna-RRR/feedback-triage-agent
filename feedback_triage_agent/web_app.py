@@ -29,6 +29,7 @@ from feedback_triage_agent.task_parser import (
     should_generate_html_report,
 )
 from feedback_triage_agent.rules import REQUIRED_FIELDS
+from feedback_triage_agent.review import apply_review_decisions
 from feedback_triage_agent.web_models import DownloadFile, WebRunData
 
 
@@ -50,12 +51,16 @@ REQUIRED_WEB_OUTPUTS = [
     "qa_report.md",
     "run_log.md",
     "triage_results.csv",
+    "review_decisions.csv",
 ]
 DOWNLOADS = [
     ("issue_cards.md", "问题卡片 Markdown"),
     ("qa_report.md", "QA 报告 Markdown"),
     ("run_log.md", "Agent run log"),
     ("triage_results.csv", "结构化 CSV"),
+    ("review_decisions.csv", "人工复核决策模板"),
+    ("triage_results_reviewed.csv", "已复核结构化 CSV"),
+    ("review_summary.md", "人工复核摘要"),
     ("report.html", "静态 HTML 报告"),
     ("outputs.zip", "全部输出 zip"),
 ]
@@ -150,7 +155,9 @@ def resolve_builtin_source(data_source: str) -> Path:
 def create_outputs_zip(output_dir: Path) -> Path:
     zip_path = output_dir / "outputs.zip"
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for filename in REQUIRED_WEB_OUTPUTS + ["report.html"]:
+        for filename, _label in DOWNLOADS:
+            if filename == "outputs.zip":
+                continue
             path = output_dir / filename
             if path.exists():
                 archive.write(path, arcname=filename)
@@ -208,7 +215,9 @@ def read_results(run_id: str) -> WebRunData:
     output_dir = get_run_dir(run_id)
     verify_outputs(output_dir)
 
-    results = pd.read_csv(output_dir / "triage_results.csv").fillna("")
+    reviewed_path = output_dir / "triage_results_reviewed.csv"
+    results_path = reviewed_path if reviewed_path.exists() else output_dir / "triage_results.csv"
+    results = pd.read_csv(results_path).fillna("")
     qa_values = parse_bullet_map((output_dir / "qa_report.md").read_text(encoding="utf-8"))
     run_steps = parse_run_log((output_dir / "run_log.md").read_text(encoding="utf-8"))
 
@@ -220,9 +229,11 @@ def read_results(run_id: str) -> WebRunData:
     review_items = [
         {
             "id": row.get("id", ""),
+            "record_key": row.get("record_key", row.get("id", "")),
             "issue_category": row.get("issue_category", ""),
             "priority": row.get("priority", ""),
             "human_review_reasons": row.get("human_review_reasons", ""),
+            "review_status": row.get("review_status", "pending"),
             "risk_class": risk_class(row.get("priority", ""), row.get("human_review_reasons", "")),
         }
         for _, row in results[review_mask].iterrows()
@@ -231,12 +242,14 @@ def read_results(run_id: str) -> WebRunData:
     issue_cards = [
         {
             "id": row.get("id", ""),
+            "record_key": row.get("record_key", row.get("id", "")),
             "issue_category": row.get("issue_category", ""),
             "priority": row.get("priority", ""),
             "summary": row.get("summary", ""),
             "product_suggestion": row.get("product_suggestion", ""),
             "needs_human_review": boolish(row.get("needs_human_review", "")),
             "human_review_reasons": row.get("human_review_reasons", ""),
+            "review_status": row.get("review_status", ""),
         }
         for _, row in results.iterrows()
     ]
@@ -250,7 +263,17 @@ def read_results(run_id: str) -> WebRunData:
         "total_samples": qa_values.get("总样本数", len(results)),
         "valid_samples": qa_values.get("有效样本数", len(results)),
         "issue_cards": len(issue_cards),
-        "human_review_count": qa_values.get("需要人工复核样本数", len(review_items)),
+        "human_review_count": len(review_items),
+        "reviewed_count": (
+            int(results["review_status"].eq("reviewed").sum())
+            if "review_status" in results
+            else 0
+        ),
+        "open_review_count": (
+            int(results["review_status"].eq("open").sum())
+            if "review_status" in results
+            else len(review_items)
+        ),
         "llm_used": qa_values.get("是否使用 LLM", "False"),
         "fallback": qa_values.get("是否 fallback 到 rules.py", "False"),
         "output_dir": str(output_dir),
@@ -376,7 +399,7 @@ def ask_agent(
 
 
 @app.get("/runs/{run_id}")
-def results(request: Request, run_id: str):
+def results(request: Request, run_id: str, review_applied: bool = False):
     try:
         run_data = read_results(run_id)
     except (ValueError, FileNotFoundError) as exc:
@@ -384,8 +407,67 @@ def results(request: Request, run_id: str):
     return templates.TemplateResponse(
         request,
         "results.html",
-        {"run": run_data, "version": __version__},
+        {
+            "run": run_data,
+            "version": __version__,
+            "review_message": "人工复核决策已应用。" if review_applied else None,
+            "review_error": None,
+        },
     )
+
+
+@app.post("/runs/{run_id}/reviews/apply")
+async def apply_reviews(
+    request: Request,
+    run_id: str,
+    decisions_file: UploadFile = File(...),
+):
+    try:
+        output_dir = get_run_dir(run_id)
+    except (ValueError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="找不到这次运行。")
+
+    if not decisions_file.filename or not decisions_file.filename.lower().endswith(".csv"):
+        run_data = read_results(run_id)
+        return templates.TemplateResponse(
+            request,
+            "results.html",
+            {
+                "run": run_data,
+                "version": __version__,
+                "review_message": None,
+                "review_error": "请上传 CSV 格式的复核决策文件。",
+            },
+            status_code=400,
+        )
+
+    uploaded_path = output_dir / "review_decisions.upload.csv"
+    try:
+        save_upload(decisions_file, uploaded_path)
+        apply_review_decisions(
+            output_dir / "triage_results.csv",
+            uploaded_path,
+            output_dir,
+        )
+        shutil.copyfile(uploaded_path, output_dir / "review_decisions.csv")
+        create_outputs_zip(output_dir)
+    except ValueError as exc:
+        run_data = read_results(run_id)
+        return templates.TemplateResponse(
+            request,
+            "results.html",
+            {
+                "run": run_data,
+                "version": __version__,
+                "review_message": None,
+                "review_error": str(exc),
+            },
+            status_code=400,
+        )
+    finally:
+        uploaded_path.unlink(missing_ok=True)
+
+    return RedirectResponse(url=f"/runs/{run_id}?review_applied=true", status_code=303)
 
 
 @app.get("/runs/{run_id}/download/{filename}")

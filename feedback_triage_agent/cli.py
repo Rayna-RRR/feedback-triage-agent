@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import typer
@@ -10,6 +11,7 @@ from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.evaluation import evaluate_rules
 from feedback_triage_agent.html_report import ReportInputError, generate_html_report
+from feedback_triage_agent.review import apply_review_decisions
 from feedback_triage_agent.task_parser import (
     infer_input_path,
     infer_output_dir,
@@ -239,6 +241,46 @@ def report(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1)
     console.print(f"[green]HTML report generated:[/green] {report_path}")
+
+
+@app.command("review-apply")
+def review_apply(
+    output: Path = typer.Option(
+        Path("data/output"),
+        "--output",
+        "-o",
+        help="Directory containing triage_results.csv and review_decisions.csv.",
+    ),
+    decisions: Optional[Path] = typer.Option(
+        None,
+        "--decisions",
+        "-d",
+        help="Edited review decisions CSV. Defaults to <output>/review_decisions.csv.",
+    ),
+) -> None:
+    """Apply local human-review decisions without overwriting raw triage results."""
+
+    decisions_path = decisions or output / "review_decisions.csv"
+    try:
+        summary = apply_review_decisions(
+            output / "triage_results.csv",
+            decisions_path,
+            output,
+        )
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+
+    table = Table(title="Human Review Apply Summary")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value")
+    table.add_row("Decision rows", str(summary.total_decisions))
+    table.add_row("Reviewed", str(summary.reviewed_count))
+    table.add_row("Open", str(summary.open_count))
+    table.add_row("Pending", str(summary.pending_count))
+    console.print(table)
+    for name, path in summary.output_paths.items():
+        console.print(f"[green]{name}:[/green] {path}")
 
 
 @app.command()
