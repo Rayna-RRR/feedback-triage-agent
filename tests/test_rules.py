@@ -62,3 +62,20 @@ def test_negated_or_resolved_risk_phrases_do_not_escalate_priority() -> None:
     assert stable.priority == "P2"
     assert refunded.priority == "P2"
     assert responsive.priority == "P2"
+
+
+def test_positive_or_negated_context_does_not_create_false_issue_hits() -> None:
+    loading = classify_feedback_record(make_record("页面不卡，加载也不慢，整体速度正常。", 5))
+    payment = classify_feedback_record(make_record("没有扣费，也没有发生支付失败。", 5))
+
+    assert loading.issue_category == "不明确/其他"
+    assert payment.issue_category == "不明确/其他"
+    assert payment.priority == "P2"
+
+
+def test_domain_specific_category_wins_generic_failure_tie() -> None:
+    payment = classify_feedback_record(make_record("支付失败还被重复扣费，我要投诉。", 1))
+    mixed = classify_feedback_record(make_record("回答不准确而且页面经常卡住。", 2))
+
+    assert payment.issue_category == "会员与商业化问题"
+    assert mixed.issue_category == "模型能力问题"

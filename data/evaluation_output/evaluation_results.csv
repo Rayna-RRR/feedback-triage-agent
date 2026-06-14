@@ -1,0 +1,25 @@
+id,review_text,expected_issue_category,predicted_issue_category,category_correct,expected_priority,predicted_priority,priority_correct,expected_human_review,predicted_human_review,human_review_correct,predicted_human_review_reasons
+ev001,回答经常答非所问，还会编造不存在的资料。,模型能力问题,模型能力问题,True,P1,P1,True,False,False,True,
+ev002,翻译结果不准确，专业名词总是理解错。,模型能力问题,模型能力问题,True,P1,P1,True,False,False,True,
+ev003,复制按钮找不到，操作流程很绕。,交互体验问题,交互体验问题,True,P1,P1,True,False,False,True,
+ev004,夜间模式入口太深，很不好用。,交互体验问题,交互体验问题,True,P2,P2,True,False,False,True,
+ev005,打开后经常崩溃，刚写的内容也丢失了。,性能与稳定性问题,性能与稳定性问题,True,P0,P0,True,True,True,True,P0 样本
+ev006,加载很慢而且一直卡住，严重影响使用。,性能与稳定性问题,性能与稳定性问题,True,P1,P1,True,False,False,True,
+ev007,会员自动扣费，而且申请退款一直失败。,会员与商业化问题,会员与商业化问题,True,P0,P0,True,True,True,True,同时命中多个问题类型；P0 样本
+ev008,会员价格太贵，权益和套餐说明不清楚。,会员与商业化问题,会员与商业化问题,True,P1,P1,True,False,False,True,
+ev009,生成了暴力和仇恨内容，内容安全需要加强。,内容安全与合规问题,内容安全与合规问题,True,P1,P1,True,True,True,True,内容安全与合规样本
+ev010,未成年内容审核失效，仍然出现敏感信息。,内容安全与合规问题,内容安全与合规问题,True,P1,P1,True,True,True,True,内容安全与合规样本
+ev011,聊天记录和客户资料全部丢失。,账号、隐私与数据问题,账号、隐私与数据问题,True,P0,P0,True,True,True,True,P0 样本
+ev012,登录后同步失败，换设备找不到聊天记录。,账号、隐私与数据问题,账号、隐私与数据问题,True,P1,P1,True,True,True,True,同时命中多个问题类型
+ev013,希望支持企业办公场景和团队协作。,用户预期与产品定位问题,用户预期与产品定位问题,True,P2,P2,True,False,False,True,
+ev014,产品能力边界不清楚，不知道适合什么场景。,用户预期与产品定位问题,用户预期与产品定位问题,True,P2,P2,True,False,False,True,
+ev015,一般般。,不明确/其他,不明确/其他,True,P2,P2,True,True,True,True,文本过短；分类低置信度
+ev016,颜色看起来有点奇怪。,不明确/其他,不明确/其他,True,P2,P2,True,True,True,True,分类低置信度
+ev017,从来没有崩溃，运行一直很稳定。,不明确/其他,不明确/其他,True,P2,P2,True,True,True,True,分类低置信度
+ev018,退款很快就到账了，处理很顺利。,会员与商业化问题,会员与商业化问题,True,P2,P2,True,False,False,True,
+ev019,页面不卡，加载也不慢，整体速度正常。,不明确/其他,不明确/其他,True,P2,P2,True,True,True,True,分类低置信度
+ev020,没有扣费，也没有发生支付失败。,不明确/其他,不明确/其他,True,P2,P2,True,True,True,True,分类低置信度
+ev021,账号被盗后无法登录，担心隐私泄露。,账号、隐私与数据问题,账号、隐私与数据问题,True,P0,P0,True,True,True,True,P0 样本
+ev022,支付失败还被重复扣费，我要投诉。,会员与商业化问题,会员与商业化问题,True,P0,P0,True,True,True,True,分类低置信度；同时命中多个问题类型；P0 样本
+ev023,回答不准确而且页面经常卡住。,模型能力问题,模型能力问题,True,P1,P1,True,True,True,True,分类低置信度；同时命中多个问题类型
+ev024,建议增加保存按钮和更清楚的提示。,交互体验问题,交互体验问题,True,P2,P2,True,False,False,True,

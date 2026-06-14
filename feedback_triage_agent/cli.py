@@ -8,6 +8,7 @@ from rich.table import Table
 
 from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
+from feedback_triage_agent.evaluation import evaluate_rules
 from feedback_triage_agent.html_report import ReportInputError, generate_html_report
 from feedback_triage_agent.task_parser import (
     infer_input_path,
@@ -166,6 +167,60 @@ def inspect(
         )
     console.print(table)
 
+
+@app.command()
+def evaluate(
+    input_path: Path = typer.Option(
+        Path("data/evaluation_feedback.csv"),
+        "--input",
+        "-i",
+        help="Labeled evaluation CSV.",
+    ),
+    output: Path = typer.Option(
+        Path("data/evaluation_output"),
+        "--output",
+        "-o",
+        help="Directory for evaluation artifacts.",
+    ),
+    min_category_accuracy: float = typer.Option(0.8, min=0, max=1),
+    min_priority_accuracy: float = typer.Option(0.9, min=0, max=1),
+    min_human_review_accuracy: float = typer.Option(0.9, min=0, max=1),
+    min_p0_precision: float = typer.Option(0.9, min=0, max=1),
+    min_p0_recall: float = typer.Option(0.9, min=0, max=1),
+) -> None:
+    """Evaluate rules.py against a labeled local dataset."""
+
+    try:
+        summary = evaluate_rules(input_path, output)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+
+    table = Table(title="Rule Evaluation Summary")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value")
+    table.add_row("Samples", str(summary.total_samples))
+    table.add_row("Category accuracy", f"{summary.category_accuracy:.2%}")
+    table.add_row("Priority accuracy", f"{summary.priority_accuracy:.2%}")
+    table.add_row("Human review accuracy", f"{summary.human_review_accuracy:.2%}")
+    table.add_row("P0 precision", f"{summary.p0_precision:.2%}")
+    table.add_row("P0 recall", f"{summary.p0_recall:.2%}")
+    console.print(table)
+
+    failed_gates = []
+    if summary.category_accuracy < min_category_accuracy:
+        failed_gates.append("category_accuracy")
+    if summary.priority_accuracy < min_priority_accuracy:
+        failed_gates.append("priority_accuracy")
+    if summary.human_review_accuracy < min_human_review_accuracy:
+        failed_gates.append("human_review_accuracy")
+    if summary.p0_precision < min_p0_precision:
+        failed_gates.append("p0_precision")
+    if summary.p0_recall < min_p0_recall:
+        failed_gates.append("p0_recall")
+    if failed_gates:
+        console.print("[red]Quality gates failed:[/red] " + ", ".join(failed_gates))
+        raise typer.Exit(code=1)
 
 @app.command()
 def report(

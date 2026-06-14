@@ -20,7 +20,7 @@
 
 - 状态: success
 - 输入摘要: records=30, llm_requested=False
-- 输出摘要: classified=30, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=False, categories={'用户预期与产品定位问题': 6, '交互体验问题': 2, '不明确/其他': 13, '性能与稳定性问题': 3, '账号、隐私与数据问题': 1, '内容安全与合规问题': 1, '模型能力问题': 4}
+- 输出摘要: classified=30, llm_used=False, llm_attempted=0, llm_success=0, llm_failed=0, fallback=False, categories={'用户预期与产品定位问题': 6, '交互体验问题': 2, '不明确/其他': 13, '性能与稳定性问题': 3, '账号、隐私与数据问题': 2, '内容安全与合规问题': 1, '模型能力问题': 3}
 - warnings: 无
 - 下一步动作: detect_badcases
 
@@ -28,7 +28,7 @@
 
 - 状态: warning
 - 输入摘要: classified=30
-- 输出摘要: human_review_queue=21, reasons={'同时命中多个问题类型': 6, 'P0 样本': 2, '分类低置信度': 17, '文本过短': 1}
+- 输出摘要: human_review_queue=22, reasons={'同时命中多个问题类型': 6, 'P0 样本': 2, '分类低置信度': 17, '内容安全与合规样本': 1, '文本过短': 1}
 - warnings: 存在需要人工复核的样本
 - 下一步动作: generate_issue_cards
 
@@ -44,7 +44,7 @@
 
 - 状态: warning
 - 输入摘要: cards=30, classified=30
-- 输出摘要: total=30, review=21
+- 输出摘要: total=30, review=22
 - warnings: 存在人工复核队列
 - 下一步动作: export_report
 

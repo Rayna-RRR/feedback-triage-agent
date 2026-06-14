@@ -155,7 +155,6 @@ P1_KEYWORDS = [
     "严重影响",
     "影响使用",
     "核心",
-    "一直",
     "报错",
     "错误",
     "不准",
@@ -195,6 +194,18 @@ POSITIVE_RISK_CONTEXTS = {
     "崩溃": ("没有崩溃", "从未崩溃", "不会崩溃"),
     "闪退": ("没有闪退", "从未闪退", "不会闪退"),
 }
+POSITIVE_CATEGORY_CONTEXTS = {
+    "加载": ("加载很快", "加载不慢", "加载也不慢", "加载正常", "加载流畅"),
+}
+CATEGORY_TIE_BREAK_ORDER = [
+    "账号、隐私与数据问题",
+    "会员与商业化问题",
+    "内容安全与合规问题",
+    "模型能力问题",
+    "性能与稳定性问题",
+    "交互体验问题",
+    "用户预期与产品定位问题",
+]
 
 
 def normalize_for_matching(text: str) -> str:
@@ -209,7 +220,9 @@ def summarize_text(text: str, max_length: int = 42) -> str:
 
 
 def keyword_is_negated(text: str, start: int) -> bool:
-    prefix = text[max(0, start - 6) : start]
+    prefix = text[max(0, start - 10) : start]
+    if any(phrase in prefix for phrase in ("没有", "未发生", "并未", "从未", "从来没有")):
+        return True
     return any(prefix.endswith(negation) for negation in NEGATION_PREFIXES)
 
 
@@ -217,14 +230,34 @@ def keyword_has_positive_risk_context(text: str, keyword: str) -> bool:
     return any(phrase in text for phrase in POSITIVE_RISK_CONTEXTS.get(keyword, ()))
 
 
-def contains_actionable_keyword(text: str, keyword: str, *, priority_check: bool = False) -> bool:
+def keyword_has_positive_category_context(text: str, keyword: str) -> bool:
+    return any(phrase in text for phrase in POSITIVE_CATEGORY_CONTEXTS.get(keyword, ()))
+
+
+def contains_actionable_keyword(
+    text: str,
+    keyword: str,
+    *,
+    category_check: bool = False,
+    priority_check: bool = False,
+) -> bool:
     start = text.find(keyword)
     while start >= 0:
         if not keyword_is_negated(text, start):
-            if not priority_check or not keyword_has_positive_risk_context(text, keyword):
+            positive_category = category_check and keyword_has_positive_category_context(text, keyword)
+            positive_risk = priority_check and keyword_has_positive_risk_context(text, keyword)
+            if not positive_category and not positive_risk:
                 return True
         start = text.find(keyword, start + len(keyword))
     return False
+
+
+def remove_overlapping_hits(hits: List[str]) -> List[str]:
+    selected: List[str] = []
+    for keyword in sorted(hits, key=len, reverse=True):
+        if not any(keyword in existing for existing in selected):
+            selected.append(keyword)
+    return [keyword for keyword in hits if keyword in selected]
 
 
 def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
@@ -235,8 +268,13 @@ def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         hits = [
             keyword
             for keyword in keywords
-            if contains_actionable_keyword(normalized, keyword.lower())
+            if contains_actionable_keyword(
+                normalized,
+                keyword.lower(),
+                category_check=True,
+            )
         ]
+        hits = remove_overlapping_hits(hits)
         scores[category] = len(hits)
         if hits:
             matched_keywords[category] = hits
@@ -248,9 +286,7 @@ def pick_category(scores: Dict[str, int]) -> str:
         return "不明确/其他"
     top_score = max(scores.values())
     winners = [category for category, score in scores.items() if score == top_score]
-    if len(winners) > 1:
-        return winners[0]
-    return winners[0]
+    return next(category for category in CATEGORY_TIE_BREAK_ORDER if category in winners)
 
 
 def calculate_confidence(scores: Dict[str, int], matched_categories: List[str]) -> float:
@@ -324,6 +360,8 @@ def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
         reasons.append("同时命中多个问题类型")
     if feedback.llm_rule_disagreement:
         reasons.append("LLM 与规则分类不一致")
+    if feedback.issue_category == "内容安全与合规问题":
+        reasons.append("内容安全与合规样本")
     if is_product_suggestion_too_generic(feedback.product_suggestion):
         reasons.append("product_suggestion 为空或过泛")
     if feedback.priority == "P0":

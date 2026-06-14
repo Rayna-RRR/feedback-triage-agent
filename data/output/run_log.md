@@ -28,7 +28,7 @@
 
 - 状态: warning
 - 输入摘要: classified=12
-- 输出摘要: human_review_queue=7, reasons={'P0 样本': 3, '同时命中多个问题类型': 3, '文本过短': 1, '分类低置信度': 1}
+- 输出摘要: human_review_queue=7, reasons={'P0 样本': 3, '同时命中多个问题类型': 3, '内容安全与合规样本': 1, '文本过短': 1, '分类低置信度': 1}
 - warnings: 存在需要人工复核的样本
 - 下一步动作: generate_issue_cards
 
