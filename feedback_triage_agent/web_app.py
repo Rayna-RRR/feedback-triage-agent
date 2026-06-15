@@ -23,11 +23,7 @@ from feedback_triage_agent.html_report import (
     parse_run_log,
 )
 from feedback_triage_agent.task_parser import (
-    infer_input_path,
-    should_disable_llm,
-    should_enable_llm,
-    should_generate_html_report,
-    should_normalize_input,
+    parse_ask_task,
 )
 from feedback_triage_agent.rules import REQUIRED_FIELDS
 from feedback_triage_agent.review import apply_review_decisions
@@ -180,6 +176,12 @@ def execute_agent_run(
     generate_html: bool,
     normalize_input: bool = False,
     input_name: str = "",
+    ask_parser_source: str = "direct",
+    ask_parser_model: str = "",
+    ask_parser_fallback_reason: str = "",
+    ask_parser_prompt_tokens: int = 0,
+    ask_parser_completion_tokens: int = 0,
+    ask_parser_total_tokens: int = 0,
 ) -> None:
     row_count = validate_csv_input(input_path, require_schema=not normalize_input)
     if llm_requested and row_count > MAX_LLM_ROWS:
@@ -190,6 +192,12 @@ def execute_agent_run(
         llm_requested=llm_requested,
         normalize_input=normalize_input,
         input_name=input_name or input_path.name,
+        ask_parser_source=ask_parser_source,
+        ask_parser_model=ask_parser_model,
+        ask_parser_fallback_reason=ask_parser_fallback_reason,
+        ask_parser_prompt_tokens=ask_parser_prompt_tokens,
+        ask_parser_completion_tokens=ask_parser_completion_tokens,
+        ask_parser_total_tokens=ask_parser_total_tokens,
     )
     state = agent.run()
     if state.run_log and state.run_log[-1].status == "error":
@@ -288,6 +296,10 @@ def read_results(run_id: str) -> WebRunData:
         ),
         "llm_used": qa_values.get("是否使用 LLM", "False"),
         "fallback": qa_values.get("是否 fallback 到 rules.py", "False"),
+        "ask_parser_source": qa_values.get("解析来源", "direct"),
+        "ask_parser_model": qa_values.get("解析模型", "未使用"),
+        "ask_parser_tokens": qa_values.get("解析总 tokens", 0),
+        "llm_tokens": qa_values.get("反馈初稿总 tokens", 0),
         "output_dir": str(output_dir),
     }
 
@@ -370,17 +382,29 @@ def ask_agent(
     request: Request,
     task: str = Form(""),
     upload_file: Optional[UploadFile] = File(None),
+    rule_parser: Optional[str] = Form(None),
 ):
     task = task.strip()
     if not task:
         return render_index(request, "请输入自然语言任务。", status_code=400)
 
     has_upload = upload_file is not None and bool(upload_file.filename)
+    uploaded_filename = upload_file.filename if has_upload else ""
+    if has_upload and not uploaded_filename.lower().endswith(".csv"):
+        return render_index(request, "上传文件必须是 CSV 格式。", status_code=400)
+    parsed = parse_ask_task(
+        task,
+        uploaded_filename=uploaded_filename,
+        use_deepseek=not boolish(rule_parser),
+    )
     if not has_upload:
-        try:
-            input_path = infer_input_path(task)
-        except ValueError as exc:
-            return render_index(request, f"{exc}，或者先上传 CSV 文件。", status_code=400)
+        input_path = parsed.input_path
+        if input_path is None:
+            return render_index(
+                request,
+                "无法识别输入文件，请在任务中写明 CSV 路径，或者先上传 CSV 文件。",
+                status_code=400,
+            )
 
         if not input_path.is_absolute():
             input_path = PROJECT_ROOT / input_path
@@ -391,18 +415,22 @@ def ask_agent(
     try:
         input_name = input_path.name if not has_upload else upload_file.filename
         if has_upload:
-            if not upload_file.filename.lower().endswith(".csv"):
-                raise ValueError("上传文件必须是 CSV 格式。")
             input_path = run_dir / "input.csv"
             save_upload(upload_file, input_path)
 
         execute_agent_run(
             input_path,
             run_dir,
-            llm_requested=should_enable_llm(task) and not should_disable_llm(task),
-            generate_html=should_generate_html_report(task),
-            normalize_input=should_normalize_input(task),
+            llm_requested=parsed.llm_requested,
+            generate_html=parsed.html_requested,
+            normalize_input=parsed.normalize_input,
             input_name=input_name,
+            ask_parser_source=parsed.parser_source,
+            ask_parser_model=parsed.parser_model,
+            ask_parser_fallback_reason=parsed.parser_fallback_reason,
+            ask_parser_prompt_tokens=parsed.parser_prompt_tokens,
+            ask_parser_completion_tokens=parsed.parser_completion_tokens,
+            ask_parser_total_tokens=parsed.parser_total_tokens,
         )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:
         cleanup_failed_run(run_dir)

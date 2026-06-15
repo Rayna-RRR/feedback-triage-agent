@@ -9,8 +9,13 @@ from typing import Any, Dict, Optional
 
 from pydantic import ValidationError
 
-from feedback_triage_agent.models import FeedbackRecord, LLMFeedbackDraft
-from feedback_triage_agent.prompts import SYSTEM_PROMPT, build_feedback_triage_prompt
+from feedback_triage_agent.models import FeedbackRecord, LLMFeedbackDraft, LLMTaskIntent
+from feedback_triage_agent.prompts import (
+    SYSTEM_PROMPT,
+    TASK_PARSER_SYSTEM_PROMPT,
+    build_feedback_triage_prompt,
+    build_task_parser_prompt,
+)
 
 
 class LLMUnavailableError(RuntimeError):
@@ -25,16 +30,16 @@ class LLMCallError(RuntimeError):
 class DeepSeekConfig:
     api_key: str
     base_url: str = "https://api.deepseek.com"
-    model: str = "deepseek-chat"
+    model: str = "deepseek-v4-pro"
     timeout_seconds: int = 20
 
     @classmethod
     def from_env(cls) -> "DeepSeekConfig":
         api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
         if not api_key:
-            raise LLMUnavailableError("DEEPSEEK_API_KEY 未设置，使用规则版分诊")
+            raise LLMUnavailableError("DEEPSEEK_API_KEY 未设置")
         base_url = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
-        model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
+        model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro").strip()
         try:
             timeout_seconds = int(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", "20"))
         except ValueError as exc:
@@ -54,15 +59,42 @@ class DeepSeekClient:
 
     def __init__(self, config: Optional[DeepSeekConfig] = None):
         self.config = config or DeepSeekConfig.from_env()
+        self.last_usage: Dict[str, int] = {}
 
     @property
     def model(self) -> str:
         return self.config.model
 
     def draft_feedback(self, record: FeedbackRecord) -> LLMFeedbackDraft:
+        response_body = self._request_json(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt=build_feedback_triage_prompt(record),
+            max_tokens=600,
+        )
+        return self._parse_feedback_response(response_body)
+
+    def parse_task(self, task: str, uploaded_filename: str = "") -> LLMTaskIntent:
+        response_body = self._request_json(
+            system_prompt=TASK_PARSER_SYSTEM_PROMPT,
+            user_prompt=build_task_parser_prompt(task, uploaded_filename),
+            max_tokens=400,
+        )
+        return self._parse_task_response(response_body)
+
+    def _request_json(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: int,
+    ) -> str:
+        self.last_usage = {}
         request = urllib.request.Request(
             url=f"{self.config.base_url.rstrip('/')}/chat/completions",
-            data=json.dumps(self._build_payload(record), ensure_ascii=False).encode("utf-8"),
+            data=json.dumps(
+                self._build_payload(system_prompt, user_prompt, max_tokens),
+                ensure_ascii=False,
+            ).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {self.config.api_key}",
                 "Content-Type": "application/json",
@@ -81,23 +113,47 @@ class DeepSeekClient:
         except TimeoutError as exc:
             raise LLMCallError("DeepSeek 调用超时") from exc
 
-        return self._parse_response(response_body)
+        return response_body
 
-    def _build_payload(self, record: FeedbackRecord) -> Dict[str, Any]:
+    def _build_payload(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: int,
+    ) -> Dict[str, Any]:
         return {
             "model": self.config.model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_feedback_triage_prompt(record)},
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.2,
-            "max_tokens": 600,
+            "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},
+            "thinking": {"type": "disabled"},
         }
 
     def _parse_response(self, response_body: str) -> LLMFeedbackDraft:
+        return self._parse_feedback_response(response_body)
+
+    def _parse_feedback_response(self, response_body: str) -> LLMFeedbackDraft:
+        draft_data = self._parse_json_content(response_body)
+        try:
+            return LLMFeedbackDraft.model_validate(draft_data)
+        except ValidationError as exc:
+            raise LLMCallError("DeepSeek 输出不是合法的分诊 JSON") from exc
+
+    def _parse_task_response(self, response_body: str) -> LLMTaskIntent:
+        intent_data = self._parse_json_content(response_body)
+        try:
+            return LLMTaskIntent.model_validate(intent_data)
+        except ValidationError as exc:
+            raise LLMCallError("DeepSeek 输出不是合法的任务解析 JSON") from exc
+
+    def _parse_json_content(self, response_body: str) -> Dict[str, Any]:
         try:
             data = json.loads(response_body)
+            self.last_usage = normalize_usage(data.get("usage"))
             content = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise LLMCallError("DeepSeek 响应结构无法解析") from exc
@@ -106,10 +162,25 @@ class DeepSeekClient:
             raise LLMCallError("DeepSeek 响应内容不是文本")
 
         try:
-            draft_data = json.loads(strip_json_fence(content))
-            return LLMFeedbackDraft.model_validate(draft_data)
-        except (json.JSONDecodeError, ValidationError) as exc:
-            raise LLMCallError("DeepSeek 输出不是合法的分诊 JSON") from exc
+            parsed = json.loads(strip_json_fence(content))
+        except json.JSONDecodeError as exc:
+            raise LLMCallError("DeepSeek 输出不是合法 JSON") from exc
+        if not isinstance(parsed, dict):
+            raise LLMCallError("DeepSeek 输出 JSON 必须是对象")
+        return parsed
+
+
+def normalize_usage(value: Any) -> Dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    normalized = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        raw_value = value.get(key, 0)
+        try:
+            normalized[key] = int(raw_value)
+        except (TypeError, ValueError):
+            normalized[key] = 0
+    return normalized
 
 
 def strip_json_fence(content: str) -> str:

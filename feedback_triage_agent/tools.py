@@ -95,7 +95,7 @@ def load_feedback(state: AgentRunState) -> ToolResult:
     return ToolResult(
         step_name="load_feedback",
         status="warning" if warnings else "success",
-        input_summary=f"path={input_path}",
+        input_summary=f"path={input_path}, ask_parser={state.ask_parser_source}",
         output_summary=(
             f"loaded {len(state.raw_records)} rows, {len(state.columns)} columns"
             f"{normalization_summary}"
@@ -211,6 +211,10 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
         else:
             state.llm_used = True
             state.llm_success_count += 1
+            usage = getattr(llm_client, "last_usage", {})
+            state.llm_prompt_tokens += usage.get("prompt_tokens", 0)
+            state.llm_completion_tokens += usage.get("completion_tokens", 0)
+            state.llm_total_tokens += usage.get("total_tokens", 0)
             item.issue_category = draft.issue_category
             item.llm_rule_disagreement = draft.issue_category != item.rule_issue_category
             item.summary = draft.summary
@@ -243,6 +247,9 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
             "llm_model": state.llm_model,
             "llm_fallback_used": state.llm_fallback_used,
             "llm_fallback_reasons": state.llm_fallback_reasons,
+            "llm_prompt_tokens": state.llm_prompt_tokens,
+            "llm_completion_tokens": state.llm_completion_tokens,
+            "llm_total_tokens": state.llm_total_tokens,
         },
     )
 
@@ -329,6 +336,15 @@ def qa_check(state: AgentRunState) -> ToolResult:
         "normalized_input_path": (
             str(state.normalized_input_path) if state.normalized_input_path else ""
         ),
+        "ask_parser_source": state.ask_parser_source,
+        "ask_parser_model": state.ask_parser_model,
+        "ask_parser_fallback_reason": state.ask_parser_fallback_reason,
+        "ask_parser_prompt_tokens": state.ask_parser_prompt_tokens,
+        "ask_parser_completion_tokens": state.ask_parser_completion_tokens,
+        "ask_parser_total_tokens": state.ask_parser_total_tokens,
+        "llm_prompt_tokens": state.llm_prompt_tokens,
+        "llm_completion_tokens": state.llm_completion_tokens,
+        "llm_total_tokens": state.llm_total_tokens,
     }
 
     warnings = []

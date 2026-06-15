@@ -17,17 +17,20 @@
 
 ## 当前范围
 
-v0.7 实现一个本地 CLI + FastAPI Web App Demo：
+v0.8.1 实现一个本地 CLI + FastAPI Web App Demo：
 
 - 读取 `sample_feedback.csv`。
 - 校验必填字段。
-- 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
+- 默认使用 DeepSeek V4 Pro，可选调用 API 生成分类、摘要、用户需求和产品建议初稿。
 - 默认使用规则模式，只有用户明确启用时才向 DeepSeek 发送反馈文本。
 - 没有 API key 或 API 调用失败时，自动 fallback 到规则版分类。
 - 使用规则判断优先级。
 - 识别人工复核样本。
 - 生成问题卡片、QA 报告和运行日志。
 - CLI 和 Web App 都支持自然语言 `ask` 入口，并可生成静态 HTML 报告。
+- Ask 默认使用 DeepSeek 将任务解析为受约束参数，失败或未配置时 fallback 到原有规则解析。
+- QA 报告记录 DeepSeek API 返回的输入、输出和总 token 数。
+- CLI/Web 均可强制只使用本地规则解析 Ask。
 - 自然语言 `ask` 可将常见第三方评论列名标准化并导出 `normalized_feedback.csv`。
 - 支持在本地 Web App 中选择内置数据、上传 CSV、查看结果并下载输出。
 - 支持对本地人工标注 golden set 运行规则质量评测和回归门槛。

@@ -31,7 +31,7 @@
 
 {% block sidebar_note %}
 <strong>复核边界</strong>
-<span>DeepSeek 仅生成初稿，P0、低置信度、多问题和规则分歧样本仍需人工复核。</span>
+<span>DeepSeek 可解析 Ask 并生成反馈初稿；P0、低置信度、多问题和规则分歧样本仍需人工复核。</span>
 {% endblock %}
 
 {% block content %}
@@ -121,9 +121,14 @@
       <em class="status-badge status-warning">review</em>
     </article>
     <article class="metric-card">
+      <span>Ask parser</span>
+      <strong>{{ run.metrics.ask_parser_source }}</strong>
+      <em class="status-badge status-muted">{{ run.metrics.ask_parser_model }} / {{ run.metrics.ask_parser_tokens }} tokens</em>
+    </article>
+    <article class="metric-card">
       <span>LLM used</span>
       <strong>{{ run.metrics.llm_used }}</strong>
-      <em class="status-badge status-muted">optional</em>
+      <em class="status-badge status-muted">{{ run.metrics.llm_tokens }} tokens</em>
     </article>
     <article class="metric-card">
       <span>fallback</span>

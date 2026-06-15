@@ -4,6 +4,7 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from feedback_triage_agent import web_app
+from feedback_triage_agent.models import LLMTaskIntent
 
 
 def client_with_tmp_runs(tmp_path: Path, monkeypatch) -> TestClient:
@@ -82,6 +83,105 @@ def test_web_ask_runs_same_agent_and_generates_html(tmp_path: Path, monkeypatch)
     assert (run_dir / "triage_results.csv").exists()
     assert (run_dir / "report.html").exists()
     assert (run_dir / "outputs.zip").exists()
+
+
+def test_web_ask_uses_deepseek_to_parse_natural_language(
+    tmp_path: Path, monkeypatch
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+
+    class FakeDeepSeekClient:
+        model = "deepseek-v4-pro"
+        last_usage = {
+            "prompt_tokens": 70,
+            "completion_tokens": 20,
+            "total_tokens": 90,
+        }
+
+        def parse_task(self, task: str, uploaded_filename: str = "") -> LLMTaskIntent:
+            assert uploaded_filename == "feedback.csv"
+            return LLMTaskIntent(
+                use_llm_for_triage=False,
+                generate_html_report=True,
+                normalize_input=False,
+            )
+
+    monkeypatch.setattr(
+        "feedback_triage_agent.task_parser.DeepSeekClient", FakeDeepSeekClient
+    )
+    csv_content = (
+        b"id,source,app_name,review_text,rating\n"
+        b'a001,test,ChatMate,"page is slow",2\n'
+    )
+
+    response = client.post(
+        "/ask",
+        data={"task": "照之前约定的交付形式处理一下"},
+        files={"upload_file": ("feedback.csv", csv_content, "text/csv")},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    run_dir = web_app.WEB_RUNS_DIR / run_id
+    assert (run_dir / "report.html").exists()
+    qa_report = (run_dir / "qa_report.md").read_text(encoding="utf-8")
+    assert "解析来源: deepseek" in qa_report
+    assert "解析模型: deepseek-v4-pro" in qa_report
+    assert "解析总 tokens: 90" in qa_report
+
+
+def test_web_ask_rule_parser_option_skips_deepseek(tmp_path: Path, monkeypatch) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+
+    class UnexpectedDeepSeekClient:
+        def __init__(self):
+            raise AssertionError("DeepSeek should not be called")
+
+    monkeypatch.setattr(
+        "feedback_triage_agent.task_parser.DeepSeekClient",
+        UnexpectedDeepSeekClient,
+    )
+
+    response = client.post(
+        "/ask",
+        data={
+            "task": "分析 data/sample_feedback.csv，只用规则",
+            "rule_parser": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    qa_report = (web_app.WEB_RUNS_DIR / run_id / "qa_report.md").read_text(
+        encoding="utf-8"
+    )
+    assert "解析来源: rules" in qa_report
+
+
+def test_web_ask_rejects_non_csv_before_deepseek_parse(
+    tmp_path: Path, monkeypatch
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+
+    class UnexpectedDeepSeekClient:
+        def __init__(self):
+            raise AssertionError("DeepSeek should not be called")
+
+    monkeypatch.setattr(
+        "feedback_triage_agent.task_parser.DeepSeekClient",
+        UnexpectedDeepSeekClient,
+    )
+
+    response = client.post(
+        "/ask",
+        data={"task": "处理这份文件"},
+        files={"upload_file": ("notes.txt", b"not csv", "text/plain")},
+    )
+
+    assert response.status_code == 400
+    assert "上传文件必须是 CSV 格式" in response.text
 
 
 def test_web_ask_can_upload_csv_before_describing_task(tmp_path: Path, monkeypatch) -> None:

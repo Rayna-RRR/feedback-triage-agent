@@ -91,7 +91,7 @@
     </div>
     <span class="status-badge status-info">same 7-tool plan</span>
   </div>
-  <p class="card-copy">先上传 CSV，再描述运行要求。也可以不上传，直接在任务中写明本地 CSV 路径。可要求把常见外部列名转换为标准字段并输出，后续分类、QA 和人工复核仍由原 Agent runner 负责。</p>
+  <p class="card-copy">先上传 CSV，再描述运行要求。配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。反馈分类、QA 和人工复核仍由原 Agent runner 负责。</p>
   <div class="upload-row ask-upload">
     <label for="ask_upload_file">1. 上传 CSV</label>
     <input id="ask_upload_file" name="upload_file" type="file" accept=".csv,text/csv">
@@ -99,8 +99,15 @@
   </div>
   <label for="ask_task">任务描述</label>
   <textarea id="ask_task" name="task" rows="4">转换为符合格式，只用规则，生成 HTML 报告</textarea>
+  <label class="check-card">
+    <input type="checkbox" name="rule_parser" value="on">
+    <span>
+      <strong>仅用本地规则解析 Ask</strong>
+      <small>不把任务文本发送给 DeepSeek，使用原有关键词和正则拆解</small>
+    </span>
+  </label>
   <div class="ask-actions">
-    <small>未上传时可写“分析 data/sample_feedback.csv”；支持识别“转换格式”“只用规则”“不要用 LLM”“生成 HTML 报告”等意图。</small>
+    <small>默认只把任务文本和上传文件名发送给 DeepSeek，不发送 CSV 内容；“只用规则”控制反馈分诊方式，不会关闭 Ask 的模型解析。</small>
     <button type="submit">解析任务并运行</button>
   </div>
 </form>
