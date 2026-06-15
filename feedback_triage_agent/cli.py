@@ -18,6 +18,7 @@ from feedback_triage_agent.task_parser import (
     should_disable_llm,
     should_enable_llm,
     should_generate_html_report,
+    should_normalize_input,
 )
 
 
@@ -99,6 +100,7 @@ def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -
     output = infer_output_dir(task)
     llm_requested = should_enable_llm(task) and not should_disable_llm(task)
     html_requested = should_generate_html_report(task)
+    normalize_input = should_normalize_input(task)
 
     console.print(
         Panel(
@@ -106,13 +108,20 @@ def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -
                 f"input={input_path}\n"
                 f"output={output}\n"
                 f"llm_requested={llm_requested}\n"
-                f"html_report={html_requested}"
+                f"html_report={html_requested}\n"
+                f"normalize_input={normalize_input}"
             ),
             title="Parsed Ask Task",
         )
     )
 
-    agent = FeedbackTriageAgent(input_path=input_path, output_dir=output, llm_requested=llm_requested)
+    agent = FeedbackTriageAgent(
+        input_path=input_path,
+        output_dir=output,
+        llm_requested=llm_requested,
+        normalize_input=normalize_input,
+        input_name=input_path.name,
+    )
     state = agent.run()
     render_run_summary(state)
 

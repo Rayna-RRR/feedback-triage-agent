@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.cli import app, infer_input_path
-from feedback_triage_agent.task_parser import infer_output_dir
+from feedback_triage_agent.task_parser import infer_output_dir, should_normalize_input
 
 
 runner = CliRunner()
@@ -32,6 +32,11 @@ def test_ask_command_parses_paths_with_spaces_and_windows_drive() -> None:
     assert infer_output_dir(task) == Path(r"C:\My Reports")
 
 
+def test_ask_command_detects_format_normalization_intent() -> None:
+    assert should_normalize_input("把 CSV 转换为符合格式并输出") is True
+    assert should_normalize_input("只用规则，生成 HTML 报告") is False
+
+
 def test_ask_command_runs_agent_and_generates_html_report(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     input_path = tmp_path / "feedback.csv"
@@ -51,6 +56,37 @@ def test_ask_command_runs_agent_and_generates_html_report(tmp_path: Path, monkey
     assert (output_dir / "issue_cards.md").exists()
     assert (output_dir / "report.html").exists()
     assert "HTML report generated" in result.output
+
+
+def test_ask_command_normalizes_nonstandard_csv_and_runs_agent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    input_path = tmp_path / "chatgpt_reviews_latest_5000.csv"
+    input_path.write_text(
+        "reviewId,userName,content,score\n"
+        'r001,Alice,"page is slow",2\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "normalized_output"
+
+    result = runner.invoke(
+        app,
+        [
+            "ask",
+            f"分析 {input_path} 输出到 {output_dir}，转换为符合格式，只用规则",
+        ],
+    )
+
+    assert result.exit_code == 0
+    normalized = pd.read_csv(output_dir / "normalized_feedback.csv").fillna("")
+    assert normalized.loc[0, "id"] == "r001"
+    assert normalized.loc[0, "source"] == "google_play"
+    assert normalized.loc[0, "app_name"] == "ChatGPT"
+    assert normalized.loc[0, "review_text"] == "page is slow"
+    assert normalized.loc[0, "rating"] == 2
+    assert (output_dir / "triage_results.csv").exists()
+    assert "normalize_input=True" in result.output
 
 
 def test_ask_command_shows_clear_error_without_input_path() -> None:

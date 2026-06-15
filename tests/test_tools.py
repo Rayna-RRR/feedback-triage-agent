@@ -30,6 +30,68 @@ def test_load_feedback_reads_csv(tmp_path: Path) -> None:
     assert state.columns == ["id", "source", "app_name", "review_text", "rating"]
 
 
+def test_load_feedback_normalizes_google_play_review_export(tmp_path: Path) -> None:
+    csv_path = tmp_path / "chatgpt_reviews_latest_5000.csv"
+    write_csv(
+        csv_path,
+        "reviewId,userName,content,score,thumbsUpCount\n"
+        'r001,Alice,"page is slow",2,3\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        input_name=csv_path.name,
+        output_dir=tmp_path / "out",
+        normalize_input=True,
+    )
+
+    load_result = load_feedback(state)
+    validation_result = validate_schema(state)
+
+    assert load_result.status == "success"
+    assert validation_result.status == "success"
+    assert state.normalization_applied is True
+    assert state.normalization_column_mapping == {
+        "id": "reviewId",
+        "review_text": "content",
+        "rating": "score",
+    }
+    assert state.normalization_defaults == {
+        "source": "google_play",
+        "app_name": "ChatGPT",
+    }
+    assert state.columns == [
+        "id",
+        "source",
+        "app_name",
+        "review_text",
+        "rating",
+        "userName",
+        "thumbsUpCount",
+    ]
+    assert state.records[0].id == "r001"
+    assert state.records[0].source == "google_play"
+    assert state.records[0].app_name == "ChatGPT"
+    assert (tmp_path / "out" / "normalized_feedback.csv").exists()
+
+
+def test_load_feedback_normalization_rejects_unrecognized_semantic_fields(
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "unknown.csv"
+    write_csv(csv_path, "reviewId,userName\nr001,Alice\n")
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        normalize_input=True,
+    )
+
+    result = load_feedback(state)
+
+    assert result.status == "error"
+    assert "review_text" in result.warnings[0]
+    assert "rating" in result.warnings[0]
+
+
 def test_validate_schema_reports_missing_columns(tmp_path: Path) -> None:
     csv_path = tmp_path / "feedback.csv"
     write_csv(csv_path, "id,source,app_name,review_text\n" 'a001,app_store,ChatMate,"回答不准确。"\n')

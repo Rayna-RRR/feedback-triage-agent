@@ -135,6 +135,12 @@ class AgentRunState(BaseModel):
 
     input_path: Path
     output_dir: Path
+    input_name: str = ""
+    normalize_input: bool = False
+    normalization_applied: bool = False
+    normalization_column_mapping: Dict[str, str] = Field(default_factory=dict)
+    normalization_defaults: Dict[str, str] = Field(default_factory=dict)
+    normalized_input_path: Optional[Path] = None
     required_fields: List[str] = Field(default_factory=list)
     columns: List[str] = Field(default_factory=list)
     raw_records: List[Dict[str, Any]] = Field(default_factory=list)

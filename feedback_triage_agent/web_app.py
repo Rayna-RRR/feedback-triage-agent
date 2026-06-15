@@ -27,6 +27,7 @@ from feedback_triage_agent.task_parser import (
     should_disable_llm,
     should_enable_llm,
     should_generate_html_report,
+    should_normalize_input,
 )
 from feedback_triage_agent.rules import REQUIRED_FIELDS
 from feedback_triage_agent.review import apply_review_decisions
@@ -54,6 +55,7 @@ REQUIRED_WEB_OUTPUTS = [
     "review_decisions.csv",
 ]
 DOWNLOADS = [
+    ("normalized_feedback.csv", "标准化输入 CSV"),
     ("issue_cards.md", "问题卡片 Markdown"),
     ("qa_report.md", "QA 报告 Markdown"),
     ("run_log.md", "Agent run log"),
@@ -121,13 +123,13 @@ def get_run_dir(run_id: str) -> Path:
     return run_dir
 
 
-def validate_csv_input(path: Path) -> int:
+def validate_csv_input(path: Path, *, require_schema: bool = True) -> int:
     try:
         dataframe = pd.read_csv(path, nrows=MAX_INPUT_ROWS + 1)
     except Exception as exc:
         raise ValueError(f"CSV 无法读取，请检查文件编码和格式: {exc}") from exc
     missing = [field for field in REQUIRED_FIELDS if field not in dataframe.columns]
-    if missing:
+    if require_schema and missing:
         raise ValueError("CSV 缺少必填字段: " + "，".join(missing))
     if len(dataframe) > MAX_INPUT_ROWS:
         raise ValueError(f"CSV 超过 {MAX_INPUT_ROWS} 行限制，请拆分后重试。")
@@ -176,14 +178,24 @@ def execute_agent_run(
     *,
     llm_requested: bool,
     generate_html: bool,
+    normalize_input: bool = False,
+    input_name: str = "",
 ) -> None:
-    row_count = validate_csv_input(input_path)
+    row_count = validate_csv_input(input_path, require_schema=not normalize_input)
     if llm_requested and row_count > MAX_LLM_ROWS:
         raise ValueError(f"启用 LLM 时最多处理 {MAX_LLM_ROWS} 条反馈，请拆分输入或使用规则模式。")
-    agent = FeedbackTriageAgent(input_path=input_path, output_dir=run_dir, llm_requested=llm_requested)
+    agent = FeedbackTriageAgent(
+        input_path=input_path,
+        output_dir=run_dir,
+        llm_requested=llm_requested,
+        normalize_input=normalize_input,
+        input_name=input_name or input_path.name,
+    )
     state = agent.run()
     if state.run_log and state.run_log[-1].status == "error":
-        raise ValueError(state.run_log[-1].output_summary)
+        last_step = state.run_log[-1]
+        detail = "；".join(last_step.warnings) or last_step.output_summary
+        raise ValueError(detail)
 
     verify_outputs(run_dir)
     if generate_html:
@@ -341,6 +353,7 @@ async def run_agent(
             run_dir,
             llm_requested=llm_requested,
             generate_html=boolish(generate_html),
+            input_name=input_path.name,
         )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:
         cleanup_failed_run(run_dir)
@@ -376,6 +389,7 @@ def ask_agent(
 
     run_dir = create_run_dir("ask")
     try:
+        input_name = input_path.name if not has_upload else upload_file.filename
         if has_upload:
             if not upload_file.filename.lower().endswith(".csv"):
                 raise ValueError("上传文件必须是 CSV 格式。")
@@ -387,6 +401,8 @@ def ask_agent(
             run_dir,
             llm_requested=should_enable_llm(task) and not should_disable_llm(task),
             generate_html=should_generate_html_report(task),
+            normalize_input=should_normalize_input(task),
+            input_name=input_name,
         )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:
         cleanup_failed_run(run_dir)

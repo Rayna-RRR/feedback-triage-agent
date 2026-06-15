@@ -21,10 +21,19 @@ AgentTool = Callable[[AgentRunState], ToolResult]
 class FeedbackTriageAgent:
     """Fixed-plan runner that makes tool calls and records state."""
 
-    def __init__(self, input_path: Path, output_dir: Path, llm_requested: bool = False):
+    def __init__(
+        self,
+        input_path: Path,
+        output_dir: Path,
+        llm_requested: bool = False,
+        normalize_input: bool = False,
+        input_name: str = "",
+    ):
         self.input_path = Path(input_path)
         self.output_dir = Path(output_dir)
         self.llm_requested = llm_requested
+        self.normalize_input = normalize_input
+        self.input_name = input_name
         self.plan: List[AgentTool] = [
             load_feedback,
             validate_schema,
@@ -40,6 +49,8 @@ class FeedbackTriageAgent:
             input_path=self.input_path,
             output_dir=self.output_dir,
             llm_requested=self.llm_requested,
+            normalize_input=self.normalize_input,
+            input_name=self.input_name,
         )
 
         for tool in self.plan:

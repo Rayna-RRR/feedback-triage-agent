@@ -106,6 +106,60 @@ def test_web_ask_can_upload_csv_before_describing_task(tmp_path: Path, monkeypat
     assert (run_dir / "report.html").exists()
 
 
+def test_web_ask_normalizes_uploaded_google_play_csv(tmp_path: Path, monkeypatch) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+    csv_content = (
+        b"reviewId,userName,content,score,thumbsUpCount\n"
+        b'r001,Alice,"page is slow",2,3\n'
+    )
+
+    response = client.post(
+        "/ask",
+        data={"task": "转换为符合格式，只用规则，生成 HTML 报告"},
+        files={
+            "upload_file": (
+                "chatgpt_reviews_latest_5000.csv",
+                csv_content,
+                "text/csv",
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    run_dir = web_app.WEB_RUNS_DIR / run_id
+    normalized = pd.read_csv(run_dir / "normalized_feedback.csv").fillna("")
+    assert list(normalized.columns[:5]) == [
+        "id",
+        "source",
+        "app_name",
+        "review_text",
+        "rating",
+    ]
+    assert normalized.loc[0, "source"] == "google_play"
+    assert normalized.loc[0, "app_name"] == "ChatGPT"
+    assert (run_dir / "triage_results.csv").exists()
+    assert (run_dir / "outputs.zip").exists()
+
+
+def test_web_ask_reports_unrecognized_normalization_fields(
+    tmp_path: Path, monkeypatch
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+
+    response = client.post(
+        "/ask",
+        data={"task": "转换为符合格式，只用规则"},
+        files={"upload_file": ("unknown.csv", b"reviewId,userName\nr001,Alice\n", "text/csv")},
+    )
+
+    assert response.status_code == 400
+    assert "未识别到字段" in response.text
+    assert "review_text" in response.text
+    assert "rating" in response.text
+
+
 def test_web_ask_without_csv_path_shows_clear_error(tmp_path: Path, monkeypatch) -> None:
     client = client_with_tmp_runs(tmp_path, monkeypatch)
 

@@ -51,3 +51,27 @@ def test_empty_csv_exports_headers_and_generates_html(tmp_path: Path) -> None:
     results = (output_dir / "triage_results.csv").read_text(encoding="utf-8")
     assert results.startswith("record_key,id,source,app_name,review_text,rating")
     assert report_path.exists()
+
+
+def test_agent_exports_normalized_input_and_keeps_seven_tool_steps(tmp_path: Path) -> None:
+    input_path = tmp_path / "chatgpt_reviews_latest_5000.csv"
+    input_path.write_text(
+        "reviewId,content,score\n"
+        'r001,"wrong answer",1\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "output"
+
+    state = FeedbackTriageAgent(
+        input_path=input_path,
+        output_dir=output_dir,
+        normalize_input=True,
+        input_name=input_path.name,
+    ).run()
+
+    assert len(state.run_log) == 7
+    assert (output_dir / "normalized_feedback.csv").exists()
+    assert "normalized_feedback" in state.output_paths
+    qa_report = (output_dir / "qa_report.md").read_text(encoding="utf-8")
+    assert "reviewId -> id" in qa_report
+    assert "source=google_play" in qa_report

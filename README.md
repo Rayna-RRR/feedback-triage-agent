@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.6
+# Feedback Triage Agent v0.7
 
 ## 本地 Web App
 
@@ -35,7 +35,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.6 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask`、静态 HTML 报告、规则质量评测和本地人工复核回写。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。
+v0.7 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask`、外部 CSV 格式标准化、静态 HTML 报告、规则质量评测和本地人工复核回写。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -130,9 +130,27 @@ python -m feedback_triage_agent.cli inspect --output data/output
 python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"
 ```
 
-`ask` 会从任务文本中识别 CSV 输入路径，支持带空格、中文和 Windows 盘符的路径；未指定输出目录时默认写入 `data/output_ask`。LLM 默认关闭，只有任务明确包含“使用 LLM”或“使用 DeepSeek”才会启用；如果包含“生成 HTML 报告”或“网页报告”，会在分诊完成后额外生成 `report.html`。
+当外部 CSV 列名不符合 Agent 的五个标准字段时，可以明确要求格式转换：
 
-Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。上传限制为 5 MB / 5000 行，启用 LLM 时单次最多处理 100 条。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
+```bash
+python -m feedback_triage_agent.cli ask \
+  "分析 /path/to/chatgpt_reviews_latest_5000.csv，转换为符合格式，输出到 data/output_ask，只用规则"
+```
+
+`ask` 会从任务文本中识别 CSV 输入路径，支持带空格、中文和 Windows 盘符的路径；未指定输出目录时默认写入 `data/output_ask`。当任务包含“转换格式”“调整格式”“标准化 CSV”“符合格式”等意图时，会先生成 `normalized_feedback.csv`，再执行原有七步分诊。LLM 默认关闭，只有任务明确包含“使用 LLM”或“使用 DeepSeek”才会启用；如果包含“生成 HTML 报告”或“网页报告”，会额外生成 `report.html`。
+
+标准化使用本地确定性规则，不调用 LLM：
+
+- `reviewId`、`review_id`、`feedback_id` 等映射到 `id`。
+- `content`、`review`、`text`、`comment`、`feedback` 等映射到 `review_text`。
+- `score`、`stars`、`rate` 等映射到 `rating`。
+- `platform`、`channel`、`store` 等映射到 `source`。
+- `app`、`product_name` 等映射到 `app_name`。
+- Google Play 常见导出结构会补 `source=google_play`；缺少 `app_name` 时从原文件名推断。
+- 缺少 ID 时生成稳定的行 ID；无法识别评论正文或评分字段时拒绝转换，不会猜测语义值。
+- 未参与映射的原始元数据列会保留在 `normalized_feedback.csv` 中。
+
+Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“转换为符合格式，只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行，启用 LLM 时单次最多处理 100 条。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
 
 从已有输出目录生成静态 HTML 报告：
 
@@ -173,6 +191,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 
 ## 输出文件说明
 
+- `<output-dir>/normalized_feedback.csv`: 仅在 Ask 明确要求格式标准化时生成；标准字段排在前五列，未消费的原始元数据继续保留。
 - `<output-dir>/issue_cards.md`: 每条反馈对应的问题卡片，包含标题、样本 ID、摘要、类型、优先级、用户需求、产品建议和人工复核原因。
 - `<output-dir>/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
 - `<output-dir>/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
@@ -182,12 +201,14 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.6 范围
+## v0.7 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
+- Ask 可把常见第三方评论导出列映射到标准字段并输出 `normalized_feedback.csv`。
+- 格式转换、字段补值和输出路径会记录在 `run_log.md` 与 `qa_report.md`，保持可追踪。
 - Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
 - 使用关键词、否定语义和启发式规则完成优先级判断、fallback 和人工复核识别。
 - 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
