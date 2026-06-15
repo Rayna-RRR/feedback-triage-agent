@@ -96,8 +96,38 @@ def render_qa_report(state: AgentRunState) -> str:
     lines.extend(
         [
             "",
-        "## 字段缺失情况",
-        "",
+            "## 输入格式标准化",
+            "",
+            f"- 是否请求标准化: {summary.get('normalization_requested', False)}",
+            f"- 是否发生字段映射或补值: {summary.get('normalization_applied', False)}",
+            (
+                "- 字段映射: "
+                + (
+                    "、".join(
+                        f"{source} -> {target}"
+                        for target, source in summary.get(
+                            "normalization_column_mapping", {}
+                        ).items()
+                    )
+                    or "无"
+                )
+            ),
+            (
+                "- 补充值: "
+                + (
+                    "、".join(
+                        f"{field}={value}"
+                        for field, value in summary.get(
+                            "normalization_defaults", {}
+                        ).items()
+                    )
+                    or "无"
+                )
+            ),
+            f"- 标准化文件: {summary.get('normalized_input_path') or '未生成'}",
+            "",
+            "## 字段缺失情况",
+            "",
         ]
     )
 
@@ -142,7 +172,7 @@ def render_qa_report(state: AgentRunState) -> str:
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.6 默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
+            "- v0.7 默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
             "- 明确启用 LLM 但没有 API key 或调用失败时自动 fallback 到 rules.py。",
             "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",
             "- LLM 与规则分类不一致时保留两套结论并强制进入人工复核。",
@@ -226,10 +256,13 @@ def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[st
     classified_feedback_to_frame(state.classified_feedback).to_csv(results_csv_path, index=False)
     write_review_decisions(state.classified_feedback, review_decisions_path)
 
-    return {
+    output_paths = {
         "issue_cards": issue_cards_path,
         "qa_report": qa_report_path,
         "run_log": run_log_path,
         "triage_results": results_csv_path,
         "review_decisions": review_decisions_path,
     }
+    if state.normalized_input_path and state.normalized_input_path.exists():
+        output_paths["normalized_feedback"] = state.normalized_input_path
+    return output_paths

@@ -87,3 +87,25 @@ def should_generate_html_report(task: str) -> bool:
             "静态html",
         ]
     )
+
+
+def should_normalize_input(task: str) -> bool:
+    compact = re.sub(r"\s+", "", task.lower())
+    return any(
+        phrase in compact
+        for phrase in [
+            "转换格式",
+            "调整格式",
+            "调换成符合",
+            "改成符合",
+            "整理成标准",
+            "标准化csv",
+            "标准格式",
+            "符合格式",
+            "格式不符合",
+            "修正格式",
+            "适配格式",
+            "normalizecsv",
+            "normalizethecsv",
+        ]
+    )

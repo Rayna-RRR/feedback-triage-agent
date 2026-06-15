@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from feedback_triage_agent.exporters import write_outputs
 from feedback_triage_agent.llm_client import DeepSeekClient, LLMCallError, LLMUnavailableError
 from feedback_triage_agent.models import AgentRunState, FeedbackRecord, IssueCard, RunStepLog, ToolResult
+from feedback_triage_agent.normalization import normalize_feedback_frame
 from feedback_triage_agent.rules import (
     REQUIRED_FIELDS,
     build_issue_title,
@@ -58,6 +59,32 @@ def load_feedback(state: AgentRunState) -> ToolResult:
             warnings=[f"CSV 读取失败: {exc}"],
             next_action="stop",
         )
+
+    normalization_summary = ""
+    if state.normalize_input:
+        try:
+            result = normalize_feedback_frame(dataframe, state.input_name or input_path.name)
+        except ValueError as exc:
+            return ToolResult(
+                step_name="load_feedback",
+                status="error",
+                input_summary=f"path={input_path}, normalize_input=True",
+                output_summary="input CSV could not be normalized",
+                warnings=[str(exc)],
+                next_action="stop",
+            )
+        dataframe = result.dataframe
+        state.output_dir.mkdir(parents=True, exist_ok=True)
+        state.normalized_input_path = state.output_dir / "normalized_feedback.csv"
+        dataframe.to_csv(state.normalized_input_path, index=False)
+        state.normalization_applied = result.changed
+        state.normalization_column_mapping = result.column_mapping
+        state.normalization_defaults = result.defaults
+        normalization_summary = (
+            f", normalized=True, mappings={result.column_mapping}, "
+            f"defaults={result.defaults}, preserved={result.preserved_columns}"
+        )
+
     state.columns = [str(column) for column in dataframe.columns]
     state.raw_records = dataframe.to_dict("records")
 
@@ -69,10 +96,19 @@ def load_feedback(state: AgentRunState) -> ToolResult:
         step_name="load_feedback",
         status="warning" if warnings else "success",
         input_summary=f"path={input_path}",
-        output_summary=f"loaded {len(state.raw_records)} rows, {len(state.columns)} columns",
+        output_summary=(
+            f"loaded {len(state.raw_records)} rows, {len(state.columns)} columns"
+            f"{normalization_summary}"
+        ),
         warnings=warnings,
         next_action="validate_schema",
-        payload={"columns": state.columns, "row_count": len(state.raw_records)},
+        payload={
+            "columns": state.columns,
+            "row_count": len(state.raw_records),
+            "normalization_applied": state.normalization_applied,
+            "normalization_column_mapping": state.normalization_column_mapping,
+            "normalization_defaults": state.normalization_defaults,
+        },
     )
 
 
@@ -286,6 +322,13 @@ def qa_check(state: AgentRunState) -> ToolResult:
         "llm_rule_disagreement_ids": [
             item.id for item in state.classified_feedback if item.llm_rule_disagreement
         ],
+        "normalization_requested": state.normalize_input,
+        "normalization_applied": state.normalization_applied,
+        "normalization_column_mapping": state.normalization_column_mapping,
+        "normalization_defaults": state.normalization_defaults,
+        "normalized_input_path": (
+            str(state.normalized_input_path) if state.normalized_input_path else ""
+        ),
     }
 
     warnings = []
@@ -309,14 +352,20 @@ def qa_check(state: AgentRunState) -> ToolResult:
 
 
 def export_report(state: AgentRunState) -> ToolResult:
+    exported_files = [
+        "issue_cards.md",
+        "qa_report.md",
+        "run_log.md",
+        "triage_results.csv",
+        "review_decisions.csv",
+    ]
+    if state.normalized_input_path:
+        exported_files.insert(0, "normalized_feedback.csv")
     result = ToolResult(
         step_name="export_report",
         status="success",
         input_summary=f"output_dir={state.output_dir}",
-        output_summary=(
-            "exported issue_cards.md, qa_report.md, run_log.md, "
-            "triage_results.csv, review_decisions.csv"
-        ),
+        output_summary="exported " + ", ".join(exported_files),
         next_action="done",
     )
     final_logs = state.run_log + [RunStepLog.from_tool_result(result)]
