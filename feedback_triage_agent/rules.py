@@ -17,6 +17,7 @@ ISSUE_CATEGORIES = [
     "内容安全与合规问题",
     "账号、隐私与数据问题",
     "用户预期与产品定位问题",
+    "正向反馈/无明确问题",
     "不明确/其他",
 ]
 
@@ -29,17 +30,76 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "理解错",
         "识别错",
         "回答错",
+        "错了",
+        "算错",
+        "搞错",
+        "瞎编",
+        "骗人",
+        "事实",
+        "对错",
+        "错误率",
+        "识别不准",
+        "识别错误",
+        "语音识别差",
+        "语音识别没",
+        "不能生成",
         "模型",
         "翻译",
         "总结",
         "推荐不准",
         "不懂",
         "错误答案",
+        "wrong answer",
+        "incorrect answer",
+        "wrong response",
+        "incorrect response",
+        "wrong information",
+        "wrong facts",
+        "gets things wrong",
+        "get things wrong",
+        "inaccurate",
+        "hallucination",
+        "hallucinate",
+        "made up facts",
+        "makes up facts",
+        "does not understand",
+        "doesn't understand",
+        "did not understand",
+        "misunderstands",
+        "does not follow instructions",
+        "doesn't follow instructions",
+        "did not follow instructions",
+        "not following instructions",
+        "ignores instructions",
+        "ignored instructions",
+        "not doing what i say",
+        "does not do what i say",
+        "doesn't do what i say",
+        "not relevant",
+        "irrelevant",
+        "cannot trust",
+        "can't trust",
+        "bad memory",
+        "does not remember",
+        "doesn't remember",
+        "keeps forgetting",
+        "forget what",
+        "repeating the same",
+        "repeats the same",
+        "same mistakes",
+        "stupid results",
+        "dumb ai",
+        "bad translation",
+        "translation is wrong",
+        "image generator",
+        "image generation",
     ],
     "交互体验问题": [
         "不好用",
         "难用",
         "按钮",
+        "搜索按钮",
+        "按钮不见",
         "入口",
         "界面",
         "交互",
@@ -51,6 +111,23 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "复制",
         "保存",
         "夜间模式",
+        "hard to use",
+        "difficult to use",
+        "confusing interface",
+        "user interface",
+        "navigation",
+        "button",
+        "cannot find",
+        "can't find",
+        "could not find",
+        "input box",
+        "copy",
+        "save",
+        "dark mode",
+        "upload button",
+        "read aloud",
+        "option disappears",
+        "button disappears",
     ],
     "性能与稳定性问题": [
         "卡",
@@ -65,6 +142,56 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "报错",
         "打不开",
         "卡住",
+        "转圈",
+        "没反应",
+        "算力不足",
+        "服务器繁忙",
+        "高峰期",
+        "任务暂停",
+        "暂停",
+        "内存已满",
+        "内存满",
+        "速度慢",
+        "very slow",
+        "too slow",
+        "slow response",
+        "responds slowly",
+        "slow",
+        "laggy",
+        "lagging",
+        "crash",
+        "crashes",
+        "crashed",
+        "crashing",
+        "hangs",
+        "hanging",
+        "freezing",
+        "freezes",
+        "frozen",
+        "unresponsive",
+        "not responding",
+        "disconnects",
+        "disconnected",
+        "failed to load",
+        "loading forever",
+        "does not work",
+        "doesn't work",
+        "not working",
+        "stopped working",
+        "error",
+        "bug",
+        "bugs",
+        "cannot open",
+        "can't open",
+        "won't open",
+        "timeout",
+        "takes too long",
+        "taking too long",
+        "try again",
+        "keeps failing",
+        "cannot send",
+        "can't send",
+        "not sending",
     ],
     "会员与商业化问题": [
         "会员",
@@ -78,6 +205,44 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "套餐",
         "试用",
         "收费",
+        "消息数量",
+        "对话限制",
+        "次数限制",
+        "额度限制",
+        "上传限制",
+        "subscription",
+        "subscribe",
+        "charged",
+        "charging",
+        "payment",
+        "price",
+        "expensive",
+        "refund",
+        "premium",
+        "upgrade to plus",
+        "pay for",
+        "paywall",
+        "image limit",
+        "message limit",
+        "usage limit",
+        "daily limit",
+        "too many ads",
+        "advertisement",
+        "not affordable",
+        "cannot afford",
+        "can't afford",
+        "restriction",
+        "too many limits",
+        "too much limits",
+        "everything is limited",
+        "upload limit",
+        "free version",
+        "upgrade",
+        "asking for money",
+        "pay money",
+        "only allows",
+        "picture uploads",
+        "photo uploads",
     ],
     "内容安全与合规问题": [
         "违规",
@@ -91,6 +256,19 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "违法",
         "内容安全",
         "审核",
+        "unsafe content",
+        "harmful content",
+        "sexual content",
+        "explicit content",
+        "violence",
+        "violent",
+        "hate speech",
+        "abusive",
+        "illegal",
+        "minors",
+        "child safety",
+        "promoting war",
+        "promotes war",
     ],
     "账号、隐私与数据问题": [
         "登录",
@@ -106,6 +284,33 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "权限",
         "同步",
         "客户资料",
+        "login",
+        "log in",
+        "sign in",
+        "account",
+        "privacy",
+        "data leak",
+        "phone number",
+        "lost data",
+        "data loss",
+        "chat history",
+        "conversation history",
+        "password",
+        "delete account",
+        "account deletion",
+        "permission",
+        "sync",
+        "synchronization",
+        "hacked account",
+        "account hacked",
+        "sign up",
+        "signup",
+        "shares data",
+        "shared my data",
+        "deleted my",
+        "delete my",
+        "dialogue deleted",
+        "response deleted",
     ],
     "用户预期与产品定位问题": [
         "以为",
@@ -119,8 +324,34 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
         "场景",
         "办公",
         "学习",
+        "建议官方",
+        "希望官方",
+        "希望能修复",
+        "希望能增加",
+        "增加一个",
+        "支持团队",
         "产品",
         "边界",
+        "please add",
+        "add a feature",
+        "feature request",
+        "i wish",
+        "i hope",
+        "should have",
+        "needs a",
+        "need a",
+        "would be great",
+        "could you add",
+        "want a",
+        "expected",
+        "expectation",
+        "use case",
+        "for work",
+        "for studying",
+        "memory feature",
+        "please work on",
+        "i want",
+        "please make",
     ],
 }
 
@@ -143,6 +374,21 @@ P0_KEYWORDS = [
     "丢失",
     "误扣",
     "自动扣费",
+    "crash",
+    "crashes",
+    "crashed",
+    "crashing",
+    "data loss",
+    "lost data",
+    "privacy leak",
+    "unauthorized charge",
+    "charged without permission",
+    "payment failed",
+    "refund",
+    "uninstall",
+    "never use again",
+    "hacked account",
+    "account hacked",
 ]
 
 P1_KEYWORDS = [
@@ -162,7 +408,115 @@ P1_KEYWORDS = [
     "答非所问",
     "找不到",
     "同步失败",
+    "转圈",
+    "没反应",
+    "算力不足",
+    "服务器繁忙",
+    "速度慢",
+    "very slow",
+    "too slow",
+    "laggy",
+    "lagging",
+    "failed",
+    "cannot use",
+    "can't use",
+    "does not work",
+    "doesn't work",
+    "not working",
+    "error",
+    "inaccurate",
+    "wrong answer",
+    "wrong information",
+    "cannot find",
+    "can't find",
+    "sync failed",
+    "hangs",
+    "hanging",
+    "takes too long",
+    "try again",
+    "cannot send",
+    "can't send",
 ]
+
+POSITIVE_FEEDBACK_KEYWORDS = [
+    "好用",
+    "很好",
+    "不错",
+    "很棒",
+    "优秀",
+    "满意",
+    "推荐",
+    "挺好用",
+    "帮助挺大",
+    "超赞",
+    "情绪价值",
+    "还不错",
+    "很喜欢",
+    "良心",
+    "强大",
+    "惊艳",
+    "聪明",
+    "good",
+    "nice",
+    "great",
+    "cool",
+    "excellent",
+    "awesome",
+    "amazing",
+    "best",
+    "super",
+    "superb",
+    "perfect",
+    "helpful",
+    "useful",
+    "very useful",
+    "love it",
+    "i love it",
+    "love",
+    "fantastic",
+    "wonderful",
+    "brilliant",
+    "thank you",
+    "thanks",
+    "thank",
+    "good app",
+    "nice app",
+    "great app",
+    "best app",
+    "good work",
+    "good job",
+    "works well",
+    "easy to use",
+    "very cool",
+    "happy",
+    "first class",
+    "works great",
+    "well done",
+    "okay",
+    "ok",
+    "supar",
+    "supper",
+    "👍",
+]
+
+POSITIVE_CONTRAST_MARKERS = (
+    "但是",
+    "不过",
+    "然而",
+    "问题",
+    "不好",
+    "很差",
+    " but ",
+    "however",
+    "although",
+    "except",
+    "problem",
+    "issue",
+    "bad",
+    "poor",
+    "worse",
+    "worst",
+)
 
 USER_NEED_BY_CATEGORY = {
     "模型能力问题": "获得准确、稳定、符合上下文的 AI 输出。",
@@ -172,6 +526,7 @@ USER_NEED_BY_CATEGORY = {
     "内容安全与合规问题": "避免不安全或不合规内容带来的产品和用户风险。",
     "账号、隐私与数据问题": "保护账号、隐私、历史内容和跨设备数据连续性。",
     "用户预期与产品定位问题": "确认产品适用场景、能力边界和可交付结果。",
+    "正向反馈/无明确问题": "继续稳定获得当前产品价值，无需进入问题修复流程。",
     "不明确/其他": "需要补充上下文，澄清用户遇到的具体任务和阻塞点。",
 }
 
@@ -183,19 +538,51 @@ SUGGESTION_BY_CATEGORY = {
     "内容安全与合规问题": "将样本加入安全评测集，强化生成前后的风险识别、拦截和申诉说明。",
     "账号、隐私与数据问题": "检查登录、同步和权限链路，明确数据保存策略，并提供可追踪的恢复流程。",
     "用户预期与产品定位问题": "在新手引导、模板和结果页说明能力边界，减少用户对交付形态的误解。",
+    "正向反馈/无明确问题": "记录正向体验信号并用于趋势观察；当前样本不创建问题修复项。",
     "不明确/其他": "进入人工复核队列，补充来源、任务场景和用户期望后再决定产品动作。",
 }
 
 GENERIC_SUGGESTIONS = {"", "优化体验", "继续观察", "后续优化", "待确认"}
-NEGATION_PREFIXES = ("没有", "未", "不", "无", "从未", "从来没有", "并未", "不会", "不再")
+NEGATION_PREFIXES = (
+    "没有",
+    "未",
+    "不",
+    "无",
+    "从未",
+    "从来没有",
+    "并未",
+    "不会",
+    "不再",
+    "no",
+    "not",
+    "never",
+    "without",
+    "doesn't",
+    "doesnt",
+    "didn't",
+    "didnt",
+    "isn't",
+    "isnt",
+    "wasn't",
+    "wasnt",
+    "won't",
+    "wont",
+    "can't",
+    "cant",
+)
 POSITIVE_RISK_CONTEXTS = {
     "退款": ("退款成功", "已退款", "退款很快", "顺利退款", "退款到账"),
+    "refund": ("refund processed", "refund was quick", "got my refund"),
     "扣费": ("没有扣费", "未扣费", "不会扣费"),
+    "charged": ("not charged", "never charged", "charged correctly"),
     "崩溃": ("没有崩溃", "从未崩溃", "不会崩溃"),
+    "crash": ("no crash", "never crash", "doesn't crash", "does not crash"),
+    "crashes": ("no crashes", "never crashes", "doesn't crash", "does not crash"),
     "闪退": ("没有闪退", "从未闪退", "不会闪退"),
 }
 POSITIVE_CATEGORY_CONTEXTS = {
     "加载": ("加载很快", "加载不慢", "加载也不慢", "加载正常", "加载流畅"),
+    "slow": ("not slow", "isn't slow", "is not slow"),
 }
 CATEGORY_TIE_BREAK_ORDER = [
     "账号、隐私与数据问题",
@@ -209,7 +596,12 @@ CATEGORY_TIE_BREAK_ORDER = [
 
 
 def normalize_for_matching(text: str) -> str:
-    return re.sub(r"\s+", "", text).lower()
+    normalized = str(text).lower().replace("’", "'")
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def compact_text_length(text: str) -> int:
+    return len(re.sub(r"\s+", "", str(text)))
 
 
 def summarize_text(text: str, max_length: int = 42) -> str:
@@ -220,7 +612,7 @@ def summarize_text(text: str, max_length: int = 42) -> str:
 
 
 def keyword_is_negated(text: str, start: int) -> bool:
-    prefix = text[max(0, start - 10) : start]
+    prefix = text[max(0, start - 24) : start].rstrip()
     if any(phrase in prefix for phrase in ("没有", "未发生", "并未", "从未", "从来没有")):
         return True
     return any(prefix.endswith(negation) for negation in NEGATION_PREFIXES)
@@ -241,14 +633,16 @@ def contains_actionable_keyword(
     category_check: bool = False,
     priority_check: bool = False,
 ) -> bool:
-    start = text.find(keyword)
-    while start >= 0:
+    keyword_pattern = re.escape(keyword)
+    if keyword and keyword[0].isascii() and keyword[0].isalnum():
+        keyword_pattern = rf"(?<![a-z0-9]){keyword_pattern}(?![a-z0-9])"
+    for match in re.finditer(keyword_pattern, text):
+        start = match.start()
         if not keyword_is_negated(text, start):
             positive_category = category_check and keyword_has_positive_category_context(text, keyword)
             positive_risk = priority_check and keyword_has_positive_risk_context(text, keyword)
             if not positive_category and not positive_risk:
                 return True
-        start = text.find(keyword, start + len(keyword))
     return False
 
 
@@ -270,7 +664,7 @@ def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
             for keyword in keywords
             if contains_actionable_keyword(
                 normalized,
-                keyword.lower(),
+                normalize_for_matching(keyword),
                 category_check=True,
             )
         ]
@@ -279,6 +673,23 @@ def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         if hits:
             matched_keywords[category] = hits
     return scores, matched_keywords
+
+
+def detect_positive_feedback(text: str, rating: int) -> List[str]:
+    if rating < 4:
+        return []
+    normalized = normalize_for_matching(text)
+    if any(marker in normalized for marker in POSITIVE_CONTRAST_MARKERS):
+        return []
+    hits = [
+        keyword
+        for keyword in POSITIVE_FEEDBACK_KEYWORDS
+        if contains_actionable_keyword(
+            normalized,
+            normalize_for_matching(keyword),
+        )
+    ]
+    return remove_overlapping_hits(hits)
 
 
 def pick_category(scores: Dict[str, int]) -> str:
@@ -305,14 +716,22 @@ def calculate_confidence(scores: Dict[str, int], matched_categories: List[str]) 
 def determine_priority(text: str, rating: int) -> str:
     normalized = normalize_for_matching(text)
     if any(
-        contains_actionable_keyword(normalized, keyword.lower(), priority_check=True)
+        contains_actionable_keyword(
+            normalized,
+            normalize_for_matching(keyword),
+            priority_check=True,
+        )
         for keyword in P0_KEYWORDS
     ):
         return "P0"
     if rating <= 2:
         return "P1"
     if any(
-        contains_actionable_keyword(normalized, keyword.lower(), priority_check=True)
+        contains_actionable_keyword(
+            normalized,
+            normalize_for_matching(keyword),
+            priority_check=True,
+        )
         for keyword in P1_KEYWORDS
     ):
         return "P1"
@@ -352,7 +771,8 @@ def build_product_suggestion(text: str, category: str, matched_categories: List[
 
 def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
     reasons: List[str] = []
-    if len(normalize_for_matching(feedback.review_text)) < 8:
+    is_positive_feedback = feedback.issue_category == "正向反馈/无明确问题"
+    if compact_text_length(feedback.review_text) < 8 and not is_positive_feedback:
         reasons.append("文本过短")
     if feedback.issue_category == "不明确/其他" or feedback.confidence < 0.6:
         reasons.append("分类低置信度")
@@ -372,7 +792,16 @@ def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
 def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
     scores, matched_keywords = score_categories(record.review_text)
     matched_categories = [category for category, score in scores.items() if score > 0]
-    category = pick_category(scores)
+    positive_hits = []
+    if not matched_categories:
+        positive_hits = detect_positive_feedback(record.review_text, record.rating)
+    if positive_hits:
+        category = "正向反馈/无明确问题"
+        scores[category] = len(positive_hits)
+        matched_categories = [category]
+        matched_keywords[category] = positive_hits
+    else:
+        category = pick_category(scores)
     priority = determine_priority(record.review_text, record.rating)
     confidence = calculate_confidence(scores, matched_categories)
     summary = summarize_text(record.review_text)
