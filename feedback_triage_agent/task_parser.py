@@ -23,6 +23,9 @@ class ParsedAskTask:
     parser_source: str
     parser_model: str = ""
     parser_fallback_reason: str = ""
+    parser_prompt_tokens: int = 0
+    parser_completion_tokens: int = 0
+    parser_total_tokens: int = 0
 
 
 def _strip_task_prefix(value: str) -> str:
@@ -184,6 +187,7 @@ def parse_ask_task(
     if output_dir == Path("data/output_ask") and intent.output_dir:
         output_dir = Path(intent.output_dir)
 
+    usage = getattr(client, "last_usage", {})
     return ParsedAskTask(
         input_path=input_path,
         output_dir=output_dir,
@@ -192,4 +196,7 @@ def parse_ask_task(
         normalize_input=intent.normalize_input or rules.normalize_input,
         parser_source="deepseek",
         parser_model=client.model,
+        parser_prompt_tokens=usage.get("prompt_tokens", 0),
+        parser_completion_tokens=usage.get("completion_tokens", 0),
+        parser_total_tokens=usage.get("total_tokens", 0),
     )

@@ -123,12 +123,12 @@
     <article class="metric-card">
       <span>Ask parser</span>
       <strong>{{ run.metrics.ask_parser_source }}</strong>
-      <em class="status-badge status-muted">{{ run.metrics.ask_parser_model }}</em>
+      <em class="status-badge status-muted">{{ run.metrics.ask_parser_model }} / {{ run.metrics.ask_parser_tokens }} tokens</em>
     </article>
     <article class="metric-card">
       <span>LLM used</span>
       <strong>{{ run.metrics.llm_used }}</strong>
-      <em class="status-badge status-muted">optional</em>
+      <em class="status-badge status-muted">{{ run.metrics.llm_tokens }} tokens</em>
     </article>
     <article class="metric-card">
       <span>fallback</span>

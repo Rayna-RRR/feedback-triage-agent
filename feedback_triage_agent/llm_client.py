@@ -30,7 +30,7 @@ class LLMCallError(RuntimeError):
 class DeepSeekConfig:
     api_key: str
     base_url: str = "https://api.deepseek.com"
-    model: str = "deepseek-chat"
+    model: str = "deepseek-v4-pro"
     timeout_seconds: int = 20
 
     @classmethod
@@ -39,7 +39,7 @@ class DeepSeekConfig:
         if not api_key:
             raise LLMUnavailableError("DEEPSEEK_API_KEY 未设置")
         base_url = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
-        model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
+        model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro").strip()
         try:
             timeout_seconds = int(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", "20"))
         except ValueError as exc:
@@ -59,6 +59,7 @@ class DeepSeekClient:
 
     def __init__(self, config: Optional[DeepSeekConfig] = None):
         self.config = config or DeepSeekConfig.from_env()
+        self.last_usage: Dict[str, int] = {}
 
     @property
     def model(self) -> str:
@@ -87,6 +88,7 @@ class DeepSeekClient:
         user_prompt: str,
         max_tokens: int,
     ) -> str:
+        self.last_usage = {}
         request = urllib.request.Request(
             url=f"{self.config.base_url.rstrip('/')}/chat/completions",
             data=json.dumps(
@@ -128,6 +130,7 @@ class DeepSeekClient:
             "temperature": 0.2,
             "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},
+            "thinking": {"type": "disabled"},
         }
 
     def _parse_response(self, response_body: str) -> LLMFeedbackDraft:
@@ -150,6 +153,7 @@ class DeepSeekClient:
     def _parse_json_content(self, response_body: str) -> Dict[str, Any]:
         try:
             data = json.loads(response_body)
+            self.last_usage = normalize_usage(data.get("usage"))
             content = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise LLMCallError("DeepSeek 响应结构无法解析") from exc
@@ -164,6 +168,19 @@ class DeepSeekClient:
         if not isinstance(parsed, dict):
             raise LLMCallError("DeepSeek 输出 JSON 必须是对象")
         return parsed
+
+
+def normalize_usage(value: Any) -> Dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    normalized = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        raw_value = value.get(key, 0)
+        try:
+            normalized[key] = int(raw_value)
+        except (TypeError, ValueError):
+            normalized[key] = 0
+    return normalized
 
 
 def strip_json_fence(content: str) -> str:

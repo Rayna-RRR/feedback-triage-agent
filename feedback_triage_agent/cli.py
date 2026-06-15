@@ -114,6 +114,7 @@ def ask(
                 f"task_parser={parsed.parser_source}\n"
                 f"task_parser_model={parsed.parser_model or 'local'}\n"
                 f"task_parser_fallback={parsed.parser_fallback_reason or 'none'}\n"
+                f"task_parser_tokens={parsed.parser_total_tokens}\n"
                 f"llm_requested={parsed.llm_requested}\n"
                 f"html_report={parsed.html_requested}\n"
                 f"normalize_input={parsed.normalize_input}"
@@ -131,6 +132,9 @@ def ask(
         ask_parser_source=parsed.parser_source,
         ask_parser_model=parsed.parser_model,
         ask_parser_fallback_reason=parsed.parser_fallback_reason,
+        ask_parser_prompt_tokens=parsed.parser_prompt_tokens,
+        ask_parser_completion_tokens=parsed.parser_completion_tokens,
+        ask_parser_total_tokens=parsed.parser_total_tokens,
     )
     state = agent.run()
     render_run_summary(state)

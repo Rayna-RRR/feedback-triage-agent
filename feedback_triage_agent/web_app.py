@@ -179,6 +179,9 @@ def execute_agent_run(
     ask_parser_source: str = "direct",
     ask_parser_model: str = "",
     ask_parser_fallback_reason: str = "",
+    ask_parser_prompt_tokens: int = 0,
+    ask_parser_completion_tokens: int = 0,
+    ask_parser_total_tokens: int = 0,
 ) -> None:
     row_count = validate_csv_input(input_path, require_schema=not normalize_input)
     if llm_requested and row_count > MAX_LLM_ROWS:
@@ -192,6 +195,9 @@ def execute_agent_run(
         ask_parser_source=ask_parser_source,
         ask_parser_model=ask_parser_model,
         ask_parser_fallback_reason=ask_parser_fallback_reason,
+        ask_parser_prompt_tokens=ask_parser_prompt_tokens,
+        ask_parser_completion_tokens=ask_parser_completion_tokens,
+        ask_parser_total_tokens=ask_parser_total_tokens,
     )
     state = agent.run()
     if state.run_log and state.run_log[-1].status == "error":
@@ -292,6 +298,8 @@ def read_results(run_id: str) -> WebRunData:
         "fallback": qa_values.get("是否 fallback 到 rules.py", "False"),
         "ask_parser_source": qa_values.get("解析来源", "direct"),
         "ask_parser_model": qa_values.get("解析模型", "未使用"),
+        "ask_parser_tokens": qa_values.get("解析总 tokens", 0),
+        "llm_tokens": qa_values.get("反馈初稿总 tokens", 0),
         "output_dir": str(output_dir),
     }
 
@@ -420,6 +428,9 @@ def ask_agent(
             ask_parser_source=parsed.parser_source,
             ask_parser_model=parsed.parser_model,
             ask_parser_fallback_reason=parsed.parser_fallback_reason,
+            ask_parser_prompt_tokens=parsed.parser_prompt_tokens,
+            ask_parser_completion_tokens=parsed.parser_completion_tokens,
+            ask_parser_total_tokens=parsed.parser_total_tokens,
         )
     except (ValueError, ReportInputError, FileNotFoundError) as exc:
         cleanup_failed_run(run_dir)

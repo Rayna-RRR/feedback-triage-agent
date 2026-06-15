@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.8
+# Feedback Triage Agent v0.8.1
 
 ## 本地 Web App
 
@@ -35,7 +35,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.8 支持本地 FastAPI Web App、DeepSeek Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、静态 HTML 报告、规则质量评测和本地人工复核回写。
+v0.8.1 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、API token 用量记录、静态 HTML 报告、规则质量评测和本地人工复核回写。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -79,7 +79,7 @@ export DEEPSEEK_API_KEY="your_deepseek_api_key"
 可选环境变量：
 
 ```bash
-export DEEPSEEK_MODEL="deepseek-chat"
+export DEEPSEEK_MODEL="deepseek-v4-pro"
 export DEEPSEEK_API_BASE="https://api.deepseek.com"
 export DEEPSEEK_TIMEOUT_SECONDS="20"
 ```
@@ -89,7 +89,7 @@ DeepSeek 在项目中有两个独立用途：
 1. **Ask 任务解析**：配置 API key 后默认启用，只发送任务文本和上传文件名，不发送 CSV 内容。模型返回受 Pydantic 校验的输入路径、输出目录、格式转换、HTML 报告和反馈分诊方式参数。不可用或响应无效时回退到原有关键词与正则解析。
 2. **反馈初稿**：只有用户明确要求“使用 LLM / 使用 DeepSeek”时，才会发送反馈文本并生成分类、摘要、用户需求和产品建议初稿。“只用规则”会关闭这一层。
 
-两个用途的来源、模型和 fallback 都会记录在 `qa_report.md` 和 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
+默认模型为 `deepseek-v4-pro`。结构化 JSON 任务使用非思考模式，减少额外推理文本对解析的干扰。两个用途的来源、模型、API 返回的输入/输出/总 token 数和 fallback 都会记录在 `qa_report.md`；模型与 fallback 也会进入 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
 
 ## 运行命令
 
@@ -214,13 +214,14 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.8 范围
+## v0.8.1 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
 - Ask 默认使用 DeepSeek 解析受约束任务参数，失败时自动 fallback 到本地关键词和正则解析。
+- DeepSeek 默认使用 `deepseek-v4-pro`，并记录 API 返回的 token 用量。
 - CLI `--rule-parser` 和 Web 复选框可强制使用原有本地 Ask 解析。
 - Ask 可把常见第三方评论导出列映射到标准字段并输出 `normalized_feedback.csv`。
 - 格式转换、字段补值和输出路径会记录在 `run_log.md` 与 `qa_report.md`，保持可追踪。

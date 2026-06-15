@@ -86,12 +86,18 @@ def render_qa_report(state: AgentRunState) -> str:
         f"- 解析来源: {summary.get('ask_parser_source', 'direct')}",
         f"- 解析模型: {summary.get('ask_parser_model') or '未使用'}",
         f"- 解析 fallback 原因: {summary.get('ask_parser_fallback_reason') or '无'}",
+        f"- 解析输入 tokens: {summary.get('ask_parser_prompt_tokens', 0)}",
+        f"- 解析输出 tokens: {summary.get('ask_parser_completion_tokens', 0)}",
+        f"- 解析总 tokens: {summary.get('ask_parser_total_tokens', 0)}",
         "",
         "## LLM 使用情况",
         "",
         f"- 是否使用 LLM: {summary.get('llm_used', False)}",
         f"- LLM 模型: {summary.get('llm_model') or '未使用'}",
         f"- 是否 fallback 到 rules.py: {summary.get('llm_fallback_used', False)}",
+        f"- 反馈初稿输入 tokens: {summary.get('llm_prompt_tokens', 0)}",
+        f"- 反馈初稿输出 tokens: {summary.get('llm_completion_tokens', 0)}",
+        f"- 反馈初稿总 tokens: {summary.get('llm_total_tokens', 0)}",
     ]
     fallback_reasons = summary.get("llm_fallback_reasons", [])
     if fallback_reasons:
@@ -178,7 +184,7 @@ def render_qa_report(state: AgentRunState) -> str:
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.8 的 Ask 可由 DeepSeek 解析任务并在失败时 fallback 到本地规则。",
+            "- v0.8.1 的 Ask 可由 DeepSeek V4 Pro 解析任务并在失败时 fallback 到本地规则。",
             "- 反馈分诊默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
             "- 明确启用 LLM 但没有 API key 或调用失败时自动 fallback 到 rules.py。",
             "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",

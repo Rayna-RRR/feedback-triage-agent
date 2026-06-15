@@ -91,7 +91,12 @@ def test_web_ask_uses_deepseek_to_parse_natural_language(
     client = client_with_tmp_runs(tmp_path, monkeypatch)
 
     class FakeDeepSeekClient:
-        model = "deepseek-chat"
+        model = "deepseek-v4-pro"
+        last_usage = {
+            "prompt_tokens": 70,
+            "completion_tokens": 20,
+            "total_tokens": 90,
+        }
 
         def parse_task(self, task: str, uploaded_filename: str = "") -> LLMTaskIntent:
             assert uploaded_filename == "feedback.csv"
@@ -122,7 +127,8 @@ def test_web_ask_uses_deepseek_to_parse_natural_language(
     assert (run_dir / "report.html").exists()
     qa_report = (run_dir / "qa_report.md").read_text(encoding="utf-8")
     assert "解析来源: deepseek" in qa_report
-    assert "解析模型: deepseek-chat" in qa_report
+    assert "解析模型: deepseek-v4-pro" in qa_report
+    assert "解析总 tokens: 90" in qa_report
 
 
 def test_web_ask_rule_parser_option_skips_deepseek(tmp_path: Path, monkeypatch) -> None:

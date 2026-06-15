@@ -165,6 +165,11 @@ def test_classify_feedback_falls_back_to_rules_without_api_key(tmp_path: Path, m
 def test_classify_feedback_uses_llm_draft_then_rules_qa(tmp_path: Path, monkeypatch) -> None:
     class FakeDeepSeekClient:
         model = "deepseek-chat"
+        last_usage = {
+            "prompt_tokens": 80,
+            "completion_tokens": 20,
+            "total_tokens": 100,
+        }
 
         def draft_feedback(self, record):
             return LLMFeedbackDraft(
@@ -191,6 +196,7 @@ def test_classify_feedback_uses_llm_draft_then_rules_qa(tmp_path: Path, monkeypa
     item = state.classified_feedback[0]
     assert item.classification_source == "llm"
     assert state.llm_used is True
+    assert state.llm_total_tokens == 100
     assert result.status == "warning"
     assert "文本过短" in item.human_review_reasons
     assert "product_suggestion 为空或过泛" in item.human_review_reasons

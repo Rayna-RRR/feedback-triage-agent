@@ -47,7 +47,12 @@ def test_ask_task_uses_deepseek_for_structured_intent_and_keeps_rule_safeguards(
     monkeypatch,
 ) -> None:
     class FakeDeepSeekClient:
-        model = "deepseek-chat"
+        model = "deepseek-v4-pro"
+        last_usage = {
+            "prompt_tokens": 90,
+            "completion_tokens": 30,
+            "total_tokens": 120,
+        }
 
         def parse_task(self, task: str, uploaded_filename: str = "") -> LLMTaskIntent:
             return LLMTaskIntent(
@@ -65,7 +70,8 @@ def test_ask_task_uses_deepseek_for_structured_intent_and_keeps_rule_safeguards(
     parsed = parse_ask_task("请把格式不符合的数据整理好，只用规则")
 
     assert parsed.parser_source == "deepseek"
-    assert parsed.parser_model == "deepseek-chat"
+    assert parsed.parser_model == "deepseek-v4-pro"
+    assert parsed.parser_total_tokens == 120
     assert parsed.input_path == Path("data/from-model.csv")
     assert parsed.output_dir == Path("data/model-output")
     assert parsed.llm_requested is False

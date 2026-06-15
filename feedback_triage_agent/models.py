@@ -171,6 +171,9 @@ class AgentRunState(BaseModel):
     ask_parser_source: str = "direct"
     ask_parser_model: str = ""
     ask_parser_fallback_reason: str = ""
+    ask_parser_prompt_tokens: int = 0
+    ask_parser_completion_tokens: int = 0
+    ask_parser_total_tokens: int = 0
     required_fields: List[str] = Field(default_factory=list)
     columns: List[str] = Field(default_factory=list)
     raw_records: List[Dict[str, Any]] = Field(default_factory=list)
@@ -195,3 +198,6 @@ class AgentRunState(BaseModel):
     llm_failed_count: int = 0
     llm_fallback_used: bool = False
     llm_fallback_reasons: List[str] = Field(default_factory=list)
+    llm_prompt_tokens: int = 0
+    llm_completion_tokens: int = 0
+    llm_total_tokens: int = 0

@@ -31,6 +31,9 @@ class FeedbackTriageAgent:
         ask_parser_source: str = "direct",
         ask_parser_model: str = "",
         ask_parser_fallback_reason: str = "",
+        ask_parser_prompt_tokens: int = 0,
+        ask_parser_completion_tokens: int = 0,
+        ask_parser_total_tokens: int = 0,
     ):
         self.input_path = Path(input_path)
         self.output_dir = Path(output_dir)
@@ -40,6 +43,9 @@ class FeedbackTriageAgent:
         self.ask_parser_source = ask_parser_source
         self.ask_parser_model = ask_parser_model
         self.ask_parser_fallback_reason = ask_parser_fallback_reason
+        self.ask_parser_prompt_tokens = ask_parser_prompt_tokens
+        self.ask_parser_completion_tokens = ask_parser_completion_tokens
+        self.ask_parser_total_tokens = ask_parser_total_tokens
         self.plan: List[AgentTool] = [
             load_feedback,
             validate_schema,
@@ -60,6 +66,9 @@ class FeedbackTriageAgent:
             ask_parser_source=self.ask_parser_source,
             ask_parser_model=self.ask_parser_model,
             ask_parser_fallback_reason=self.ask_parser_fallback_reason,
+            ask_parser_prompt_tokens=self.ask_parser_prompt_tokens,
+            ask_parser_completion_tokens=self.ask_parser_completion_tokens,
+            ask_parser_total_tokens=self.ask_parser_total_tokens,
         )
 
         for tool in self.plan:
