@@ -14,11 +14,7 @@ from feedback_triage_agent.html_report import ReportInputError, generate_html_re
 from feedback_triage_agent.review import apply_review_decisions
 from feedback_triage_agent.task_parser import (
     infer_input_path,
-    infer_output_dir,
-    should_disable_llm,
-    should_enable_llm,
-    should_generate_html_report,
-    should_normalize_input,
+    parse_ask_task,
 )
 
 
@@ -39,6 +35,7 @@ def render_run_summary(state) -> None:
     table.add_row("Valid samples", str(state.qa_summary.get("valid_samples", len(state.records))))
     table.add_row("Issue cards", str(len(state.issue_cards)))
     table.add_row("Human review queue", str(len(state.human_review_queue)))
+    table.add_row("Ask parser", str(state.ask_parser_source))
     table.add_row("LLM used", str(state.llm_used))
     table.add_row("LLM fallback", str(state.llm_fallback_used))
     table.add_row("Output dir", str(state.output_dir))
@@ -84,32 +81,42 @@ def run(
 
 
 @app.command()
-def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -> None:
+def ask(
+    task: str = typer.Argument(..., help="Natural language triage task."),
+    rule_parser: bool = typer.Option(
+        False,
+        "--rule-parser",
+        help="Parse the Ask task locally without calling DeepSeek.",
+    ),
+) -> None:
     """Run triage from a small natural-language task description."""
 
-    try:
-        input_path = infer_input_path(task)
-    except ValueError as exc:
-        console.print(f"[red]{exc}[/red]")
+    parsed = parse_ask_task(task, use_deepseek=not rule_parser)
+    input_path = parsed.input_path
+    if input_path is None:
+        console.print(
+            "[red]无法识别输入文件，请在任务中写明 CSV 路径，例如 "
+            "data/ai_app_reviews.csv。[/red]"
+        )
         raise typer.Exit(code=1)
 
     if not input_path.exists():
         console.print(f"[red]识别到输入文件 {input_path}，但文件不存在。请检查路径后重试。[/red]")
         raise typer.Exit(code=1)
 
-    output = infer_output_dir(task)
-    llm_requested = should_enable_llm(task) and not should_disable_llm(task)
-    html_requested = should_generate_html_report(task)
-    normalize_input = should_normalize_input(task)
+    output = parsed.output_dir
 
     console.print(
         Panel(
             (
                 f"input={input_path}\n"
                 f"output={output}\n"
-                f"llm_requested={llm_requested}\n"
-                f"html_report={html_requested}\n"
-                f"normalize_input={normalize_input}"
+                f"task_parser={parsed.parser_source}\n"
+                f"task_parser_model={parsed.parser_model or 'local'}\n"
+                f"task_parser_fallback={parsed.parser_fallback_reason or 'none'}\n"
+                f"llm_requested={parsed.llm_requested}\n"
+                f"html_report={parsed.html_requested}\n"
+                f"normalize_input={parsed.normalize_input}"
             ),
             title="Parsed Ask Task",
         )
@@ -118,9 +125,12 @@ def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -
     agent = FeedbackTriageAgent(
         input_path=input_path,
         output_dir=output,
-        llm_requested=llm_requested,
-        normalize_input=normalize_input,
+        llm_requested=parsed.llm_requested,
+        normalize_input=parsed.normalize_input,
         input_name=input_path.name,
+        ask_parser_source=parsed.parser_source,
+        ask_parser_model=parsed.parser_model,
+        ask_parser_fallback_reason=parsed.parser_fallback_reason,
     )
     state = agent.run()
     render_run_summary(state)
@@ -128,7 +138,7 @@ def ask(task: str = typer.Argument(..., help="Natural language triage task.")) -
     if state.run_log and state.run_log[-1].status == "error":
         raise typer.Exit(code=1)
 
-    if html_requested:
+    if parsed.html_requested:
         try:
             report_path = generate_html_report(output)
         except ReportInputError as exc:

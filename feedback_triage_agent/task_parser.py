@@ -1,8 +1,28 @@
 import re
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+
+from feedback_triage_agent.llm_client import (
+    DeepSeekClient,
+    LLMCallError,
+    LLMUnavailableError,
+)
 
 
 TASK_SEPARATOR_PATTERN = r"[，,；;\n]"
+
+
+@dataclass(frozen=True)
+class ParsedAskTask:
+    input_path: Optional[Path]
+    output_dir: Path
+    llm_requested: bool
+    html_requested: bool
+    normalize_input: bool
+    parser_source: str
+    parser_model: str = ""
+    parser_fallback_reason: str = ""
 
 
 def _strip_task_prefix(value: str) -> str:
@@ -108,4 +128,68 @@ def should_normalize_input(task: str) -> bool:
             "normalizecsv",
             "normalizethecsv",
         ]
+    )
+
+
+def parse_task_with_rules(task: str) -> ParsedAskTask:
+    try:
+        input_path: Optional[Path] = infer_input_path(task)
+    except ValueError:
+        input_path = None
+    return ParsedAskTask(
+        input_path=input_path,
+        output_dir=infer_output_dir(task),
+        llm_requested=should_enable_llm(task) and not should_disable_llm(task),
+        html_requested=should_generate_html_report(task),
+        normalize_input=should_normalize_input(task),
+        parser_source="rules",
+    )
+
+
+def parse_ask_task(
+    task: str,
+    *,
+    uploaded_filename: str = "",
+    use_deepseek: bool = True,
+) -> ParsedAskTask:
+    rules = parse_task_with_rules(task)
+    if not use_deepseek:
+        return rules
+
+    try:
+        client = DeepSeekClient()
+        intent = client.parse_task(task, uploaded_filename=uploaded_filename)
+    except (LLMUnavailableError, LLMCallError, ValueError) as exc:
+        return ParsedAskTask(
+            input_path=rules.input_path,
+            output_dir=rules.output_dir,
+            llm_requested=rules.llm_requested,
+            html_requested=rules.html_requested,
+            normalize_input=rules.normalize_input,
+            parser_source="rules",
+            parser_fallback_reason=str(exc),
+        )
+
+    llm_requested = intent.use_llm_for_triage
+    if should_disable_llm(task):
+        llm_requested = False
+    elif should_enable_llm(task):
+        llm_requested = True
+
+    input_path = rules.input_path
+    if not uploaded_filename and input_path is None and intent.input_path:
+        input_path = Path(intent.input_path)
+
+    output_dir = rules.output_dir
+    if output_dir == Path("data/output_ask") and intent.output_dir:
+        output_dir = Path(intent.output_dir)
+
+    return ParsedAskTask(
+        input_path=input_path,
+        output_dir=output_dir,
+        llm_requested=llm_requested,
+        html_requested=intent.generate_html_report or rules.html_requested,
+        normalize_input=intent.normalize_input or rules.normalize_input,
+        parser_source="deepseek",
+        parser_model=client.model,
     )

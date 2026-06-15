@@ -95,7 +95,7 @@ def load_feedback(state: AgentRunState) -> ToolResult:
     return ToolResult(
         step_name="load_feedback",
         status="warning" if warnings else "success",
-        input_summary=f"path={input_path}",
+        input_summary=f"path={input_path}, ask_parser={state.ask_parser_source}",
         output_summary=(
             f"loaded {len(state.raw_records)} rows, {len(state.columns)} columns"
             f"{normalization_summary}"
@@ -329,6 +329,9 @@ def qa_check(state: AgentRunState) -> ToolResult:
         "normalized_input_path": (
             str(state.normalized_input_path) if state.normalized_input_path else ""
         ),
+        "ask_parser_source": state.ask_parser_source,
+        "ask_parser_model": state.ask_parser_model,
+        "ask_parser_fallback_reason": state.ask_parser_fallback_reason,
     }
 
     warnings = []

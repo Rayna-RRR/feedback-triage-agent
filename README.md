@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.7
+# Feedback Triage Agent v0.8
 
 ## 本地 Web App
 
@@ -35,7 +35,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.7 支持本地 FastAPI Web App、可选 DeepSeek API、自然语言 `ask`、外部 CSV 格式标准化、静态 HTML 报告、规则质量评测和本地人工复核回写。规则模式是默认值；只有 CLI/Web 明确启用 LLM，或 Ask 任务明确写出“使用 LLM / 使用 DeepSeek”时，反馈文本才会发送给 DeepSeek。
+v0.8 支持本地 FastAPI Web App、DeepSeek Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、静态 HTML 报告、规则质量评测和本地人工复核回写。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -47,7 +47,7 @@ AI 产品团队经常面对来自应用商店、社区、客服工单、访谈�
 
 用户反馈 CSV -> Agent 固定计划 -> 工具调用 -> 状态记录 -> 人工复核队列 -> 问题卡片 -> QA 报告
 
-当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：自然语言入口只负责解析本地任务意图，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
+当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：DeepSeek 或本地规则把自然语言任务解析成受约束参数，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
 
 ## Agent 工作流
 
@@ -70,7 +70,7 @@ python -m pip install -e ".[dev]"
 
 ## DeepSeek API 可选配置
 
-不要把 API key 写入代码或提交到 Git。需要使用 LLM 初稿时，在本地 shell 设置环境变量：
+不要把 API key 写入代码或提交到 Git。需要使用 DeepSeek Ask 解析或反馈初稿时，在本地 shell 设置环境变量：
 
 ```bash
 export DEEPSEEK_API_KEY="your_deepseek_api_key"
@@ -84,7 +84,12 @@ export DEEPSEEK_API_BASE="https://api.deepseek.com"
 export DEEPSEEK_TIMEOUT_SECONDS="20"
 ```
 
-不设置 `DEEPSEEK_API_KEY` 时，命令会使用规则版分诊。若明确启用 LLM 但 API key 缺失、配置无效或调用失败，本轮会在 `run_log.md` 和 `qa_report.md` 中记录 fallback 原因，并继续使用 `rules.py`。
+DeepSeek 在项目中有两个独立用途：
+
+1. **Ask 任务解析**：配置 API key 后默认启用，只发送任务文本和上传文件名，不发送 CSV 内容。模型返回受 Pydantic 校验的输入路径、输出目录、格式转换、HTML 报告和反馈分诊方式参数。不可用或响应无效时回退到原有关键词与正则解析。
+2. **反馈初稿**：只有用户明确要求“使用 LLM / 使用 DeepSeek”时，才会发送反馈文本并生成分类、摘要、用户需求和产品建议初稿。“只用规则”会关闭这一层。
+
+两个用途的来源、模型和 fallback 都会记录在 `qa_report.md` 和 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
 
 ## 运行命令
 
@@ -130,6 +135,14 @@ python -m feedback_triage_agent.cli inspect --output data/output
 python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"
 ```
 
+配置 `DEEPSEEK_API_KEY` 后，Ask 默认先由 DeepSeek 理解自然语言。需要完全使用原有本地拆解方式时：
+
+```bash
+python -m feedback_triage_agent.cli ask \
+  "分析 data/ai_app_reviews.csv，只用规则，生成 HTML 报告" \
+  --rule-parser
+```
+
 当外部 CSV 列名不符合 Agent 的五个标准字段时，可以明确要求格式转换：
 
 ```bash
@@ -137,7 +150,7 @@ python -m feedback_triage_agent.cli ask \
   "分析 /path/to/chatgpt_reviews_latest_5000.csv，转换为符合格式，输出到 data/output_ask，只用规则"
 ```
 
-`ask` 会从任务文本中识别 CSV 输入路径，支持带空格、中文和 Windows 盘符的路径；未指定输出目录时默认写入 `data/output_ask`。当任务包含“转换格式”“调整格式”“标准化 CSV”“符合格式”等意图时，会先生成 `normalized_feedback.csv`，再执行原有七步分诊。LLM 默认关闭，只有任务明确包含“使用 LLM”或“使用 DeepSeek”才会启用；如果包含“生成 HTML 报告”或“网页报告”，会额外生成 `report.html`。
+`ask` 会把任务解析为结构化执行参数。DeepSeek 解析成功时使用模型结果，同时保留明确否定词和已知路径规则作为约束；失败时使用原有关键词与正则结果。未指定输出目录时默认写入 `data/output_ask`。要求转换格式时会先生成 `normalized_feedback.csv`，再执行原有七步分诊；要求 HTML 报告时额外生成 `report.html`。
 
 标准化使用本地确定性规则，不调用 LLM：
 
@@ -150,7 +163,7 @@ python -m feedback_triage_agent.cli ask \
 - 缺少 ID 时生成稳定的行 ID；无法识别评论正文或评分字段时拒绝转换，不会猜测语义值。
 - 未参与映射的原始元数据列会保留在 `normalized_feedback.csv` 中。
 
-Web 首页也提供相同的自然语言 Ask 入口。可以先上传 CSV，再输入“转换为符合格式，只用规则，生成 HTML 报告”等要求；未上传时也可以在任务中直接写本地 CSV 路径。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行，启用 LLM 时单次最多处理 100 条。Web 版本复用上述意图解析和固定 Agent 计划，但为避免覆盖 CLI 输出，每次运行统一写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
+Web 首页提供相同入口，并可勾选“仅用本地规则解析 Ask”。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行；启用反馈初稿 LLM 时单次最多处理 100 条。每次 Web 运行写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
 
 从已有输出目录生成静态 HTML 报告：
 
@@ -201,12 +214,14 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.7 范围
+## v0.8 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
+- Ask 默认使用 DeepSeek 解析受约束任务参数，失败时自动 fallback 到本地关键词和正则解析。
+- CLI `--rule-parser` 和 Web 复选框可强制使用原有本地 Ask 解析。
 - Ask 可把常见第三方评论导出列映射到标准字段并输出 `normalized_feedback.csv`。
 - 格式转换、字段补值和输出路径会记录在 `run_log.md` 与 `qa_report.md`，保持可追踪。
 - Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
@@ -215,7 +230,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - LLM 与规则分类不一致时保留两套证据并强制进入人工复核。
 - 所有 LLM 输出都必须经过 QA 检查和人工复核队列判断。
 - 使用 Typer + Rich 提供本地 CLI 体验。
-- 使用 `ask` 命令提供最小自然语言任务入口，但不改变固定 Agent 计划。
+- 使用 `ask` 命令提供模型增强的自然语言任务入口，但不改变固定 Agent 计划。
 - 使用 `report` 命令生成不依赖 CDN 和远程资源的静态 HTML 报告。
 - 使用 `evaluate` 命令对人工标注 golden set 生成逐样本误差和质量指标。
 - 评测覆盖分类准确率、优先级准确率、人工复核判断准确率、P0 precision 和 P0 recall。

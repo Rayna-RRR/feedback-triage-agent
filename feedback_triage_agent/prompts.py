@@ -12,6 +12,11 @@ SYSTEM_PROMPT = """你是 AI 产品反馈分诊助手。
 输出必须是合法 JSON，不要输出 Markdown。
 """
 
+TASK_PARSER_SYSTEM_PROMPT = """你是 Feedback Triage Agent 的任务解析器。
+你只负责把用户的自然语言任务转换为受约束的执行参数，不执行文件操作，不读取 CSV 内容。
+输出必须是合法 JSON，不要输出 Markdown，不要添加 output_schema 之外的字段。
+"""
+
 
 def build_feedback_triage_prompt(record: FeedbackRecord) -> str:
     payload = {
@@ -38,3 +43,24 @@ def build_feedback_triage_prompt(record: FeedbackRecord) -> str:
     }
     return json.dumps(payload, ensure_ascii=False)
 
+
+def build_task_parser_prompt(task: str, uploaded_filename: str = "") -> str:
+    payload = {
+        "task": task,
+        "uploaded_filename": uploaded_filename or None,
+        "output_schema": {
+            "input_path": "任务中的 CSV 本地路径；已上传文件或未提及时返回 null",
+            "output_dir": "任务明确指定的输出目录；未提及时返回 null",
+            "use_llm_for_triage": "只有用户要求用 LLM 或 DeepSeek 分析反馈内容时才为 true",
+            "generate_html_report": "用户要求 HTML、网页或静态报告时为 true",
+            "normalize_input": "用户要求转换、调整、修正或标准化 CSV 格式时为 true",
+        },
+        "constraints": [
+            "只用规则、不要用 LLM、不使用 DeepSeek 表示 use_llm_for_triage=false",
+            "不要因为你本身是 LLM 解析器就把 use_llm_for_triage 设为 true",
+            "路径必须原样保留，不要编造不存在的路径",
+            "不确定的布尔值使用 false",
+            "已上传文件时 input_path 使用 null",
+        ],
+    }
+    return json.dumps(payload, ensure_ascii=False)

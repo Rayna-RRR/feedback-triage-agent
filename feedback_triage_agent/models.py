@@ -81,6 +81,33 @@ class LLMFeedbackDraft(BaseModel):
     product_suggestion: str = Field(min_length=1)
 
 
+class LLMTaskIntent(BaseModel):
+    """A constrained execution intent parsed from a natural-language Ask task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    input_path: Optional[str] = None
+    output_dir: Optional[str] = None
+    use_llm_for_triage: bool = False
+    generate_html_report: bool = False
+    normalize_input: bool = False
+
+    @field_validator("input_path", "output_dir", mode="before")
+    @classmethod
+    def normalize_optional_path(cls, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip().strip("\"'“”")
+        return normalized or None
+
+    @field_validator("input_path")
+    @classmethod
+    def require_csv_input_path(cls, value: Optional[str]) -> Optional[str]:
+        if value and not value.lower().endswith(".csv"):
+            raise ValueError("input_path must point to a CSV file")
+        return value
+
+
 class IssueCard(BaseModel):
     """A markdown-ready issue card."""
 
@@ -141,6 +168,9 @@ class AgentRunState(BaseModel):
     normalization_column_mapping: Dict[str, str] = Field(default_factory=dict)
     normalization_defaults: Dict[str, str] = Field(default_factory=dict)
     normalized_input_path: Optional[Path] = None
+    ask_parser_source: str = "direct"
+    ask_parser_model: str = ""
+    ask_parser_fallback_reason: str = ""
     required_fields: List[str] = Field(default_factory=list)
     columns: List[str] = Field(default_factory=list)
     raw_records: List[Dict[str, Any]] = Field(default_factory=list)
