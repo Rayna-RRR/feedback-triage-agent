@@ -141,6 +141,31 @@ def test_detect_badcases_builds_human_review_queue(tmp_path: Path) -> None:
     assert "P0 样本" in state.classified_feedback[0].human_review_reasons
 
 
+def test_detect_badcases_does_not_queue_short_positive_feedback(
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,google_play,ChatGPT,"good",5\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        llm_requested=False,
+    )
+    load_feedback(state)
+    validate_schema(state)
+    classify_feedback(state)
+
+    result = detect_badcases(state)
+
+    assert result.status == "success"
+    assert state.human_review_queue == []
+    assert state.classified_feedback[0].issue_category == "正向反馈/无明确问题"
+
+
 def test_classify_feedback_falls_back_to_rules_without_api_key(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     csv_path = tmp_path / "feedback.csv"
@@ -258,7 +283,7 @@ def test_llm_rule_disagreement_is_traceable_and_requires_review(tmp_path: Path, 
     write_csv(
         csv_path,
         "id,source,app_name,review_text,rating\n"
-        'a001,app_store,ChatMate,"回答不准确。",3\n',
+        'a001,app_store,ChatMate,"回答不准确，还会编造事实。",3\n',
     )
     state = AgentRunState(
         input_path=csv_path,
@@ -275,3 +300,129 @@ def test_llm_rule_disagreement_is_traceable_and_requires_review(tmp_path: Path, 
     assert item.rule_issue_category == "模型能力问题"
     assert item.llm_rule_disagreement is True
     assert "LLM 与规则分类不一致" in item.human_review_reasons
+
+
+def test_llm_can_override_moderate_rule_without_forcing_review(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class FakeDeepSeekClient:
+        model = "deepseek-chat"
+
+        def draft_feedback(self, record):
+            return LLMFeedbackDraft(
+                issue_category="会员与商业化问题",
+                summary="用户遇到付费权益问题",
+                user_need="确认付费权益和使用限制",
+                product_suggestion="核查付费权益展示和限制说明，减少误解。",
+            )
+
+    monkeypatch.setattr("feedback_triage_agent.tools.DeepSeekClient", lambda: FakeDeepSeekClient())
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"回答不准确。",3\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        llm_requested=True,
+    )
+    load_feedback(state)
+    validate_schema(state)
+    classify_feedback(state)
+    detect_badcases(state)
+
+    item = state.classified_feedback[0]
+    assert item.rule_issue_category == "模型能力问题"
+    assert item.rule_confidence < 0.8
+    assert item.issue_category == "会员与商业化问题"
+    assert item.llm_rule_disagreement is False
+    assert "LLM 与规则分类不一致" not in item.human_review_reasons
+
+
+def test_unclear_llm_draft_keeps_actionable_rule_classification(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class FakeDeepSeekClient:
+        model = "deepseek-chat"
+
+        def draft_feedback(self, record):
+            return LLMFeedbackDraft(
+                issue_category="不明确/其他",
+                summary="用户反馈回答质量问题",
+                user_need="需要进一步确认具体场景",
+                product_suggestion="继续观察",
+            )
+
+    monkeypatch.setattr("feedback_triage_agent.tools.DeepSeekClient", lambda: FakeDeepSeekClient())
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"回答不准确。",3\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        llm_requested=True,
+    )
+    load_feedback(state)
+    validate_schema(state)
+    classify_feedback(state)
+    detect_badcases(state)
+
+    item = state.classified_feedback[0]
+    assert item.classification_source == "llm"
+    assert item.issue_category == "模型能力问题"
+    assert item.llm_rule_disagreement is False
+    assert "分类低置信度" not in item.human_review_reasons
+    assert "product_suggestion 为空或过泛" not in item.human_review_reasons
+
+
+def test_llm_resolves_low_confidence_rule_without_forcing_review(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class FakeDeepSeekClient:
+        model = "deepseek-chat"
+        last_usage = {
+            "prompt_tokens": 80,
+            "completion_tokens": 20,
+            "total_tokens": 100,
+        }
+
+        def draft_feedback(self, record):
+            return LLMFeedbackDraft(
+                issue_category="模型能力问题",
+                summary="用户认为回答不看事实对错",
+                user_need="获得基于事实的回答",
+                product_suggestion="补充事实性校验样本，优化模型拒绝顺从错误前提的能力。",
+            )
+
+    monkeypatch.setattr("feedback_triage_agent.tools.DeepSeekClient", lambda: FakeDeepSeekClient())
+    csv_path = tmp_path / "feedback.csv"
+    write_csv(
+        csv_path,
+        "id,source,app_name,review_text,rating\n"
+        'a001,app_store,ChatMate,"这个输出完全不像我要的方向，整体体验让我很困惑。",2\n',
+    )
+    state = AgentRunState(
+        input_path=csv_path,
+        output_dir=tmp_path / "out",
+        llm_requested=True,
+    )
+    load_feedback(state)
+    validate_schema(state)
+    classify_feedback(state)
+    detect_badcases(state)
+
+    item = state.classified_feedback[0]
+    assert item.rule_issue_category == "不明确/其他"
+    assert item.issue_category == "模型能力问题"
+    assert item.llm_rule_disagreement is False
+    assert item.confidence >= 0.6
+    assert "分类低置信度" not in item.human_review_reasons
+    assert "LLM 与规则分类不一致" not in item.human_review_reasons

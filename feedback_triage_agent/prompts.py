@@ -37,6 +37,7 @@ def build_feedback_triage_prompt(record: FeedbackRecord) -> str:
         "constraints": [
             "不要输出 priority",
             "不要输出人工复核结论",
+            "明确正向且没有问题或建议时使用 正向反馈/无明确问题",
             "不确定时 issue_category 使用 不明确/其他",
             "product_suggestion 需要具体，不能只写 优化体验 或 继续观察",
         ],

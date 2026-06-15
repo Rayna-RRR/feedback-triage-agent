@@ -9,7 +9,15 @@ from pydantic import ValidationError
 
 from feedback_triage_agent.exporters import write_outputs
 from feedback_triage_agent.llm_client import DeepSeekClient, LLMCallError, LLMUnavailableError
-from feedback_triage_agent.models import AgentRunState, FeedbackRecord, IssueCard, RunStepLog, ToolResult
+from feedback_triage_agent.models import (
+    AgentRunState,
+    ClassifiedFeedback,
+    FeedbackRecord,
+    IssueCard,
+    LLMFeedbackDraft,
+    RunStepLog,
+    ToolResult,
+)
 from feedback_triage_agent.normalization import normalize_feedback_frame
 from feedback_triage_agent.rules import (
     REQUIRED_FIELDS,
@@ -18,6 +26,53 @@ from feedback_triage_agent.rules import (
     detect_human_review_reasons,
     distribution,
 )
+
+LLM_RESOLVED_CONFIDENCE = 0.72
+LLM_RULE_DISAGREEMENT_CONFIDENCE = 0.8
+RULE_ACTIONABLE_CONFIDENCE = 0.6
+
+
+def should_flag_llm_rule_disagreement(
+    item_category: str,
+    rule_category: str,
+    rule_confidence: float,
+) -> bool:
+    if item_category == rule_category:
+        return False
+    if rule_category == "不明确/其他":
+        return False
+    if rule_category == "正向反馈/无明确问题":
+        return True
+    return rule_confidence >= LLM_RULE_DISAGREEMENT_CONFIDENCE
+
+
+def apply_llm_draft(item: ClassifiedFeedback, draft: LLMFeedbackDraft) -> None:
+    rule_category = item.rule_issue_category
+    if (
+        draft.issue_category == "不明确/其他"
+        and rule_category != "不明确/其他"
+        and item.rule_confidence >= RULE_ACTIONABLE_CONFIDENCE
+    ):
+        item.summary = draft.summary
+        item.classification_source = "llm"
+        return
+
+    item.issue_category = draft.issue_category
+    item.llm_rule_disagreement = should_flag_llm_rule_disagreement(
+        item.issue_category,
+        rule_category,
+        item.rule_confidence,
+    )
+    if (
+        item.issue_category != "不明确/其他"
+        and not item.llm_rule_disagreement
+        and item.rule_confidence < 0.6
+    ):
+        item.confidence = LLM_RESOLVED_CONFIDENCE
+    item.summary = draft.summary
+    item.user_need = draft.user_need
+    item.product_suggestion = draft.product_suggestion
+    item.classification_source = "llm"
 
 
 def is_blank(value: Any) -> bool:
@@ -215,12 +270,7 @@ def classify_feedback(state: AgentRunState) -> ToolResult:
             state.llm_prompt_tokens += usage.get("prompt_tokens", 0)
             state.llm_completion_tokens += usage.get("completion_tokens", 0)
             state.llm_total_tokens += usage.get("total_tokens", 0)
-            item.issue_category = draft.issue_category
-            item.llm_rule_disagreement = draft.issue_category != item.rule_issue_category
-            item.summary = draft.summary
-            item.user_need = draft.user_need
-            item.product_suggestion = draft.product_suggestion
-            item.classification_source = "llm"
+            apply_llm_draft(item, draft)
         classified.append(item)
 
     state.classified_feedback = classified
