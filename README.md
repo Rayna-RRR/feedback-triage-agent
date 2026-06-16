@@ -21,7 +21,7 @@ Web App 当前是本地原型：不接数据库、不做登录、不接生产系
 如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接在浏览器打开：
 
 - `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
-- `docs/demo-report.html`: 基于 `data/output_ask` 真实导出结果生成的样例 HTML 报告。
+- `docs/demo-report.html`: 基于一次 `data/output_ask` 导出快照生成的样例 HTML 报告。
 
 作品集截图位于 `docs/assets/screenshots/`：
 
