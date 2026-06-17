@@ -3,6 +3,7 @@ const sourceInputs = document.querySelectorAll('input[name="data_source"]');
 const ruleOnly = document.querySelector('input[name="rule_only"]');
 const useLlm = document.querySelector('input[name="use_llm"]');
 const selectableCards = document.querySelectorAll(".source-card, .check-card");
+const fileInputs = document.querySelectorAll(".file-input-native");
 
 function syncSelectedCards() {
   selectableCards.forEach((card) => {
@@ -37,6 +38,19 @@ selectableCards.forEach((card) => {
   const input = card.querySelector("input");
   if (!input) return;
   input.addEventListener("change", syncSelectedCards);
+});
+
+function syncFilePicker(input) {
+  const picker = input.nextElementSibling;
+  const fileName = picker && picker.querySelector(".file-picker-name");
+  if (!fileName) return;
+  const fallback = fileName.dataset.emptyLabel || "未选择任何文件";
+  fileName.textContent = input.files && input.files.length ? input.files[0].name : fallback;
+}
+
+fileInputs.forEach((input) => {
+  input.addEventListener("change", () => syncFilePicker(input));
+  syncFilePicker(input);
 });
 
 function updateSidebarActive() {
