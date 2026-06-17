@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Feedback Triage Agent Web App{% endblock %}
+{% block title %}反馈分诊后台{% endblock %}
 
 {% block content %}
 <section class="page-title" data-reveal>
   <div>
-    <p class="breadcrumb">Home / Feedback Triage</p>
+    <p class="breadcrumb">反馈分诊 / 首页</p>
     <h1>反馈分诊后台</h1>
     <p>把用户反馈 CSV 整理成问题分类、优先级、人工复核队列、问题卡片、QA 报告和 run log。</p>
   </div>
   <div class="page-actions">
-    <span class="status-badge status-success">rules.py fallback ready</span>
+    <span class="status-badge status-success">规则兜底已就绪</span>
     <a class="button button-outline" href="#ask-entry">自然语言 Ask</a>
     <a class="button button-outline" href="#run-form">配置运行</a>
   </div>
@@ -23,34 +23,66 @@
 </section>
 {% endif %}
 
+<section class="quality-chain" role="region" aria-labelledby="quality-chain-title" data-reveal>
+  <div class="quality-chain-header">
+    <div>
+      <p class="card-kicker">核心架构</p>
+      <h2 id="quality-chain-title">三层质控链</h2>
+      <p>每条反馈先形成可解释初稿，再由确定性规则复核，最后把高风险和不确定样本交给人工判断。</p>
+    </div>
+    <span class="status-badge status-success">AI 初稿 / 规则兜底 / 人工复核</span>
+  </div>
+  <div class="quality-grid" aria-label="三层质控链">
+    <article class="quality-card quality-ai">
+      <span class="quality-step">01</span>
+      <strong>AI 初稿</strong>
+      <p>在明确启用时生成分类、摘要、用户需求和产品建议初稿，加速从大量反馈里提炼问题。</p>
+      <small>{% if web_llm_enabled %}Web 端 DeepSeek 已启用，用户勾选后才发送反馈文本。{% else %}当前 Web 端未启用 DeepSeek，演示默认不发送反馈文本。{% endif %}</small>
+    </article>
+    <article class="quality-card quality-rules">
+      <span class="quality-step">02</span>
+      <strong>规则兜底</strong>
+      <p>本地规则负责字段校验、关键词证据、优先级和 fallback，保证没有模型时也能稳定产出。</p>
+      <small>LLM 与规则分歧、低置信度和多问题命中都会保留证据，不静默覆盖。</small>
+    </article>
+    <article class="quality-card quality-review">
+      <span class="quality-step">03</span>
+      <strong>人工复核</strong>
+      <p>P0、低置信度、多问题和规则分歧样本进入复核队列，Demo 不把高风险反馈自动闭环。</p>
+      <small>复核通过 review_decisions.csv 回写到独立结果，原始分诊文件保留。</small>
+    </article>
+  </div>
+  <p class="quality-note"><strong>公开演示数据边界：</strong>请不要上传敏感、真实用户隐私或商业保密数据；上传 CSV 和本轮输出会临时保存在运行目录中，默认约 {{ run_retention_hours }} 小时后清理。</p>
+</section>
+
 <section class="dashboard-grid" data-reveal>
   <article class="card command-card">
     <div class="card-header">
       <div>
-        <p class="card-kicker">Agent workflow</p>
+        <p class="card-kicker">固定流程</p>
         <h2>本地反馈分诊工作台</h2>
       </div>
-      <span class="status-badge status-info">7 tools</span>
+      <span class="status-badge status-info">7 个步骤</span>
     </div>
-    <p class="card-copy">选择数据源后运行现有 Agent runner。LLM 初稿、规则 fallback、QA 检查和人工复核边界仍由原有代码负责。</p>
+    <p class="card-copy">选择数据源后运行固定分诊流程。LLM 初稿、规则兜底、QA 检查和人工复核边界仍由原有代码负责。</p>
     <div class="step-rail" aria-label="固定工具链">
-      <span>load</span>
-      <span>validate</span>
-      <span>classify</span>
-      <span>badcase</span>
-      <span>cards</span>
+      <span>读取</span>
+      <span>校验</span>
+      <span>分类</span>
+      <span>复核</span>
+      <span>卡片</span>
       <span>QA</span>
-      <span>export</span>
+      <span>导出</span>
     </div>
   </article>
 
   <article class="card readiness-card">
     <div class="card-header">
       <div>
-        <p class="card-kicker">Required schema</p>
+        <p class="card-kicker">输入要求</p>
         <h2>输入与输出</h2>
       </div>
-      <span class="status-badge status-success">local only</span>
+      <span class="status-badge status-success">公开演示</span>
     </div>
     <dl class="definition-list">
       <div>
@@ -59,7 +91,7 @@
       </div>
       <div>
         <dt>输出文件</dt>
-        <dd>normalized_feedback.csv, issue_cards.md, qa_report.md, run_log.md, triage_results.csv, review_decisions.csv, report.html</dd>
+        <dd>标准化输入、问题卡片、QA 报告、运行日志、结构化结果、人工复核模板、HTML 报告</dd>
       </div>
     </dl>
   </article>
@@ -67,17 +99,17 @@
 
 <section class="status-panel" aria-label="项目状态" data-reveal>
   <article>
-    <span class="status-badge status-success">Input</span>
+    <span class="status-badge status-success">输入</span>
     <strong>CSV 反馈数据</strong>
     <p>读取内置样例、AI 应用评论数据；Ask 也可标准化常见外部评论 CSV。</p>
   </article>
   <article>
-    <span class="status-badge status-info">Agent</span>
+    <span class="status-badge status-info">分诊</span>
     <strong>固定七步工具链</strong>
-    <p>字段检查、分类、优先级、badcase、问题卡片、QA 和导出保持原流程。</p>
+    <p>字段检查、分类、优先级、复核识别、问题卡片、QA 和导出保持原流程。</p>
   </article>
   <article>
-    <span class="status-badge status-warning">Review</span>
+    <span class="status-badge status-warning">复核</span>
     <strong>人工复核保留</strong>
     <p>P0、低置信度、多问题命中样本不会被页面自动判定为完成。</p>
   </article>
@@ -86,15 +118,19 @@
 <form class="card ask-card" id="ask-entry" action="/ask" method="post" enctype="multipart/form-data" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Natural language task</p>
+      <p class="card-kicker">自然语言任务</p>
       <h2>自然语言 Ask 入口</h2>
     </div>
-    <span class="status-badge status-info">same 7-tool plan</span>
+    <span class="status-badge status-info">同一套 7 步流程</span>
   </div>
-  <p class="card-copy">先上传 CSV，再描述运行要求。配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。反馈分类、QA 和人工复核仍由原 Agent runner 负责。</p>
+  <p class="card-copy">先上传 CSV，再描述运行要求。{% if web_llm_enabled %}配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。{% else %}当前线上演示未启用 DeepSeek，Ask 使用本地关键词和正则解析。{% endif %}反馈分类、QA 和人工复核仍由固定流程负责。</p>
   <div class="upload-row ask-upload">
     <label for="ask_upload_file">1. 上传 CSV</label>
-    <input id="ask_upload_file" name="upload_file" type="file" accept=".csv,text/csv">
+    <input id="ask_upload_file" class="file-input-native" name="upload_file" type="file" accept=".csv,text/csv">
+    <label class="file-picker" for="ask_upload_file">
+      <span class="file-picker-button">选择文件</span>
+      <span class="file-picker-name" data-empty-label="未选择任何文件">未选择任何文件</span>
+    </label>
     <small>上传文件优先于任务中填写的本地路径；格式不符合时可在任务中明确要求“转换为符合格式”。</small>
   </div>
   <label for="ask_task">任务描述</label>
@@ -107,7 +143,7 @@
     </span>
   </label>
   <div class="ask-actions">
-    <small>默认只把任务文本和上传文件名发送给 DeepSeek，不发送 CSV 内容；“只用规则”控制反馈分诊方式，不会关闭 Ask 的模型解析。</small>
+    <small>{% if web_llm_enabled %}默认只把任务文本和上传文件名发送给 DeepSeek，不发送 CSV 内容；“只用规则”控制反馈分诊方式，不会关闭 Ask 的模型解析。{% else %}当前 Ask 不调用 DeepSeek；“只用规则”会继续使用确定性本地分诊。{% endif %}</small>
     <button type="submit">解析任务并运行</button>
   </div>
 </form>
@@ -116,17 +152,17 @@
   <section class="card section-card" id="data-source" data-reveal>
     <div class="card-header">
       <div>
-        <p class="card-kicker">Data source</p>
+        <p class="card-kicker">数据源</p>
         <h2>选择要分诊的 CSV</h2>
       </div>
-      <span class="status-badge status-info">review_text required</span>
+      <span class="status-badge status-info">需要 review_text</span>
     </div>
 
     <div class="source-grid">
       <label class="source-card">
         <input type="radio" name="data_source" value="sample">
         <span>
-          <strong>使用内置 demo 数据</strong>
+          <strong>使用内置演示数据</strong>
           <small>data/sample_feedback.csv{% if not sample_exists %}（文件缺失）{% endif %}</small>
         </span>
       </label>
@@ -143,32 +179,36 @@
         <input type="radio" name="data_source" value="upload">
         <span>
           <strong>上传自己的 CSV 文件</strong>
-          <small>只接受 .csv，最大 5 MB / 5000 行，必须包含五个必填字段</small>
+          <small>只接受 .csv，最大 {{ max_upload_mb }} MB / {{ max_input_rows }} 行，必须包含五个必填字段</small>
         </span>
       </label>
     </div>
 
     <div class="upload-row" id="upload-row">
       <label for="upload_file">上传 CSV</label>
-      <input id="upload_file" name="upload_file" type="file" accept=".csv,text/csv">
+      <input id="upload_file" class="file-input-native" name="upload_file" type="file" accept=".csv,text/csv">
+      <label class="file-picker" for="upload_file">
+        <span class="file-picker-button">选择文件</span>
+        <span class="file-picker-name" data-empty-label="未选择任何文件">未选择任何文件</span>
+      </label>
     </div>
   </section>
 
   <section class="card section-card" id="run-options" data-reveal>
     <div class="card-header">
       <div>
-        <p class="card-kicker">Run options</p>
+        <p class="card-kicker">运行选项</p>
         <h2>控制本轮运行方式</h2>
       </div>
-      <span class="status-badge status-warning">manual review preserved</span>
+      <span class="status-badge status-warning">保留人工复核</span>
     </div>
 
     <div class="options-grid">
       <label class="check-card">
-        <input type="checkbox" name="use_llm" value="on">
+        <input type="checkbox" name="use_llm" value="on" {% if not web_llm_enabled %}disabled{% endif %}>
         <span>
-          <strong>使用 LLM 初稿</strong>
-          <small>勾选后会把反馈文本发送给 DeepSeek；最多处理 100 条</small>
+          <strong>使用 LLM 初稿{% if not web_llm_enabled %}（未启用）{% endif %}</strong>
+          <small>{% if web_llm_enabled %}勾选后会把反馈文本发送给 DeepSeek；最多处理 {{ max_llm_rows }} 条{% else %}需要同时设置 DEEPSEEK_API_KEY 和 FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true{% endif %}</small>
         </span>
       </label>
 
@@ -191,16 +231,16 @@
 
     <div class="field-row">
       <label for="output_name">输出目录名（可选）</label>
-      <input id="output_name" name="output_name" type="text" placeholder="例如 interview-demo">
-      <small>实际目录会写入 data/web_runs/run_YYYYMMDD_HHMMSS/，自定义名称会追加在后面。</small>
+      <input id="output_name" name="output_name" type="text" placeholder="例如 演示-1">
+      <small>实际目录会写入当前 Web 运行目录的 run_YYYYMMDD_HHMMSS/，自定义名称会追加在后面。</small>
     </div>
   </section>
 
   <section class="card submit-card" id="reports" data-reveal>
     <div>
-      <p class="card-kicker">Ready to run</p>
+      <p class="card-kicker">开始运行</p>
       <h2>生成分诊结果和报告文件</h2>
-      <p>规则模式完全在本机运行；仅在明确启用 LLM 时把反馈文本发送给 DeepSeek。</p>
+      <p>规则模式不调用外部模型；仅在服务端开启 Web LLM 且用户明确勾选时把反馈文本发送给 DeepSeek。</p>
     </div>
     <button type="submit">开始分诊</button>
   </section>
