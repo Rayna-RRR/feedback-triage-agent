@@ -184,7 +184,7 @@ def render_qa_report(state: AgentRunState) -> str:
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.8.2 的 Ask 可由 DeepSeek V4 Pro 解析任务并在失败时 fallback 到本地规则。",
+            "- v0.8.3 的 Ask 可由 DeepSeek V4 Pro 解析任务并在失败时 fallback 到本地规则。",
             "- 反馈分诊默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
             "- 明确启用 LLM 但没有 API key 或调用失败时自动 fallback 到 rules.py。",
             "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",

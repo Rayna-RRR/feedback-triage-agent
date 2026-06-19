@@ -17,7 +17,7 @@
 
 ## 当前范围
 
-v0.8.2 实现一个本地 CLI + FastAPI Web App Demo：
+v0.8.3 实现一个本地 CLI + FastAPI Web App Demo：
 
 - 读取 `sample_feedback.csv`。
 - 校验必填字段。
@@ -34,6 +34,7 @@ v0.8.2 实现一个本地 CLI + FastAPI Web App Demo：
 - CLI/Web 均可强制只使用本地规则解析 Ask。
 - 自然语言 `ask` 可将常见第三方评论列名标准化并导出 `normalized_feedback.csv`。
 - 支持在本地 Web App 中选择内置数据、上传 CSV、查看结果并下载输出。
+- Web 上传入口使用自定义文件选择控件，避免系统默认文案显示为繁体。
 - 支持对本地人工标注 golden set 运行规则质量评测和回归门槛。
 - 自动生成 `review_decisions.csv`，并通过 CLI/Web 应用人工确认、调整或保持开放的决策。
 - 人工复核结果写入独立文件，不覆盖原始分诊证据。
