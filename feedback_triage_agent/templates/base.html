@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Feedback Triage Agent{% endblock %}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111827'/%3E%3Crect x='7' y='7' width='5' height='18' fill='%238fb8ff'/%3E%3Crect x='14' y='7' width='5' height='18' fill='%2379d0bd'/%3E%3Crect x='21' y='7' width='5' height='18' fill='%23f0bc70'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <title>{% block title %}反馈分诊后台{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d6efd'/%3E%3Cpath d='M9 9h6c4 0 7 3 7 7v7' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M15 16h7' fill='none' stroke='%23f0bc70' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='9' r='3' fill='%2379d0bd'/%3E%3Ccircle cx='22' cy='16' r='3' fill='%23f0bc70'/%3E%3Ccircle cx='22' cy='23' r='3' fill='%23ffffff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v={{ static_asset_version }}">
 </head>
 <body>
   <header class="topbar">
     <a class="topbar-brand" href="/">
       <span class="brand-mark" aria-hidden="true"></span>
-      <span>Feedback Triage Agent</span>
+      <span>反馈分诊后台</span>
     </a>
     <div class="topbar-meta">
-      <span class="status-badge status-local">Local Web App</span>
+      <span class="status-badge status-local">{{ deployment_label | default("本地运行") }}</span>
       <span>v{{ version }}</span>
     </div>
   </header>
@@ -51,7 +51,11 @@
     <div class="sidebar-note">
       {% block sidebar_note %}
       <strong>边界</strong>
+      {% if web_llm_enabled | default(false) %}
       <span>Ask 可由 DeepSeek 解析；反馈初稿和高风险样本仍受本地规则与人工复核约束。</span>
+      {% else %}
+      <span>当前 Web 端只使用本地规则；P0、低置信度和多问题样本仍需人工复核。</span>
+      {% endif %}
       {% endblock %}
     </div>
   </aside>

@@ -24,3 +24,4 @@ data/web_runs/
 # generated CLI/Ask outputs
 data/output/
 data/output_ask/
+.vercel

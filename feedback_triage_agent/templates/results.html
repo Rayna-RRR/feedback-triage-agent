@@ -21,7 +21,7 @@
 </a>
 <a href="#run-log" class="sidebar-link">
   <span class="nav-icon nav-icon-log" aria-hidden="true"></span>
-  <span>Run log</span>
+  <span>运行日志</span>
 </a>
 <a href="#downloads" class="sidebar-link">
   <span class="nav-icon nav-icon-files" aria-hidden="true"></span>
@@ -31,13 +31,17 @@
 
 {% block sidebar_note %}
 <strong>复核边界</strong>
+{% if web_llm_enabled %}
 <span>DeepSeek 可解析 Ask 并生成反馈初稿；P0、低置信度、多问题和规则分歧样本仍需人工复核。</span>
+{% else %}
+<span>当前 Web 端只使用本地规则；P0、低置信度、多问题样本仍需人工复核。</span>
+{% endif %}
 {% endblock %}
 
 {% block content %}
 <section class="page-title" data-reveal>
   <div>
-    <p class="breadcrumb">Dashboard / Triage Results</p>
+    <p class="breadcrumb">分诊结果 / 本轮运行</p>
     <h1>分诊结果</h1>
     <p class="run-id">{{ run.run_id | replace("_", "_<wbr>") | safe }}</p>
   </div>
@@ -65,8 +69,8 @@
     <strong>{{ run.metrics.reviewed_count }}</strong>
   </article>
   <article>
-    <span>Fallback</span>
-    <strong>{{ run.metrics.fallback }}</strong>
+    <span>规则兜底</span>
+    <strong>{{ run.metrics.fallback_label }}</strong>
   </article>
 </section>
 
@@ -86,53 +90,53 @@
 <section class="card run-summary-card" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Output directory</p>
+      <p class="card-kicker">输出目录</p>
       <h2>本轮输出位置</h2>
     </div>
-    <span class="status-badge status-info">web run</span>
+    <span class="status-badge status-info">本轮运行</span>
   </div>
   <code class="output-code">{{ run.metrics.output_dir }}</code>
 </section>
 
 <section id="overview" data-reveal>
   <div class="section-heading">
-    <p class="card-kicker">Overview</p>
+    <p class="card-kicker">总览</p>
     <h2>运行总览</h2>
   </div>
   <div class="metrics-grid">
     <article class="metric-card">
       <span>总样本数</span>
       <strong>{{ run.metrics.total_samples }}</strong>
-      <em class="status-badge status-info">input</em>
+      <em class="status-badge status-info">输入</em>
     </article>
     <article class="metric-card">
       <span>有效样本数</span>
       <strong>{{ run.metrics.valid_samples }}</strong>
-      <em class="status-badge status-success">validated</em>
+      <em class="status-badge status-success">已校验</em>
     </article>
     <article class="metric-card">
       <span>问题卡片数</span>
       <strong>{{ run.metrics.issue_cards }}</strong>
-      <em class="status-badge status-info">cards</em>
+      <em class="status-badge status-info">卡片</em>
     </article>
     <article class="metric-card metric-warning">
       <span>人工复核队列</span>
       <strong>{{ run.metrics.human_review_count }}</strong>
-      <em class="status-badge status-warning">review</em>
+      <em class="status-badge status-warning">复核</em>
     </article>
     <article class="metric-card">
-      <span>Ask parser</span>
-      <strong>{{ run.metrics.ask_parser_source }}</strong>
-      <em class="status-badge status-muted">{{ run.metrics.ask_parser_model }} / {{ run.metrics.ask_parser_tokens }} tokens</em>
+      <span>Ask 解析</span>
+      <strong>{{ run.metrics.ask_parser_source_label }}</strong>
+      <em class="status-badge status-muted">{{ run.metrics.ask_parser_model }} / {{ run.metrics.ask_parser_tokens }} token</em>
     </article>
     <article class="metric-card">
-      <span>LLM used</span>
-      <strong>{{ run.metrics.llm_used }}</strong>
-      <em class="status-badge status-muted">{{ run.metrics.llm_tokens }} tokens</em>
+      <span>LLM 使用</span>
+      <strong>{{ run.metrics.llm_used_label }}</strong>
+      <em class="status-badge status-muted">{{ run.metrics.llm_tokens }} token</em>
     </article>
     <article class="metric-card">
-      <span>fallback</span>
-      <strong>{{ run.metrics.fallback }}</strong>
+      <span>规则兜底</span>
+      <strong>{{ run.metrics.fallback_label }}</strong>
       <em class="status-badge status-muted">rules.py</em>
     </article>
   </div>
@@ -142,7 +146,7 @@
   <article class="card chart-card">
     <div class="card-header">
       <div>
-        <p class="card-kicker">Issue categories</p>
+        <p class="card-kicker">问题类型</p>
         <h2>问题类型分布</h2>
       </div>
     </div>
@@ -160,7 +164,7 @@
   <article class="card chart-card">
     <div class="card-header">
       <div>
-        <p class="card-kicker">Priority</p>
+        <p class="card-kicker">优先级</p>
         <h2>优先级分布</h2>
       </div>
     </div>
@@ -179,10 +183,10 @@
 <section class="card table-card" id="review-queue" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Human review queue</p>
+      <p class="card-kicker">人工复核</p>
       <h2>需要人判断的样本</h2>
     </div>
-    <span class="status-badge status-warning">{{ run.metrics.human_review_count }} queued</span>
+    <span class="status-badge status-warning">{{ run.metrics.human_review_count }} 条待复核</span>
   </div>
   <div class="table-wrap">
     <table>
@@ -214,7 +218,7 @@
 <section class="card issue-section" id="issue-cards" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Issue cards</p>
+      <p class="card-kicker">问题卡片</p>
       <h2>问题卡片摘要</h2>
     </div>
   </div>
@@ -242,23 +246,22 @@
 <section class="card table-card" id="run-log" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Agent run log</p>
+      <p class="card-kicker">运行日志</p>
       <h2>固定七步工具链</h2>
     </div>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>步骤</th><th>状态</th><th>输入摘要</th><th>输出摘要</th><th>下一步</th></tr>
+        <tr><th>步骤</th><th>状态</th><th>结果</th><th>下一步</th></tr>
       </thead>
       <tbody>
         {% for step in run.run_steps %}
         <tr>
-          <td><strong>{{ step.step }}</strong></td>
-          <td><span class="status-badge status-{{ step.status }}">{{ step.status }}</span></td>
-          <td>{{ step.input_summary }}</td>
-          <td>{{ step.output_summary }}</td>
-          <td>{{ step.next_action }}</td>
+          <td><strong>{{ step.step_label }}</strong></td>
+          <td><span class="status-badge status-{{ step.status }}">{{ step.status_label }}</span></td>
+          <td>{{ step.result_label }}</td>
+          <td>{{ step.next_action_label }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -269,11 +272,11 @@
 <section class="card download-section" id="downloads" data-reveal>
   <div class="card-header">
     <div>
-      <p class="card-kicker">Downloads</p>
+      <p class="card-kicker">下载文件</p>
       <h2>下载区</h2>
       <p class="card-subtitle">保存本轮输出文件</p>
     </div>
-    <span class="status-badge status-info">{{ run.downloads|length }} files</span>
+    <span class="status-badge status-info">{{ run.downloads|length }} 个文件</span>
   </div>
   <div class="download-grid">
     {% for item in run.downloads %}

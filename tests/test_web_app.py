@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,7 @@ from feedback_triage_agent.models import LLMTaskIntent
 def client_with_tmp_runs(tmp_path: Path, monkeypatch) -> TestClient:
     monkeypatch.setattr(web_app, "WEB_RUNS_DIR", tmp_path / "web_runs")
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", raising=False)
     return TestClient(web_app.app)
 
 
@@ -31,9 +33,86 @@ def test_web_homepage_is_accessible(tmp_path: Path, monkeypatch) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Feedback Triage Agent" in response.text
+    assert "反馈分诊后台" in response.text
     assert "自然语言 Ask 入口" in response.text
+    assert "三层质控链" in response.text
+    assert "AI 初稿 / 规则兜底 / 人工复核" in response.text
+    assert "公开演示数据边界" in response.text
+    assert "使用 LLM 初稿（未启用）" in response.text
+    assert "Agent workflow" not in response.text
+    assert "app.css?v=" in response.text
     assert "开始分诊" in response.text
+
+
+def test_web_brand_mark_replaces_old_ft_icons() -> None:
+    base_html = (web_app.TEMPLATES_DIR / "base.html").read_text(encoding="utf-8")
+    app_css = (web_app.STATIC_DIR / "app.css").read_text(encoding="utf-8")
+
+    assert "fill='%23111827'" not in base_html
+    assert "content: \"FT\"" not in app_css
+    assert "radial-gradient(circle at 16px 10px" in app_css
+
+
+def test_healthz_reports_web_runtime_state(tmp_path: Path, monkeypatch) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+
+    response = client.get("/healthz")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["sample_feedback_available"] is True
+    assert payload["ai_reviews_available"] is True
+    assert payload["web_runs_dir"] == str(web_app.WEB_RUNS_DIR)
+    assert payload["web_llm_enabled"] is False
+
+
+def test_resolve_web_runs_dir_prefers_env_and_uses_tmp_on_vercel(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    custom_dir = tmp_path / "custom-runs"
+    monkeypatch.setenv("FEEDBACK_TRIAGE_WEB_RUNS_DIR", str(custom_dir))
+    monkeypatch.setenv("VERCEL", "1")
+    assert web_app.resolve_web_runs_dir() == custom_dir
+
+    monkeypatch.delenv("FEEDBACK_TRIAGE_WEB_RUNS_DIR")
+    assert web_app.resolve_web_runs_dir() == web_app.DEPLOY_WEB_RUNS_DIR
+
+    monkeypatch.delenv("VERCEL")
+    assert web_app.resolve_web_runs_dir() == web_app.LOCAL_WEB_RUNS_DIR
+
+
+def test_cleanup_web_runs_removes_expired_runs_and_limits_retention(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runs_dir = tmp_path / "web_runs"
+    runs_dir.mkdir()
+    monkeypatch.setattr(web_app, "WEB_RUNS_DIR", runs_dir)
+    monkeypatch.setattr(web_app, "RUN_RETENTION_HOURS", 24)
+    monkeypatch.setattr(web_app, "MAX_WEB_RUNS", 2)
+    now = 1_700_000_000
+    old_dir = runs_dir / "run_20200101_000000"
+    first_recent = runs_dir / "run_20260101_000000"
+    second_recent = runs_dir / "run_20260101_000001"
+    third_recent = runs_dir / "run_20260101_000002"
+    unrelated = runs_dir / "keep-me"
+    for path in [old_dir, first_recent, second_recent, third_recent, unrelated]:
+        path.mkdir()
+    os.utime(old_dir, (now - 90_000, now - 90_000))
+    os.utime(first_recent, (now - 300, now - 300))
+    os.utime(second_recent, (now - 200, now - 200))
+    os.utime(third_recent, (now - 100, now - 100))
+    os.utime(unrelated, (now - 90_000, now - 90_000))
+
+    web_app.cleanup_web_runs(now=now)
+
+    assert not old_dir.exists()
+    assert not first_recent.exists()
+    assert second_recent.exists()
+    assert third_recent.exists()
+    assert unrelated.exists()
 
 
 def test_web_run_sample_feedback_success(tmp_path: Path, monkeypatch) -> None:
@@ -67,6 +146,40 @@ def test_web_run_ai_reviews_success(tmp_path: Path, monkeypatch) -> None:
     assert "下载区" in result_response.text
 
 
+def test_web_run_ignores_llm_checkbox_when_web_llm_is_disabled(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    class UnexpectedDeepSeekClient:
+        def __init__(self):
+            raise AssertionError("DeepSeek should not be called")
+
+    monkeypatch.setattr(
+        "feedback_triage_agent.tools.DeepSeekClient",
+        UnexpectedDeepSeekClient,
+    )
+
+    response = client.post(
+        "/run",
+        data={
+            "data_source": "sample",
+            "use_llm": "on",
+            "generate_html": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    qa_report = (web_app.WEB_RUNS_DIR / run_id / "qa_report.md").read_text(
+        encoding="utf-8"
+    )
+    assert "是否使用 LLM: False" in qa_report
+
+
 def test_web_ask_runs_same_agent_and_generates_html(tmp_path: Path, monkeypatch) -> None:
     client = client_with_tmp_runs(tmp_path, monkeypatch)
 
@@ -89,6 +202,8 @@ def test_web_ask_uses_deepseek_to_parse_natural_language(
     tmp_path: Path, monkeypatch
 ) -> None:
     client = client_with_tmp_runs(tmp_path, monkeypatch)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", "true")
 
     class FakeDeepSeekClient:
         model = "deepseek-v4-pro"
@@ -129,6 +244,36 @@ def test_web_ask_uses_deepseek_to_parse_natural_language(
     assert "解析来源: deepseek" in qa_report
     assert "解析模型: deepseek-v4-pro" in qa_report
     assert "解析总 tokens: 90" in qa_report
+
+
+def test_web_ask_skips_deepseek_when_web_llm_is_disabled(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    class UnexpectedDeepSeekClient:
+        def __init__(self):
+            raise AssertionError("DeepSeek should not be called")
+
+    monkeypatch.setattr(
+        "feedback_triage_agent.task_parser.DeepSeekClient",
+        UnexpectedDeepSeekClient,
+    )
+
+    response = client.post(
+        "/ask",
+        data={"task": "分析 data/sample_feedback.csv，生成 HTML 报告"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    run_id = response.headers["location"].rsplit("/", 1)[-1]
+    qa_report = (web_app.WEB_RUNS_DIR / run_id / "qa_report.md").read_text(
+        encoding="utf-8"
+    )
+    assert "解析来源: rules" in qa_report
 
 
 def test_web_ask_rule_parser_option_skips_deepseek(tmp_path: Path, monkeypatch) -> None:

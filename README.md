@@ -16,6 +16,48 @@ http://127.0.0.1:8000
 
 Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持自然语言 Ask、选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
 
+Web 运行输出默认写入本地 `data/web_runs/`。部署到 Vercel 时会自动改用 `/tmp/feedback-triage-runs`，也可以用 `FEEDBACK_TRIAGE_WEB_RUNS_DIR` 指定可写目录。公开 Demo 的上传 CSV 和输出文件只适合临时保存，默认约 24 小时后清理，平台重启或实例回收后也可能丢失。
+
+## Vercel 公开 Demo 部署
+
+当前仓库包含 Vercel 入口：
+
+- `app.py`: 导出 FastAPI `app`，供 Vercel FastAPI 预设识别。
+- `.vercelignore`: 排除 `.venv`、缓存、本地输出和历史 Web run。
+
+生产部署命令：
+
+```bash
+vercel --prod
+```
+
+Vercel 环境变量建议：
+
+```bash
+FEEDBACK_TRIAGE_RUN_RETENTION_HOURS=24
+FEEDBACK_TRIAGE_MAX_WEB_RUNS=50
+```
+
+如果要在线上开放 DeepSeek，必须同时设置：
+
+```bash
+DEEPSEEK_API_KEY=your_deepseek_api_key
+FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
+```
+
+可以在 Vercel Dashboard 的 Project Settings -> Environment Variables 中添加，也可以用 CLI 分别添加到 Production：
+
+```bash
+vercel env add DEEPSEEK_API_KEY production
+vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
+```
+
+`FEEDBACK_TRIAGE_WEB_LLM_ENABLED` 的值填写 `true`。环境变量变更后需要重新生产部署一次，新的 Serverless Function 才会读取到配置。本地变量模板见 `.env.example`，不要把真实 key 写入这个文件。
+
+不设置 `FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true` 时，Web 端不会调用 DeepSeek：Ask 使用本地规则解析，反馈分诊也只用 `rules.py`。CLI 的 `--llm` 行为不受这个 Web 开关影响。
+
+公开 Demo 请不要上传真实用户隐私、商业保密或生产反馈原文。Vercel 可以先用于快速上线和分享链接；如果后续需要更稳定的中国大陆访问，应迁移到大陆云服务器并按要求完成 ICP 备案。
+
 ## 展示入口
 
 如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接在浏览器打开：
@@ -163,7 +205,7 @@ python -m feedback_triage_agent.cli ask \
 - 缺少 ID 时生成稳定的行 ID；无法识别评论正文或评分字段时拒绝转换，不会猜测语义值。
 - 未参与映射的原始元数据列会保留在 `normalized_feedback.csv` 中。
 
-Web 首页提供相同入口，并可勾选“仅用本地规则解析 Ask”。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行；启用反馈初稿 LLM 时单次最多处理 100 条。每次 Web 运行写入独立的 `data/web_runs/run_YYYYMMDD_HHMMSS_ask/`。
+Web 首页提供相同入口，并可勾选“仅用本地规则解析 Ask”。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行；启用反馈初稿 LLM 时单次最多处理 100 条。每次 Web 运行写入独立的 `run_YYYYMMDD_HHMMSS_ask/` 目录；本地默认在 `data/web_runs/`，Vercel 默认在 `/tmp/feedback-triage-runs/`。
 
 从已有输出目录生成静态 HTML 报告：
 

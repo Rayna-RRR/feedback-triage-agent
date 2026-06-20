@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import re
 import shutil
+import os
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -33,15 +36,19 @@ from feedback_triage_agent.web_models import DownloadFile, WebRunData
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
-WEB_RUNS_DIR = DATA_DIR / "web_runs"
+LOCAL_WEB_RUNS_DIR = DATA_DIR / "web_runs"
+DEPLOY_WEB_RUNS_DIR = Path("/tmp/feedback-triage-runs")
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
+STATIC_ASSET_VERSION = str(int((STATIC_DIR / "app.css").stat().st_mtime))
 
 SAMPLE_FEEDBACK_PATH = DATA_DIR / "sample_feedback.csv"
 AI_REVIEWS_PATH = DATA_DIR / "ai_app_reviews.csv"
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 MAX_INPUT_ROWS = 5000
 MAX_LLM_ROWS = 100
+DEFAULT_RUN_RETENTION_HOURS = 24
+DEFAULT_MAX_WEB_RUNS = 50
 
 REQUIRED_WEB_OUTPUTS = [
     "issue_cards.md",
@@ -54,7 +61,7 @@ DOWNLOADS = [
     ("normalized_feedback.csv", "标准化输入 CSV"),
     ("issue_cards.md", "问题卡片 Markdown"),
     ("qa_report.md", "QA 报告 Markdown"),
-    ("run_log.md", "Agent run log"),
+    ("run_log.md", "运行日志 Markdown"),
     ("triage_results.csv", "结构化 CSV"),
     ("review_decisions.csv", "人工复核决策模板"),
     ("triage_results_reviewed.csv", "已复核结构化 CSV"),
@@ -64,9 +71,182 @@ DOWNLOADS = [
 ]
 
 
-app = FastAPI(title="Feedback Triage Agent Web App", version=__version__)
+def boolish(value: object) -> bool:
+    normalized = str(value).strip().lower()
+    return normalized in {"true", "1", "yes", "y", "on"}
+
+
+def env_int(name: str, default: int, minimum: int = 1) -> int:
+    raw_value = os.getenv(name, "").strip()
+    if not raw_value:
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError:
+        return default
+    return value if value >= minimum else default
+
+
+def resolve_web_runs_dir() -> Path:
+    configured = os.getenv("FEEDBACK_TRIAGE_WEB_RUNS_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    if os.getenv("VERCEL"):
+        return DEPLOY_WEB_RUNS_DIR
+    return LOCAL_WEB_RUNS_DIR
+
+
+WEB_RUNS_DIR = resolve_web_runs_dir()
+RUN_RETENTION_HOURS = env_int(
+    "FEEDBACK_TRIAGE_RUN_RETENTION_HOURS",
+    DEFAULT_RUN_RETENTION_HOURS,
+)
+MAX_WEB_RUNS = env_int("FEEDBACK_TRIAGE_MAX_WEB_RUNS", DEFAULT_MAX_WEB_RUNS)
+
+
+def web_llm_enabled() -> bool:
+    return boolish(os.getenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", "")) and bool(
+        os.getenv("DEEPSEEK_API_KEY", "").strip()
+    )
+
+
+def deployment_label() -> str:
+    return "线上 Demo" if os.getenv("VERCEL") else "本地运行"
+
+
+def yes_no_label(value: object) -> str:
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes", "y", "on"}:
+        return "是"
+    if normalized in {"false", "0", "no", "n", "off"}:
+        return "否"
+    return str(value)
+
+
+def parser_source_label(value: object) -> str:
+    labels = {
+        "direct": "直接运行",
+        "rules": "本地规则",
+        "deepseek": "DeepSeek",
+    }
+    return labels.get(str(value).strip().lower(), str(value))
+
+
+def status_label(value: object) -> str:
+    labels = {
+        "success": "成功",
+        "warning": "提醒",
+        "error": "失败",
+    }
+    return labels.get(str(value).strip().lower(), str(value))
+
+
+def action_label(value: object) -> str:
+    labels = {
+        "validate_schema": "校验字段",
+        "classify_feedback": "开始分类",
+        "detect_badcases": "识别复核样本",
+        "generate_issue_cards": "生成问题卡片",
+        "qa_check": "执行 QA 检查",
+        "export_report": "导出报告",
+        "done": "完成",
+        "stop": "停止",
+    }
+    return labels.get(str(value).strip(), str(value))
+
+
+def step_label(value: object) -> str:
+    labels = {
+        "load_feedback": "读取反馈",
+        "validate_schema": "校验字段",
+        "classify_feedback": "反馈分类",
+        "detect_badcases": "识别复核样本",
+        "generate_issue_cards": "生成问题卡片",
+        "qa_check": "QA 检查",
+        "export_report": "导出报告",
+    }
+    match = re.match(r"^(\d+)\.\s*(.+)$", str(value).strip())
+    if not match:
+        return labels.get(str(value), str(value))
+    index, name = match.groups()
+    return f"{index}. {labels.get(name, name)}"
+
+
+def step_result_label(value: object) -> str:
+    labels = {
+        "load_feedback": "已读取输入数据",
+        "validate_schema": "字段结构已校验",
+        "classify_feedback": "已完成问题分类",
+        "detect_badcases": "已识别需要人工复核的样本",
+        "generate_issue_cards": "已生成问题卡片",
+        "qa_check": "已完成质量检查",
+        "export_report": "已导出报告文件",
+    }
+    match = re.match(r"^\d+\.\s*(.+)$", str(value).strip())
+    key = match.group(1) if match else str(value)
+    return labels.get(key, str(value))
+
+
+def decorate_run_steps(steps: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    decorated = []
+    for step in steps:
+        row = dict(step)
+        row["step_label"] = step_label(step.get("step", ""))
+        row["result_label"] = step_result_label(step.get("step", ""))
+        row["status_label"] = status_label(step.get("status", ""))
+        row["next_action_label"] = action_label(step.get("next_action", ""))
+        decorated.append(row)
+    return decorated
+
+
+def is_run_dir_name(name: str) -> bool:
+    return bool(
+        re.match(r"^run_\d{8}_\d{6}(?:_[A-Za-z0-9_-]+)*(?:_\d{2})?$", name)
+    )
+
+
+def cleanup_web_runs(now: Optional[float] = None) -> None:
+    if not WEB_RUNS_DIR.exists():
+        return
+
+    current_time = time.time() if now is None else now
+    cutoff = current_time - (RUN_RETENTION_HOURS * 60 * 60)
+    run_dirs = [
+        path
+        for path in WEB_RUNS_DIR.iterdir()
+        if path.is_dir() and is_run_dir_name(path.name)
+    ]
+
+    remaining_dirs = []
+    for run_dir in run_dirs:
+        try:
+            modified_at = run_dir.stat().st_mtime
+        except OSError:
+            continue
+        if modified_at < cutoff:
+            shutil.rmtree(run_dir, ignore_errors=True)
+        else:
+            remaining_dirs.append((modified_at, run_dir))
+
+    remaining_dirs.sort(key=lambda item: item[0], reverse=True)
+    for _modified_at, run_dir in remaining_dirs[MAX_WEB_RUNS:]:
+        shutil.rmtree(run_dir, ignore_errors=True)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    cleanup_web_runs()
+    yield
+
+
+app = FastAPI(
+    title="Feedback Triage Agent Web App",
+    version=__version__,
+    lifespan=lifespan,
+)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.globals["static_asset_version"] = STATIC_ASSET_VERSION
 
 
 def render_index(request: Request, error: Optional[str] = None, status_code: int = 200):
@@ -76,8 +256,15 @@ def render_index(request: Request, error: Optional[str] = None, status_code: int
         {
             "error": error,
             "version": __version__,
+            "deployment_label": deployment_label(),
             "sample_exists": SAMPLE_FEEDBACK_PATH.exists(),
             "ai_reviews_exists": AI_REVIEWS_PATH.exists(),
+            "web_llm_enabled": web_llm_enabled(),
+            "web_runs_dir": str(WEB_RUNS_DIR),
+            "run_retention_hours": RUN_RETENTION_HOURS,
+            "max_upload_mb": int(MAX_UPLOAD_BYTES / (1024 * 1024)),
+            "max_input_rows": MAX_INPUT_ROWS,
+            "max_llm_rows": MAX_LLM_ROWS,
         },
         status_code=status_code,
     )
@@ -89,6 +276,7 @@ def sanitize_name(value: str) -> str:
 
 
 def create_run_dir(output_name: str = "") -> Path:
+    cleanup_web_runs()
     WEB_RUNS_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     suffix = sanitize_name(output_name)
@@ -107,7 +295,7 @@ def cleanup_failed_run(run_dir: Path) -> None:
 
 
 def validate_run_id(run_id: str) -> None:
-    if not re.match(r"^run_\d{8}_\d{6}(?:_[A-Za-z0-9_-]+)*(?:_\d{2})?$", run_id):
+    if not is_run_dir_name(run_id):
         raise ValueError("运行目录名称不合法。")
 
 
@@ -211,11 +399,6 @@ def execute_agent_run(
     create_outputs_zip(run_dir)
 
 
-def boolish(value: object) -> bool:
-    normalized = str(value).strip().lower()
-    return normalized in {"true", "1", "yes", "y", "on"}
-
-
 def frame_distribution(values: pd.Series) -> List[Dict[str, object]]:
     counts = values.fillna("").astype(str).replace("", "未填写").value_counts()
     max_count = int(counts.max()) if len(counts) else 0
@@ -239,7 +422,9 @@ def read_results(run_id: str) -> WebRunData:
     results_path = reviewed_path if reviewed_path.exists() else output_dir / "triage_results.csv"
     results = pd.read_csv(results_path).fillna("")
     qa_values = parse_bullet_map((output_dir / "qa_report.md").read_text(encoding="utf-8"))
-    run_steps = parse_run_log((output_dir / "run_log.md").read_text(encoding="utf-8"))
+    run_steps = decorate_run_steps(
+        parse_run_log((output_dir / "run_log.md").read_text(encoding="utf-8"))
+    )
 
     review_mask = (
         results["needs_human_review"].map(boolish)
@@ -302,6 +487,9 @@ def read_results(run_id: str) -> WebRunData:
         "llm_tokens": qa_values.get("反馈初稿总 tokens", 0),
         "output_dir": str(output_dir),
     }
+    metrics["llm_used_label"] = yes_no_label(metrics["llm_used"])
+    metrics["fallback_label"] = yes_no_label(metrics["fallback"])
+    metrics["ask_parser_source_label"] = parser_source_label(metrics["ask_parser_source"])
 
     return WebRunData(
         run_id=run_id,
@@ -332,6 +520,20 @@ def index(request: Request):
     return render_index(request)
 
 
+@app.get("/healthz")
+def healthz():
+    return {
+        "status": "ok",
+        "version": __version__,
+        "sample_feedback_available": SAMPLE_FEEDBACK_PATH.exists(),
+        "ai_reviews_available": AI_REVIEWS_PATH.exists(),
+        "web_runs_dir": str(WEB_RUNS_DIR),
+        "run_retention_hours": RUN_RETENTION_HOURS,
+        "max_web_runs": MAX_WEB_RUNS,
+        "web_llm_enabled": web_llm_enabled(),
+    }
+
+
 @app.post("/run")
 async def run_agent(
     request: Request,
@@ -359,7 +561,7 @@ async def run_agent(
             if not input_path.exists():
                 raise ValueError(f"内置数据文件不存在: {input_path}")
 
-        llm_requested = boolish(use_llm) and not boolish(rule_only)
+        llm_requested = web_llm_enabled() and boolish(use_llm) and not boolish(rule_only)
         execute_agent_run(
             input_path,
             run_dir,
@@ -395,7 +597,7 @@ def ask_agent(
     parsed = parse_ask_task(
         task,
         uploaded_filename=uploaded_filename,
-        use_deepseek=not boolish(rule_parser),
+        use_deepseek=web_llm_enabled() and not boolish(rule_parser),
     )
     if not has_upload:
         input_path = parsed.input_path
@@ -421,7 +623,7 @@ def ask_agent(
         execute_agent_run(
             input_path,
             run_dir,
-            llm_requested=parsed.llm_requested,
+            llm_requested=parsed.llm_requested and web_llm_enabled(),
             generate_html=parsed.html_requested,
             normalize_input=parsed.normalize_input,
             input_name=input_name,
@@ -454,6 +656,8 @@ def results(request: Request, run_id: str, review_applied: bool = False):
         {
             "run": run_data,
             "version": __version__,
+            "deployment_label": deployment_label(),
+            "web_llm_enabled": web_llm_enabled(),
             "review_message": "人工复核决策已应用。" if review_applied else None,
             "review_error": None,
         },
@@ -479,6 +683,8 @@ async def apply_reviews(
             {
                 "run": run_data,
                 "version": __version__,
+                "deployment_label": deployment_label(),
+                "web_llm_enabled": web_llm_enabled(),
                 "review_message": None,
                 "review_error": "请上传 CSV 格式的复核决策文件。",
             },
@@ -503,6 +709,8 @@ async def apply_reviews(
             {
                 "run": run_data,
                 "version": __version__,
+                "deployment_label": deployment_label(),
+                "web_llm_enabled": web_llm_enabled(),
                 "review_message": None,
                 "review_error": str(exc),
             },
