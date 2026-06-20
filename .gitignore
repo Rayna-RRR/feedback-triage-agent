@@ -22,6 +22,10 @@ data/source_ai_app_feedback/
 data/web_runs/
 
 # generated CLI/Ask outputs
+data/evaluation_output/
+data/adversarial_output/
+data/harness_output/
+data/harness_output_skip/
 data/output/
 data/output_ask/
 .vercel

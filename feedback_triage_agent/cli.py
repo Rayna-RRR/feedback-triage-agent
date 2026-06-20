@@ -10,6 +10,7 @@ from rich.table import Table
 from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.evaluation import evaluate_rules
+from feedback_triage_agent.harness import run_evaluation_harness
 from feedback_triage_agent.html_report import ReportInputError, generate_html_report
 from feedback_triage_agent.review import apply_review_decisions
 from feedback_triage_agent.task_parser import (
@@ -246,6 +247,45 @@ def evaluate(
     if failed_gates:
         console.print("[red]Quality gates failed:[/red] " + ", ".join(failed_gates))
         raise typer.Exit(code=1)
+
+
+@app.command()
+def harness(
+    output: Path = typer.Option(
+        Path("data/harness_output"),
+        "--output",
+        "-o",
+        help="Directory for evaluation harness artifacts.",
+    ),
+    skip_pytest: bool = typer.Option(
+        False,
+        "--skip-pytest",
+        help="Skip nested pytest run. Useful when testing the harness command itself.",
+    ),
+) -> None:
+    """Run pytest, golden evaluation, and adversarial evaluation together."""
+
+    result = run_evaluation_harness(output, skip_pytest=skip_pytest)
+    table = Table(title="Evaluation Harness Summary")
+    table.add_column("Stage", style="cyan")
+    table.add_column("Status")
+    table.add_row(
+        "Pytest",
+        "skipped" if result.pytest_skipped else ("passed" if result.pytest_passed else "failed"),
+    )
+    table.add_row("Golden set", "passed" if result.golden_passed else "failed")
+    table.add_row(
+        "Adversarial set",
+        "completed" if result.adversarial_completed else "failed",
+    )
+    table.add_row("Harness result", "passed" if result.harness_passed else "failed")
+    console.print(table)
+    console.print(f"[green]harness_report:[/green] {result.output_paths['harness_report']}")
+    console.print(f"[green]harness_summary:[/green] {result.output_paths['harness_summary']}")
+
+    if not result.harness_passed:
+        raise typer.Exit(code=1)
+
 
 @app.command()
 def report(
