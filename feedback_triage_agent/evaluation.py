@@ -23,6 +23,14 @@ EVALUATION_LABEL_FIELDS = [
 ]
 SCENARIO_FIELD = "scenario"
 
+DEFAULT_EVALUATION_GATES = {
+    "category_accuracy": 0.8,
+    "priority_accuracy": 0.9,
+    "human_review_accuracy": 0.9,
+    "p0_precision": 0.9,
+    "p0_recall": 0.9,
+}
+
 EVALUATION_RESULT_COLUMNS = [
     "id",
     "review_text",

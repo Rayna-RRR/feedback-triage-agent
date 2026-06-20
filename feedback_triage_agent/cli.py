@@ -9,7 +9,7 @@ from rich.table import Table
 
 from feedback_triage_agent import __version__
 from feedback_triage_agent.agent import FeedbackTriageAgent
-from feedback_triage_agent.evaluation import evaluate_rules
+from feedback_triage_agent.evaluation import DEFAULT_EVALUATION_GATES, evaluate_rules
 from feedback_triage_agent.harness import run_evaluation_harness
 from feedback_triage_agent.html_report import ReportInputError, generate_html_report
 from feedback_triage_agent.review import apply_review_decisions
@@ -208,11 +208,31 @@ def evaluate(
         "-o",
         help="Directory for evaluation artifacts.",
     ),
-    min_category_accuracy: float = typer.Option(0.8, min=0, max=1),
-    min_priority_accuracy: float = typer.Option(0.9, min=0, max=1),
-    min_human_review_accuracy: float = typer.Option(0.9, min=0, max=1),
-    min_p0_precision: float = typer.Option(0.9, min=0, max=1),
-    min_p0_recall: float = typer.Option(0.9, min=0, max=1),
+    min_category_accuracy: float = typer.Option(
+        DEFAULT_EVALUATION_GATES["category_accuracy"],
+        min=0,
+        max=1,
+    ),
+    min_priority_accuracy: float = typer.Option(
+        DEFAULT_EVALUATION_GATES["priority_accuracy"],
+        min=0,
+        max=1,
+    ),
+    min_human_review_accuracy: float = typer.Option(
+        DEFAULT_EVALUATION_GATES["human_review_accuracy"],
+        min=0,
+        max=1,
+    ),
+    min_p0_precision: float = typer.Option(
+        DEFAULT_EVALUATION_GATES["p0_precision"],
+        min=0,
+        max=1,
+    ),
+    min_p0_recall: float = typer.Option(
+        DEFAULT_EVALUATION_GATES["p0_recall"],
+        min=0,
+        max=1,
+    ),
 ) -> None:
     """Evaluate rules.py against a labeled local dataset."""
 

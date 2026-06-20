@@ -93,3 +93,29 @@ def test_adversarial_set_keeps_scenario_metrics(tmp_path: Path) -> None:
     assert "scenario" in results.columns
     assert "## Scenario Breakdown" in report
     assert "english_negation" in report
+
+
+def test_scenario_metrics_handle_blank_values_and_no_p0_denominator(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "scenario_evaluation.csv"
+    source.write_text(
+        "id,source,app_name,review_text,rating,scenario,"
+        "expected_issue_category,expected_priority,expected_human_review\n"
+        's1,test,App,"喜欢这个应用，整体很好用。",5,,正向反馈/无明确问题,P2,false\n'
+        's2,test,App,"按钮太小，找不到设置入口。",3,no_p0_case,交互体验问题,P2,false\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "scenario_output"
+
+    evaluate_rules(source, output_dir)
+
+    results = pd.read_csv(output_dir / "evaluation_results.csv")
+    report = (output_dir / "evaluation_report.md").read_text(encoding="utf-8")
+
+    assert "scenario" in results.columns
+    assert results["scenario"].isna().any()
+    assert "## Scenario Breakdown" in report
+    assert "### no_p0_case" in report
+    assert "- p0_precision: 0.00%" in report
+    assert "- p0_recall: 0.00%" in report

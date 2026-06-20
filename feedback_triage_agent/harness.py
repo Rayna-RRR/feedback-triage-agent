@@ -7,16 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-from feedback_triage_agent.evaluation import EvaluationSummary, evaluate_rules
-
-
-GOLDEN_GATES = {
-    "category_accuracy": 0.8,
-    "priority_accuracy": 0.9,
-    "human_review_accuracy": 0.9,
-    "p0_precision": 0.9,
-    "p0_recall": 0.9,
-}
+from feedback_triage_agent.evaluation import (
+    DEFAULT_EVALUATION_GATES,
+    EvaluationSummary,
+    evaluate_rules,
+)
 
 
 @dataclass(frozen=True)
@@ -65,7 +60,10 @@ def summary_metrics(summary: EvaluationSummary) -> Dict[str, Union[float, int]]:
 
 
 def metrics_pass_gates(metrics: Dict[str, Union[float, int]]) -> bool:
-    return all(float(metrics.get(name, 0)) >= threshold for name, threshold in GOLDEN_GATES.items())
+    return all(
+        float(metrics.get(name, 0)) >= threshold
+        for name, threshold in DEFAULT_EVALUATION_GATES.items()
+    )
 
 
 def status_label(passed: bool, skipped: bool = False) -> str:
