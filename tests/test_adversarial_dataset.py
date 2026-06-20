@@ -12,6 +12,7 @@ ADVERSARIAL_COLUMNS = [
     "app_name",
     "review_text",
     "rating",
+    "scenario",
     "expected_issue_category",
     "expected_priority",
     "expected_human_review",
@@ -29,6 +30,7 @@ def test_adversarial_feedback_dataset_contract() -> None:
     assert list(dataset.columns) == ADVERSARIAL_COLUMNS
     assert len(dataset) >= 12
     assert dataset["id"].is_unique
+    assert dataset["scenario"].astype(str).str.strip().ne("").all()
     assert set(dataset["expected_issue_category"]).issubset(set(ISSUE_CATEGORIES))
     assert set(dataset["expected_priority"]).issubset({"P0", "P1", "P2"})
     assert dataset["expected_human_review"].map(parse_expected_bool).notna().all()

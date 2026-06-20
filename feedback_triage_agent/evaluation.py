@@ -21,9 +21,26 @@ EVALUATION_LABEL_FIELDS = [
     "expected_priority",
     "expected_human_review",
 ]
+SCENARIO_FIELD = "scenario"
 
 EVALUATION_RESULT_COLUMNS = [
     "id",
+    "review_text",
+    "expected_issue_category",
+    "predicted_issue_category",
+    "category_correct",
+    "expected_priority",
+    "predicted_priority",
+    "priority_correct",
+    "expected_human_review",
+    "predicted_human_review",
+    "human_review_correct",
+    "predicted_human_review_reasons",
+]
+
+SCENARIO_EVALUATION_RESULT_COLUMNS = [
+    "id",
+    "scenario",
     "review_text",
     "expected_issue_category",
     "predicted_issue_category",
@@ -62,6 +79,53 @@ def safe_ratio(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
 
 
+def calculate_metrics(results: pd.DataFrame) -> Dict[str, object]:
+    expected_p0 = results["expected_priority"] == "P0"
+    predicted_p0 = results["predicted_priority"] == "P0"
+    true_positive_p0 = int((expected_p0 & predicted_p0).sum())
+    return {
+        "samples": len(results),
+        "category_accuracy": float(results["category_correct"].mean()) if len(results) else 0.0,
+        "priority_accuracy": float(results["priority_correct"].mean()) if len(results) else 0.0,
+        "human_review_accuracy": (
+            float(results["human_review_correct"].mean()) if len(results) else 0.0
+        ),
+        "p0_precision": safe_ratio(true_positive_p0, int(predicted_p0.sum())),
+        "p0_recall": safe_ratio(true_positive_p0, int(expected_p0.sum())),
+    }
+
+
+def render_scenario_breakdown(results: pd.DataFrame) -> List[str]:
+    lines = ["", "## Scenario Breakdown", ""]
+    if SCENARIO_FIELD not in results.columns:
+        lines.extend(["- 输入未提供 scenario 字段。", ""])
+        return lines
+
+    scenario_values = results[SCENARIO_FIELD].fillna("").astype(str).str.strip()
+    scenario_results = results.assign(**{SCENARIO_FIELD: scenario_values})
+    scenario_results = scenario_results[scenario_results[SCENARIO_FIELD].ne("")]
+    if scenario_results.empty:
+        lines.extend(["- 无可用 scenario。", ""])
+        return lines
+
+    for scenario, group in scenario_results.groupby(SCENARIO_FIELD, sort=True):
+        metrics = calculate_metrics(group)
+        lines.extend(
+            [
+                f"### {scenario}",
+                "",
+                f"- samples: {metrics['samples']}",
+                f"- category_accuracy: {metrics['category_accuracy']:.2%}",
+                f"- priority_accuracy: {metrics['priority_accuracy']:.2%}",
+                f"- human_review_accuracy: {metrics['human_review_accuracy']:.2%}",
+                f"- p0_precision: {metrics['p0_precision']:.2%}",
+                f"- p0_recall: {metrics['p0_recall']:.2%}",
+                "",
+            ]
+        )
+    return lines
+
+
 def render_evaluation_report(summary: EvaluationSummary, results: pd.DataFrame) -> str:
     category_errors = results[~results["category_correct"]]
     priority_errors = results[~results["priority_correct"]]
@@ -97,6 +161,7 @@ def render_evaluation_report(summary: EvaluationSummary, results: pd.DataFrame) 
                 f"predicted={row['predicted_issue_category']}"
             )
 
+    lines.extend(render_scenario_breakdown(results))
     lines.extend(["", "## 说明", ""])
     lines.extend(
         [
@@ -124,6 +189,7 @@ def evaluate_rules(input_path: Path, output_dir: Path) -> EvaluationSummary:
     if source.empty:
         raise ValueError("评测 CSV 不能为空")
 
+    has_scenario = SCENARIO_FIELD in source.columns
     rows: List[Dict[str, object]] = []
     for index, raw_row in source.iterrows():
         try:
@@ -142,38 +208,40 @@ def evaluate_rules(input_path: Path, output_dir: Path) -> EvaluationSummary:
         predicted = classify_feedback_record(record)
         review_reasons = detect_human_review_reasons(predicted)
         predicted_review = bool(review_reasons)
-        rows.append(
-            {
-                "id": record.id,
-                "review_text": record.review_text,
-                "expected_issue_category": expected_category,
-                "predicted_issue_category": predicted.issue_category,
-                "category_correct": predicted.issue_category == expected_category,
-                "expected_priority": expected_priority,
-                "predicted_priority": predicted.priority,
-                "priority_correct": predicted.priority == expected_priority,
-                "expected_human_review": expected_review,
-                "predicted_human_review": predicted_review,
-                "human_review_correct": predicted_review == expected_review,
-                "predicted_human_review_reasons": "；".join(review_reasons),
-            }
-        )
+        row = {
+            "id": record.id,
+            "review_text": record.review_text,
+            "expected_issue_category": expected_category,
+            "predicted_issue_category": predicted.issue_category,
+            "category_correct": predicted.issue_category == expected_category,
+            "expected_priority": expected_priority,
+            "predicted_priority": predicted.priority,
+            "priority_correct": predicted.priority == expected_priority,
+            "expected_human_review": expected_review,
+            "predicted_human_review": predicted_review,
+            "human_review_correct": predicted_review == expected_review,
+            "predicted_human_review_reasons": "；".join(review_reasons),
+        }
+        if has_scenario:
+            row[SCENARIO_FIELD] = str(raw_row[SCENARIO_FIELD]).strip()
+        rows.append(row)
 
-    results = pd.DataFrame(rows, columns=EVALUATION_RESULT_COLUMNS)
-    expected_p0 = results["expected_priority"] == "P0"
-    predicted_p0 = results["predicted_priority"] == "P0"
-    true_positive_p0 = int((expected_p0 & predicted_p0).sum())
+    result_columns = (
+        SCENARIO_EVALUATION_RESULT_COLUMNS if has_scenario else EVALUATION_RESULT_COLUMNS
+    )
+    results = pd.DataFrame(rows, columns=result_columns)
+    metrics = calculate_metrics(results)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     results_path = output_dir / "evaluation_results.csv"
     report_path = output_dir / "evaluation_report.md"
     summary = EvaluationSummary(
-        total_samples=len(results),
-        category_accuracy=float(results["category_correct"].mean()),
-        priority_accuracy=float(results["priority_correct"].mean()),
-        human_review_accuracy=float(results["human_review_correct"].mean()),
-        p0_precision=safe_ratio(true_positive_p0, int(predicted_p0.sum())),
-        p0_recall=safe_ratio(true_positive_p0, int(expected_p0.sum())),
+        total_samples=int(metrics["samples"]),
+        category_accuracy=float(metrics["category_accuracy"]),
+        priority_accuracy=float(metrics["priority_accuracy"]),
+        human_review_accuracy=float(metrics["human_review_accuracy"]),
+        p0_precision=float(metrics["p0_precision"]),
+        p0_recall=float(metrics["p0_recall"]),
         output_paths={
             "evaluation_results": results_path,
             "evaluation_report": report_path,

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 from typer.testing import CliRunner
 
 from feedback_triage_agent.cli import app
@@ -25,8 +26,14 @@ def test_evaluate_rules_writes_metrics_and_sample_details(tmp_path: Path) -> Non
     assert summary.category_accuracy == 1
     assert summary.priority_accuracy == 1
     assert summary.p0_recall == 1
-    assert (tmp_path / "output" / "evaluation_results.csv").exists()
-    assert (tmp_path / "output" / "evaluation_report.md").exists()
+    results_path = tmp_path / "output" / "evaluation_results.csv"
+    report_path = tmp_path / "output" / "evaluation_report.md"
+    results = pd.read_csv(results_path)
+    report = report_path.read_text(encoding="utf-8")
+    assert results_path.exists()
+    assert report_path.exists()
+    assert "scenario" not in results.columns
+    assert "## Scenario Breakdown" in report
 
 
 def test_evaluate_command_fails_when_quality_gate_is_not_met(tmp_path: Path) -> None:
@@ -68,3 +75,21 @@ def test_project_golden_set_meets_quality_gates(tmp_path: Path) -> None:
     assert summary.human_review_accuracy >= 0.9
     assert summary.p0_precision >= 0.9
     assert summary.p0_recall >= 0.9
+
+
+def test_adversarial_set_keeps_scenario_metrics(tmp_path: Path) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    output_dir = tmp_path / "adversarial_output"
+
+    summary = evaluate_rules(
+        project_root / "data" / "adversarial_feedback.csv",
+        output_dir,
+    )
+
+    results = pd.read_csv(output_dir / "evaluation_results.csv")
+    report = (output_dir / "evaluation_report.md").read_text(encoding="utf-8")
+
+    assert summary.total_samples >= 12
+    assert "scenario" in results.columns
+    assert "## Scenario Breakdown" in report
+    assert "english_negation" in report
