@@ -41,6 +41,16 @@ def test_harness_runs_with_skip_pytest_and_ignores_adversarial_low_score(
     )
     summary = json.loads(Path(result.output_paths["harness_summary"]).read_text())
     report = Path(result.output_paths["harness_report"]).read_text(encoding="utf-8")
+    required_summary_keys = {
+        "pytest_passed",
+        "pytest_skipped",
+        "golden_passed",
+        "adversarial_completed",
+        "harness_passed",
+        "golden_metrics",
+        "adversarial_metrics",
+        "output_paths",
+    }
 
     assert result.pytest_skipped is True
     assert result.harness_passed is True
@@ -49,6 +59,9 @@ def test_harness_runs_with_skip_pytest_and_ignores_adversarial_low_score(
     assert result.adversarial_metrics["category_accuracy"] < 0.8
     assert summary["harness_passed"] is True
     assert summary["adversarial_completed"] is True
+    assert required_summary_keys.issubset(summary)
+    assert Path(summary["output_paths"]["golden_report"]).exists()
+    assert Path(summary["output_paths"]["adversarial_report"]).exists()
     assert "Evaluation Harness Report" in report
 
 
