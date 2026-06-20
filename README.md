@@ -77,7 +77,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.8.4 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测和本地人工复核回写。
+v0.8.4 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互和 Output Contract Test。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -264,6 +264,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
+- Web 上传入口使用自定义文件选择控件，避免系统默认文案显示为繁体。
 - Ask 默认使用 DeepSeek 解析受约束任务参数，失败时自动 fallback 到本地关键词和正则解析。
 - DeepSeek 默认使用 `deepseek-v4-pro`，并记录 API 返回的 token 用量。
 - 本地规则同时覆盖常见中英文反馈关键词和否定语义；明确正向且没有问题信号的高评分样本归为“正向反馈/无明确问题”，未命中或低置信度样本仍进入人工复核。
