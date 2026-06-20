@@ -1,16 +1,16 @@
-id,source,app_name,review_text,rating,expected_issue_category,expected_priority,expected_human_review
-adv001,adversarial,DemoApp,"The app never crashes, but sync is broken and my chat history disappeared after login.",2,"账号、隐私与数据问题",P0,true
-adv002,adversarial,DemoApp,"没有扣费，也没有支付失败，但是会员权益一直打不开。",2,"会员与商业化问题",P1,false
-adv003,adversarial,DemoApp,"整体很好用，但是刚写完的内容突然丢了，真的很崩溃。",2,"性能与稳定性问题",P0,true
-adv004,adversarial,DemoApp,"回答不准确，页面还一直卡住，复制按钮也找不到。",2,"模型能力问题",P1,true
-adv005,adversarial,DemoApp,"Refund was quick and I was not charged again, but the premium page still says my plan is inactive.",3,"会员与商业化问题",P1,false
-adv006,adversarial,DemoApp,"No violent content was generated, but the safety filter blocks normal study notes.",3,"内容安全与合规问题",P1,true
-adv007,adversarial,DemoApp,"五星支持，但登录后聊天记录全没了，希望快点修。",5,"账号、隐私与数据问题",P0,true
-adv008,adversarial,DemoApp,"很烦。",1,"不明确/其他",P1,true
-adv009,adversarial,DemoApp,"I love the app, however it keeps forgetting my instructions and gives made up facts.",4,"模型能力问题",P1,false
-adv010,adversarial,DemoApp,"希望增加团队知识库，但现在上传文件经常失败。",3,"性能与稳定性问题",P1,true
-adv011,adversarial,DemoApp,"没有崩溃，没有卡顿，就是找不到导出按钮。",4,"交互体验问题",P2,false
-adv012,adversarial,DemoApp,"账号被盗后还能收到广告推送，担心手机号和聊天记录泄露。",1,"账号、隐私与数据问题",P0,true
-adv013,adversarial,DemoApp,"The image generator is amazing, but it ignores my prompt and creates the wrong object every time.",3,"模型能力问题",P1,false
-adv014,adversarial,DemoApp,"客服说已经退款成功，但我这边仍然显示订阅中，取消入口也找不到。",2,"会员与商业化问题",P1,true
-adv015,adversarial,DemoApp,"产品应该支持办公审批流，不过目前核心问题是同步失败导致团队资料丢失。",2,"账号、隐私与数据问题",P0,true
+id,source,app_name,review_text,rating,scenario,expected_issue_category,expected_priority,expected_human_review
+adv001,adversarial,DemoApp,"The app never crashes, but sync is broken and my chat history disappeared after login.",2,english_negation,"账号、隐私与数据问题",P0,true
+adv002,adversarial,DemoApp,"没有扣费，也没有支付失败，但是会员权益一直打不开。",2,chinese_negation,"会员与商业化问题",P1,false
+adv003,adversarial,DemoApp,"整体很好用，但是刚写完的内容突然丢了，真的很崩溃。",2,positive_with_issue,"性能与稳定性问题",P0,true
+adv004,adversarial,DemoApp,"回答不准确，页面还一直卡住，复制按钮也找不到。",2,multi_intent,"模型能力问题",P1,true
+adv005,adversarial,DemoApp,"Refund was quick and I was not charged again, but the premium page still says my plan is inactive.",3,keyword_false_positive,"会员与商业化问题",P1,false
+adv006,adversarial,DemoApp,"No violent content was generated, but the safety filter blocks normal study notes.",3,safety_boundary,"内容安全与合规问题",P1,true
+adv007,adversarial,DemoApp,"五星支持，但登录后聊天记录全没了，希望快点修。",5,high_rating_with_issue,"账号、隐私与数据问题",P0,true
+adv008,adversarial,DemoApp,"很烦。",1,low_info_low_rating,"不明确/其他",P1,true
+adv009,adversarial,DemoApp,"I love the app, however it keeps forgetting my instructions and gives made up facts.",4,positive_with_issue,"模型能力问题",P1,false
+adv010,adversarial,DemoApp,"希望增加团队知识库，但现在上传文件经常失败。",3,expectation_vs_defect,"性能与稳定性问题",P1,true
+adv011,adversarial,DemoApp,"没有崩溃，没有卡顿，就是找不到导出按钮。",4,chinese_negation,"交互体验问题",P2,false
+adv012,adversarial,DemoApp,"账号被盗后还能收到广告推送，担心手机号和聊天记录泄露。",1,account_privacy_mixed,"账号、隐私与数据问题",P0,true
+adv013,adversarial,DemoApp,"The image generator is amazing, but it ignores my prompt and creates the wrong object every time.",3,positive_with_issue,"模型能力问题",P1,false
+adv014,adversarial,DemoApp,"客服说已经退款成功，但我这边仍然显示订阅中，取消入口也找不到。",2,keyword_false_positive,"会员与商业化问题",P1,true
+adv015,adversarial,DemoApp,"产品应该支持办公审批流，不过目前核心问题是同步失败导致团队资料丢失。",2,expectation_vs_defect,"账号、隐私与数据问题",P0,true

@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.8.5
+# Feedback Triage Agent v0.8.6
 
 ## 本地 Web App
 
@@ -77,7 +77,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.8.5 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互、Output Contract Test 和 adversarial evaluation set。
+v0.8.6 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互、Output Contract Test、adversarial evaluation set 和 scenario metrics。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -233,6 +233,8 @@ python -m feedback_triage_agent.cli evaluate \
 
 探索性对抗评测集位于 `data/adversarial_feedback.csv`，用于暴露 `rules.py` 在否定语义、多意图反馈、正向评价夹杂问题、关键词误伤和高风险混合场景下的边界和失败模式。它不作为默认回归门槛；运行时可以把 min gate 设为 0，只用于观察错误分布。
 
+如果评测 CSV 包含可选的 `scenario` 字段，`evaluation_results.csv` 会保留该字段，`evaluation_report.md` 会输出 `Scenario Breakdown`，按 scenario 展示分类、优先级、人工复核和 P0 指标。Scenario metrics 用于观察不同失败类型下的表现，例如否定语义、多意图反馈和高风险混合场景；scenario breakdown 只用于分析，不作为默认质量门槛。
+
 ```bash
 python -m feedback_triage_agent.cli evaluate \
   --input data/adversarial_feedback.csv \
@@ -271,7 +273,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.8.5 范围
+## v0.8.6 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
@@ -299,6 +301,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 使用 pytest 覆盖规则、工具和完整 Agent 流程。
 - 增加 Output Contract Test，验证 Agent 导出的 CSV、Markdown 和人工复核文件结构稳定，避免后续规则或 LLM 改动破坏下游交付物。
 - 增加 adversarial evaluation set，覆盖否定语义、多意图反馈、正向评价夹杂问题、关键词误伤和高风险混合场景。
+- 增加 scenario metrics，在评测报告中按可选 `scenario` 字段拆分指标，用于分析不同失败类型下的规则表现。
 
 暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
 
