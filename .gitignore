@@ -26,6 +26,7 @@ data/evaluation_output/
 data/adversarial_output/
 data/harness_output/
 data/harness_output_skip/
+data/harness_output_ci/
 data/output/
 data/output_ask/
 .vercel
