@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.8.7
+# Feedback Triage Agent v0.8.8
 
 ## 本地 Web App
 
@@ -77,7 +77,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.8.7 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互、Output Contract Test、adversarial evaluation set、scenario metrics 和 Evaluation Harness Lite。
+v0.8.8 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite 和 GitHub Actions CI。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -252,6 +252,15 @@ Evaluation Harness Lite 可以用一个命令串起 pytest、golden set evaluati
 ./.venv/bin/python -m feedback_triage_agent.cli harness --output data/harness_output
 ```
 
+GitHub Actions CI 会在 push 和 pull request 时自动运行：
+
+```bash
+python -m pytest
+python -m feedback_triage_agent.cli harness --output data/harness_output_ci --skip-pytest
+```
+
+CI 中 golden set 仍作为回归 gate；adversarial set 继续用于探索性失败模式分析，不作为失败 gate。Harness 输出会尽量作为 `harness-output` artifact 上传，便于查看 scenario breakdown 和评测报告。
+
 应用人工复核决策：
 
 ```bash
@@ -279,7 +288,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.8.7 范围
+## v0.8.8 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
@@ -309,6 +318,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 增加 adversarial evaluation set，覆盖否定语义、多意图反馈、正向评价夹杂问题、关键词误伤和高风险混合场景。
 - 增加 scenario metrics，在评测报告中按可选 `scenario` 字段拆分指标，用于分析不同失败类型下的规则表现。
 - 增加 Evaluation Harness Lite，用统一命令生成 pytest、golden set 和 adversarial set 的汇总报告。
+- 增加 GitHub Actions CI，在 push / PR 时自动运行 pytest 与 Evaluation Harness Lite。
 
 暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
 
