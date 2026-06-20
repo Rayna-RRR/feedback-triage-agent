@@ -601,6 +601,7 @@
         </p>
         <div class="hero-actions">
           <a class="button primary" href="demo-report.html">查看样例报告</a>
+          <a class="button secondary" href="portfolio_overview.md">30 秒项目说明</a>
           <a class="button secondary" href="#reproduce">查看复现命令</a>
         </div>
       </div>
@@ -662,7 +663,7 @@
 
         <article class="card span-4">
           <h3>输出不是一句总结</h3>
-          <p>它会生成问题卡片、QA、run log、结构化结果、`review_decisions.csv` 和静态报告；人工决策可继续生成 reviewed 结果。</p>
+          <p>它会生成问题卡片、QA、run log、结构化结果、产品周报摘要、`review_decisions.csv` 和静态报告；人工决策可继续生成 reviewed 结果。</p>
         </article>
 
         <article class="card span-4">
@@ -772,6 +773,10 @@
           <h3>triage_results.csv</h3>
           <p>结构化结果可继续分析，包含 `classification_source`、`llm_error` 和人工复核标记。</p>
         </article>
+        <article class="card span-4">
+          <h3>weekly_summary.md</h3>
+          <p>从结构化结果生成产品周报摘要，列出优先级、用户证据、建议跟进和复核状态。</p>
+        </article>
       </div>
     </section>
 
@@ -779,7 +784,7 @@
       <span class="section-kicker">想实际操作？</span>
       <h2 class="section-title">启动本地 Web App，就能在网页里跑一次分诊。</h2>
       <p class="section-copy">
-        v0.6 加入本地人工复核闭环。Agent 自动导出 review_decisions.csv，人工确认或调整后生成独立 reviewed 结果；原始分诊证据不会被覆盖。golden set 继续用于检查规则退化。
+        v0.9.0 保留本地人工复核闭环。Agent 自动导出 review_decisions.csv，人工确认或调整后生成独立 reviewed 结果；原始分诊证据不会被覆盖。golden set 继续用于检查规则退化。
       </p>
       <div class="bento">
         <article class="card span-6">
@@ -817,7 +822,7 @@
     <footer class="footer">
       <div>
         <h2 class="section-title" style="margin-bottom:14px;">保留边界，才方便复核。</h2>
-        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.6 Web App 不接生产系统，复核结果通过本地 CSV 保存。</p>
+        <p class="section-copy">不接数据库、不做 Streamlit、不做 RAG，不把 API key 写进代码。展示页不接后端；v0.9.0 Web App 不接生产系统，复核结果通过本地 CSV 保存。</p>
       </div>
       <a class="button secondary" href="#top">回到顶部</a>
     </footer>

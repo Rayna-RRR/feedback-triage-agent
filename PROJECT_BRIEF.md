@@ -17,11 +17,11 @@
 
 ## 当前范围
 
-v0.8.3 实现一个本地 CLI + FastAPI Web App Demo：
+v0.9.0 实现一个本地 CLI + FastAPI Web App Demo：
 
 - 读取 `sample_feedback.csv`。
 - 校验必填字段。
-- 默认使用 DeepSeek V4 Pro，可选调用 API 生成分类、摘要、用户需求和产品建议初稿。
+- Ask 可使用 DeepSeek V4 Pro 解析受约束任务；反馈初稿默认使用规则，只有用户明确启用时才调用 API。
 - 默认使用规则模式，只有用户明确启用时才向 DeepSeek 发送反馈文本。
 - 没有 API key 或 API 调用失败时，自动 fallback 到规则版分类。
 - 使用规则判断优先级。
@@ -35,6 +35,7 @@ v0.8.3 实现一个本地 CLI + FastAPI Web App Demo：
 - 自然语言 `ask` 可将常见第三方评论列名标准化并导出 `normalized_feedback.csv`。
 - 支持在本地 Web App 中选择内置数据、上传 CSV、查看结果并下载输出。
 - Web 上传入口使用自定义文件选择控件，避免系统默认文案显示为繁体。
+- 自动导出 `weekly_summary.md`，把分诊结果整理成优先级问题、证据、产品跟进建议和复核状态。
 - 支持对本地人工标注 golden set 运行规则质量评测和回归门槛。
 - 自动生成 `review_decisions.csv`，并通过 CLI/Web 应用人工确认、调整或保持开放的决策。
 - 人工复核结果写入独立文件，不覆盖原始分诊证据。
@@ -56,6 +57,7 @@ CSV 至少包含：
 - `qa_report.md`: 面向流程 QA 的统计、LLM 使用情况、fallback 和边界说明。
 - `run_log.md`: 面向 Agent 可解释性的工具调用、LLM/fallback 和下一步动作记录。
 - `triage_results.csv`: 面向后续分析的结构化结果。
+- `weekly_summary.md`: 面向产品周会和作品集讲解的轻量周报摘要。
 - `review_decisions.csv`: 人工复核决策模板。
 - `triage_results_reviewed.csv`: 应用人工决策后的独立结果。
 - `review_summary.md`: 人工复核状态摘要。

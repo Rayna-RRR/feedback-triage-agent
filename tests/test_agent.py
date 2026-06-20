@@ -22,9 +22,16 @@ def test_agent_runs_full_flow_and_exports_files(tmp_path: Path, monkeypatch) -> 
         "qa_report.md",
         "run_log.md",
         "triage_results.csv",
+        "weekly_summary.md",
         "review_decisions.csv",
     ]:
         assert (output_dir / filename).exists()
+
+    weekly_summary = (output_dir / "weekly_summary.md").read_text(encoding="utf-8")
+    assert "Priority Issues" in weekly_summary
+    assert "Evidence quote" in weekly_summary
+    assert "Suggested product follow-up" in weekly_summary
+    assert "Review status" in weekly_summary
 
     run_log = (output_dir / "run_log.md").read_text(encoding="utf-8")
     for step_name in [

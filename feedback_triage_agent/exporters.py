@@ -33,6 +33,19 @@ TRIAGE_RESULT_COLUMNS = [
     "llm_error",
 ]
 
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2}
+
+
+def render_evidence_quote(value: object, limit: int = 140) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def boolish(value: object) -> bool:
+    return str(value).strip().lower() in {"true", "1", "yes", "y"}
+
 
 def render_issue_cards(cards: List[IssueCard]) -> str:
     lines = ["# Issue Cards", ""]
@@ -184,7 +197,7 @@ def render_qa_report(state: AgentRunState) -> str:
         [
             "## Agent 本轮判断边界",
             "",
-            "- v0.8.3 的 Ask 可由 DeepSeek V4 Pro 解析任务并在失败时 fallback 到本地规则。",
+            "- v0.9.0 的 Ask 可由 DeepSeek V4 Pro 解析任务并在失败时 fallback 到本地规则。",
             "- 反馈分诊默认使用规则模式；用户明确启用后可由 DeepSeek 生成分类、摘要、用户需求和产品建议初稿。",
             "- 明确启用 LLM 但没有 API key 或调用失败时自动 fallback 到 rules.py。",
             "- 优先级、规则证据、QA 检查和人工复核队列仍由本地规则执行。",
@@ -254,6 +267,89 @@ def classified_feedback_to_frame(items: List[ClassifiedFeedback]) -> pd.DataFram
     return pd.DataFrame(rows, columns=TRIAGE_RESULT_COLUMNS)
 
 
+def render_weekly_summary(results: pd.DataFrame) -> str:
+    lines = [
+        "# Weekly Product Summary",
+        "",
+        "## Overview",
+        "",
+        f"- Total triaged feedback: {len(results)}",
+    ]
+
+    if results.empty:
+        lines.extend(
+            [
+                "- Priority issues: 0",
+                "- Open review items: 0",
+                "",
+                "## Priority Issues",
+                "",
+                "- No feedback rows were available for this run.",
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    safe_results = results.fillna("").copy()
+    review_mask = safe_results["needs_human_review"].map(boolish)
+    priority_counts = safe_results["priority"].value_counts().to_dict()
+    lines.extend(
+        [
+            f"- P0 issues: {priority_counts.get('P0', 0)}",
+            f"- P1 issues: {priority_counts.get('P1', 0)}",
+            f"- P2 issues: {priority_counts.get('P2', 0)}",
+            f"- Open review items: {int(review_mask.sum())}",
+            "",
+            "## Priority Issues",
+            "",
+        ]
+    )
+
+    ranked = safe_results.assign(
+        _priority_rank=safe_results["priority"].map(PRIORITY_ORDER).fillna(99),
+        _review_rank=review_mask.astype(int),
+    ).sort_values(
+        ["_priority_rank", "_review_rank", "id"],
+        ascending=[True, False, True],
+    )
+    selected = ranked.head(10)
+
+    for index, row in enumerate(selected.to_dict("records"), start=1):
+        review_reasons = str(row.get("human_review_reasons", "")).strip()
+        if boolish(row.get("needs_human_review", "")):
+            review_status = "needs human review"
+            if review_reasons:
+                review_status += f" ({review_reasons})"
+        else:
+            review_status = "triaged, ready for product follow-up"
+        lines.extend(
+            [
+                (
+                    f"### {index}. {row.get('priority', '')} / "
+                    f"{row.get('issue_category', '')} / {row.get('id', '')}"
+                ),
+                "",
+                f"- Evidence quote: \"{render_evidence_quote(row.get('review_text', ''))}\"",
+                f"- Suggested product follow-up: {row.get('product_suggestion', '')}",
+                f"- Review status: {review_status}",
+                "",
+            ]
+        )
+
+    remaining = max(0, len(ranked) - len(selected))
+    if remaining:
+        lines.extend(
+            [
+                (
+                    "_Only the top 10 priority items are shown; "
+                    f"{remaining} lower-ranked rows remain in `triage_results.csv`._"
+                ),
+                "",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[str, Path]:
     state.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -262,11 +358,17 @@ def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[st
     run_log_path = state.output_dir / "run_log.md"
     results_csv_path = state.output_dir / "triage_results.csv"
     review_decisions_path = state.output_dir / "review_decisions.csv"
+    weekly_summary_path = state.output_dir / "weekly_summary.md"
 
     issue_cards_path.write_text(render_issue_cards(state.issue_cards), encoding="utf-8")
     qa_report_path.write_text(render_qa_report(state), encoding="utf-8")
     run_log_path.write_text(render_run_log(final_logs), encoding="utf-8")
-    classified_feedback_to_frame(state.classified_feedback).to_csv(results_csv_path, index=False)
+    results_frame = classified_feedback_to_frame(state.classified_feedback)
+    results_frame.to_csv(results_csv_path, index=False)
+    weekly_summary_path.write_text(
+        render_weekly_summary(results_frame),
+        encoding="utf-8",
+    )
     write_review_decisions(state.classified_feedback, review_decisions_path)
 
     output_paths = {
@@ -274,6 +376,7 @@ def write_outputs(state: AgentRunState, final_logs: List[RunStepLog]) -> Dict[st
         "qa_report": qa_report_path,
         "run_log": run_log_path,
         "triage_results": results_csv_path,
+        "weekly_summary": weekly_summary_path,
         "review_decisions": review_decisions_path,
     }
     if state.normalized_input_path and state.normalized_input_path.exists():

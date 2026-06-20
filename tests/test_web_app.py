@@ -129,6 +129,7 @@ def test_web_run_sample_feedback_success(tmp_path: Path, monkeypatch) -> None:
     run_id = result_url.rsplit("/", 1)[-1]
     run_dir = web_app.WEB_RUNS_DIR / run_id
     assert (run_dir / "triage_results.csv").exists()
+    assert (run_dir / "weekly_summary.md").exists()
     assert (run_dir / "review_decisions.csv").exists()
     assert (run_dir / "report.html").exists()
     assert (run_dir / "outputs.zip").exists()
@@ -465,10 +466,15 @@ def test_web_results_page_download_links_work(tmp_path: Path, monkeypatch) -> No
     result_response = client.get(f"/runs/{run_id}")
     assert result_response.status_code == 200
     assert "issue_cards.md" in result_response.text
+    assert "weekly_summary.md" in result_response.text
 
     download_response = client.get(f"/runs/{run_id}/download/triage_results.csv")
     assert download_response.status_code == 200
     assert "id,source,app_name,review_text" in download_response.text
+
+    summary_response = client.get(f"/runs/{run_id}/download/weekly_summary.md")
+    assert summary_response.status_code == 200
+    assert "Weekly Product Summary" in summary_response.text
 
 
 def test_web_can_apply_uploaded_review_decisions(tmp_path: Path, monkeypatch) -> None:

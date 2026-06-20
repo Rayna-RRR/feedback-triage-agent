@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.8.9
+# Feedback Triage Agent v0.9.0
 
 ## 本地 Web App
 
@@ -63,6 +63,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接在浏览器打开：
 
 - `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
+- `docs/portfolio_overview.md`: 给非工程评审看的 30 秒项目说明。
 - `docs/demo-report.html`: 基于一次 `data/output_ask` 导出快照生成的样例 HTML 报告。
 
 作品集截图位于 `docs/assets/screenshots/`：
@@ -77,7 +78,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.8.9 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、规则质量评测、本地人工复核回写、更稳定的上传文件选择交互、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite、GitHub Actions CI 和 external review assisted maintainability pass。
+v0.9.0 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、产品周报摘要、规则质量评测、本地人工复核回写、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite 和 GitHub Actions CI。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -283,12 +284,13 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
 - `<output-dir>/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
 - `<output-dir>/triage_results.csv`: 结构化分诊结果，分别记录最终分类、规则分类、规则置信度、规则关键词、LLM/规则分歧、`classification_source` 和 `llm_error`。
+- `<output-dir>/weekly_summary.md`: 从 `triage_results.csv` 生成的轻量产品周报，汇总优先级问题、用户证据、建议跟进动作和复核状态。
 - `<output-dir>/review_decisions.csv`: 待人工填写的复核决策模板，使用唯一 `record_key` 区分重复 ID。
 - `<output-dir>/triage_results_reviewed.csv`: 应用人工决策后的独立结果文件。
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.8.9 范围
+## v0.9.0 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
@@ -309,6 +311,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 使用 Typer + Rich 提供本地 CLI 体验。
 - 使用 `ask` 命令提供模型增强的自然语言任务入口，但不改变固定 Agent 计划。
 - 使用 `report` 命令生成不依赖 CDN 和远程资源的静态 HTML 报告。
+- 自动导出 `weekly_summary.md`，把分诊结果转成面向产品周会和作品集讲解的轻量摘要。
 - 使用 `evaluate` 命令对人工标注 golden set 生成逐样本误差和质量指标。
 - 评测覆盖分类准确率、优先级准确率、人工复核判断准确率、P0 precision 和 P0 recall。
 - 自动导出 `review_decisions.csv`，支持确认、调整和保持开放三种人工动作。
@@ -319,7 +322,7 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 增加 scenario metrics，在评测报告中按可选 `scenario` 字段拆分指标，用于分析不同失败类型下的规则表现。
 - 增加 Evaluation Harness Lite，用统一命令生成 pytest、golden set 和 adversarial set 的汇总报告。
 - 增加 GitHub Actions CI，在 push / PR 时自动运行 pytest 与 Evaluation Harness Lite。
-- 增加 external review assisted maintainability pass，保留外部审查 findings，集中 evaluation gate 配置，补充 harness/scenario 边界测试，并清理 tracked evaluation artifacts。
+- 保留 external review assisted maintainability findings 作为历史审查材料，当前版本聚焦作品集说明和输出物可读性。
 
 暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
 

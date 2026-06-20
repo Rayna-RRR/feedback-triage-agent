@@ -123,7 +123,7 @@
     </div>
     <span class="status-badge status-info">同一套 7 步流程</span>
   </div>
-  <p class="card-copy">先上传 CSV，再描述运行要求。{% if web_llm_enabled %}配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。{% else %}当前线上演示未启用 DeepSeek，Ask 使用本地关键词和正则解析。{% endif %}反馈分类、QA 和人工复核仍由固定流程负责。</p>
+  <p class="card-copy">先上传 CSV，再描述运行要求。{% if web_llm_enabled %}配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。{% else %}当前 Web 端未启用 DeepSeek，Ask 使用本地关键词和正则解析。{% endif %}反馈分类、QA 和人工复核仍由固定流程负责。</p>
   <div class="upload-row ask-upload">
     <label for="ask_upload_file">1. 上传 CSV</label>
     <input id="ask_upload_file" class="file-input-native" name="upload_file" type="file" accept=".csv,text/csv">

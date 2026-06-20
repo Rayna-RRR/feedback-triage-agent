@@ -17,6 +17,7 @@ REQUIRED_OUTPUT_FILES = {
     "qa_report.md",
     "run_log.md",
     "triage_results.csv",
+    "weekly_summary.md",
     "review_decisions.csv",
 }
 
@@ -82,7 +83,21 @@ def test_review_decisions_contract(agent_output_dir: Path) -> None:
 
 
 def test_markdown_outputs_are_not_empty(agent_output_dir: Path) -> None:
-    for filename in ["qa_report.md", "run_log.md", "issue_cards.md"]:
+    for filename in [
+        "qa_report.md",
+        "run_log.md",
+        "issue_cards.md",
+        "weekly_summary.md",
+    ]:
         content = (agent_output_dir / filename).read_text(encoding="utf-8").strip()
 
         assert content
+
+
+def test_weekly_summary_is_product_facing(agent_output_dir: Path) -> None:
+    content = (agent_output_dir / "weekly_summary.md").read_text(encoding="utf-8")
+
+    assert "Weekly Product Summary" in content
+    assert "Evidence quote" in content
+    assert "Suggested product follow-up" in content
+    assert "Review status" in content

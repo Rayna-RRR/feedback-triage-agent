@@ -55,6 +55,7 @@ REQUIRED_WEB_OUTPUTS = [
     "qa_report.md",
     "run_log.md",
     "triage_results.csv",
+    "weekly_summary.md",
     "review_decisions.csv",
 ]
 DOWNLOADS = [
@@ -63,6 +64,7 @@ DOWNLOADS = [
     ("qa_report.md", "QA 报告 Markdown"),
     ("run_log.md", "运行日志 Markdown"),
     ("triage_results.csv", "结构化 CSV"),
+    ("weekly_summary.md", "产品周报 Markdown"),
     ("review_decisions.csv", "人工复核决策模板"),
     ("triage_results_reviewed.csv", "已复核结构化 CSV"),
     ("review_summary.md", "人工复核摘要"),

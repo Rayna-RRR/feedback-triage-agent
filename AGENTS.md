@@ -40,7 +40,7 @@ pytest
 - `run_log.md` 包含 7 个固定工具步骤。
 - `run_log.md` 和 `qa_report.md` 记录 LLM 是否使用、fallback 情况和人工复核原因。
 - pytest 全部通过。
-- README 清楚说明 v0.4 支持 DeepSeek API、CLI/Web Ask 入口，RAG 暂不实现，并保留人工复核边界。
+- README 清楚说明 v0.9.0 支持 DeepSeek API、CLI/Web Ask 入口、产品周报摘要，RAG 暂不实现，并保留人工复核边界。
 
 ## 修改规则
 
