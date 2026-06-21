@@ -8,13 +8,35 @@
   <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v={{ static_asset_version }}">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主内容</a>
+  <div class="startup-overlay" role="status" aria-live="polite" aria-label="正在准备本地分诊工作台">
+    <div class="startup-card">
+      <span class="startup-mark" aria-hidden="true"></span>
+      <p class="startup-kicker">Feedback Triage Agent</p>
+      <h1>反馈分诊后台</h1>
+      <p class="startup-status"><span class="status-dot" aria-hidden="true"></span>正在准备本地分诊工作台</p>
+      <div class="startup-chips" aria-label="能力标签">
+        <span>AI 辅助反馈分诊</span>
+        <span>人工复核</span>
+        <span>本地运行</span>
+        <span>Validation Layer</span>
+      </div>
+      <div class="startup-progress" aria-hidden="true"><i></i></div>
+      <span class="startup-version">v{{ version }}</span>
+      <span class="scan-line" aria-hidden="true"></span>
+    </div>
+  </div>
+
   <header class="topbar">
     <a class="topbar-brand" href="/">
       <span class="brand-mark" aria-hidden="true"></span>
-      <span>反馈分诊后台</span>
+      <span class="brand-copy">
+        <span class="topbar-title">反馈分诊后台</span>
+        <span class="topbar-subtitle">AI 辅助反馈分诊与问题闭环</span>
+      </span>
     </a>
     <div class="topbar-meta">
-      <span class="status-badge status-local">{{ deployment_label | default("本地运行") }}</span>
+      <span class="status-badge status-local status-breathing">{{ deployment_label | default("本地运行") }}</span>
       <span>v{{ version }}</span>
     </div>
   </header>
@@ -22,11 +44,11 @@
   <aside class="sidebar" aria-label="后台导航">
     <nav>
       {% block sidebar_nav %}
-      <a href="/" class="sidebar-link is-active">
+      <a href="/#overview" class="sidebar-link is-active" data-default-active>
         <span class="nav-icon nav-icon-dashboard" aria-hidden="true"></span>
         <span>总览</span>
       </a>
-      <a href="/#run-form" class="sidebar-link">
+      <a href="/#run-agent" class="sidebar-link">
         <span class="nav-icon nav-icon-run" aria-hidden="true"></span>
         <span>运行 Agent</span>
       </a>
@@ -46,15 +68,19 @@
         <span class="nav-icon nav-icon-files" aria-hidden="true"></span>
         <span>输出文件</span>
       </a>
+      <a href="/#validation" class="sidebar-link">
+        <span class="nav-icon nav-icon-validation" aria-hidden="true"></span>
+        <span>Validation</span>
+      </a>
       {% endblock %}
     </nav>
     <div class="sidebar-note">
       {% block sidebar_note %}
       <strong>边界</strong>
-      {% if web_llm_enabled | default(false) %}
+      {% if web_llm_status.enabled | default(false) %}
       <span>Ask 可由 DeepSeek 解析；反馈初稿和高风险样本仍受本地规则与人工复核约束。</span>
       {% else %}
-      <span>当前 Web 端只使用本地规则；P0、低置信度和多问题样本仍需人工复核。</span>
+      <span>{{ web_llm_status.detail | default("当前 Web 端只使用本地规则；P0、低置信度和多问题样本仍需人工复核。") }}</span>
       {% endif %}
       {% endblock %}
     </div>

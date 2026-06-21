@@ -107,9 +107,37 @@ MAX_WEB_RUNS = env_int("FEEDBACK_TRIAGE_MAX_WEB_RUNS", DEFAULT_MAX_WEB_RUNS)
 
 
 def web_llm_enabled() -> bool:
-    return boolish(os.getenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", "")) and bool(
-        os.getenv("DEEPSEEK_API_KEY", "").strip()
-    )
+    return bool(web_llm_status()["enabled"])
+
+
+def web_llm_status() -> Dict[str, object]:
+    deepseek_api_key_present = bool(os.getenv("DEEPSEEK_API_KEY", "").strip())
+    web_llm_flag_enabled = boolish(os.getenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", ""))
+    enabled = deepseek_api_key_present and web_llm_flag_enabled
+    if enabled:
+        label = "DeepSeek 已启用"
+        detail = "当前 Web App 进程已读取 API key，且 Web LLM 开关已启用。"
+        badge_class = "status-success"
+    elif deepseek_api_key_present:
+        label = "API key 已读取，Web LLM 未启用"
+        detail = "当前 Web App 进程已读取 API key；还需要设置 FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true 并重启 Web App。"
+        badge_class = "status-warning"
+    elif web_llm_flag_enabled:
+        label = "API key 未读取"
+        detail = "当前 Web App 进程已启用 Web LLM 开关，但没有读取到非空 DEEPSEEK_API_KEY。"
+        badge_class = "status-warning"
+    else:
+        label = "本地规则模式"
+        detail = "当前 Web App 进程没有读取到非空 DEEPSEEK_API_KEY，且 Web LLM 开关未启用。"
+        badge_class = "status-info"
+    return {
+        "enabled": enabled,
+        "deepseek_api_key_present": deepseek_api_key_present,
+        "web_llm_flag_enabled": web_llm_flag_enabled,
+        "label": label,
+        "detail": detail,
+        "badge_class": badge_class,
+    }
 
 
 def deployment_label() -> str:
@@ -262,6 +290,7 @@ def render_index(request: Request, error: Optional[str] = None, status_code: int
             "sample_exists": SAMPLE_FEEDBACK_PATH.exists(),
             "ai_reviews_exists": AI_REVIEWS_PATH.exists(),
             "web_llm_enabled": web_llm_enabled(),
+            "web_llm_status": web_llm_status(),
             "web_runs_dir": str(WEB_RUNS_DIR),
             "run_retention_hours": RUN_RETENTION_HOURS,
             "max_upload_mb": int(MAX_UPLOAD_BYTES / (1024 * 1024)),
@@ -533,6 +562,8 @@ def healthz():
         "run_retention_hours": RUN_RETENTION_HOURS,
         "max_web_runs": MAX_WEB_RUNS,
         "web_llm_enabled": web_llm_enabled(),
+        "deepseek_api_key_present": web_llm_status()["deepseek_api_key_present"],
+        "web_llm_flag_enabled": web_llm_status()["web_llm_flag_enabled"],
     }
 
 
@@ -660,6 +691,7 @@ def results(request: Request, run_id: str, review_applied: bool = False):
             "version": __version__,
             "deployment_label": deployment_label(),
             "web_llm_enabled": web_llm_enabled(),
+            "web_llm_status": web_llm_status(),
             "review_message": "人工复核决策已应用。" if review_applied else None,
             "review_error": None,
         },
@@ -687,6 +719,7 @@ async def apply_reviews(
                 "version": __version__,
                 "deployment_label": deployment_label(),
                 "web_llm_enabled": web_llm_enabled(),
+                "web_llm_status": web_llm_status(),
                 "review_message": None,
                 "review_error": "请上传 CSV 格式的复核决策文件。",
             },
@@ -713,6 +746,7 @@ async def apply_reviews(
                 "version": __version__,
                 "deployment_label": deployment_label(),
                 "web_llm_enabled": web_llm_enabled(),
+                "web_llm_status": web_llm_status(),
                 "review_message": None,
                 "review_error": str(exc),
             },

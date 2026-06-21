@@ -34,16 +34,58 @@ def test_web_homepage_is_accessible(tmp_path: Path, monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "反馈分诊后台" in response.text
+    assert "v0.9.1" in response.text
+    assert "AI 辅助反馈分诊与问题闭环" in response.text
+    assert "正在准备本地分诊工作台" in response.text
     assert "自然语言 Ask 入口" in response.text
     assert "三层质控链" in response.text
-    assert "AI 初稿 / 规则兜底 / 人工复核" in response.text
+    assert "本地规则模式" in response.text
+    assert "质量验证 / Validation" in response.text
+    assert "106 tests passed" in response.text
+    assert "Validation Layer" in response.text
+    assert "GitHub Actions CI passed" in response.text
     assert "公开演示数据边界" in response.text
-    assert "使用 LLM 初稿（未启用）" in response.text
+    assert "使用 LLM 初稿（本地规则模式）" in response.text
+    assert "当前 Web App 进程没有读取到非空 DEEPSEEK_API_KEY" in response.text
     assert "产品周报" in response.text
     assert "已复核结果" in response.text
     assert "Agent workflow" not in response.text
+    assert "v0.9.0" not in response.text
     assert "app.css?v=" in response.text
     assert "开始分诊" in response.text
+    section_ids = [
+        'id="overview"',
+        'id="run-agent"',
+        'id="ask-entry"',
+        'id="data-source"',
+        'id="run-options"',
+        'id="reports"',
+        'id="validation"',
+    ]
+    section_positions = [response.text.index(section_id) for section_id in section_ids]
+    assert section_positions == sorted(section_positions)
+    assert response.text.count('id="reports"') == 1
+
+
+def test_web_homepage_reports_deepseek_key_status_without_exposing_key(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    client = client_with_tmp_runs(tmp_path, monkeypatch)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "API key 已读取，Web LLM 未启用" in response.text
+    assert "还需要设置 FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true" in response.text
+    assert "test-key" not in response.text
+
+    health_response = client.get("/healthz")
+    payload = health_response.json()
+    assert payload["deepseek_api_key_present"] is True
+    assert payload["web_llm_flag_enabled"] is False
+    assert payload["web_llm_enabled"] is False
 
 
 def test_web_brand_mark_replaces_old_ft_icons() -> None:
@@ -67,6 +109,8 @@ def test_healthz_reports_web_runtime_state(tmp_path: Path, monkeypatch) -> None:
     assert payload["ai_reviews_available"] is True
     assert payload["web_runs_dir"] == str(web_app.WEB_RUNS_DIR)
     assert payload["web_llm_enabled"] is False
+    assert payload["deepseek_api_key_present"] is False
+    assert payload["web_llm_flag_enabled"] is False
 
 
 def test_resolve_web_runs_dir_prefers_env_and_uses_tmp_on_vercel(
@@ -128,6 +172,8 @@ def test_web_run_sample_feedback_success(tmp_path: Path, monkeypatch) -> None:
     assert result_response.status_code == 200
     assert "运行总览" in result_response.text
     assert "问题卡片摘要" in result_response.text
+    assert "质量验证 / Validation" in result_response.text
+    assert "106 tests passed" in result_response.text
     run_id = result_url.rsplit("/", 1)[-1]
     run_dir = web_app.WEB_RUNS_DIR / run_id
     assert (run_dir / "triage_results.csv").exists()

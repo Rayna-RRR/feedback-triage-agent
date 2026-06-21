@@ -27,14 +27,18 @@
   <span class="nav-icon nav-icon-files" aria-hidden="true"></span>
   <span>下载文件</span>
 </a>
+<a href="#validation" class="sidebar-link">
+  <span class="nav-icon nav-icon-validation" aria-hidden="true"></span>
+  <span>Validation</span>
+</a>
 {% endblock %}
 
 {% block sidebar_note %}
 <strong>复核边界</strong>
-{% if web_llm_enabled %}
+{% if web_llm_status.enabled %}
 <span>DeepSeek 可解析 Ask 并生成反馈初稿；P0、低置信度、多问题和规则分歧样本仍需人工复核。</span>
 {% else %}
-<span>当前 Web 端只使用本地规则；P0、低置信度、多问题样本仍需人工复核。</span>
+<span>{{ web_llm_status.detail }} P0、低置信度、多问题样本仍需人工复核。</span>
 {% endif %}
 {% endblock %}
 
@@ -69,6 +73,10 @@
     <strong>{{ run.metrics.reviewed_count }}</strong>
   </article>
   <article>
+    <span>输出文件</span>
+    <strong>{{ run.downloads|length }}</strong>
+  </article>
+  <article>
     <span>规则兜底</span>
     <strong>{{ run.metrics.fallback_label }}</strong>
   </article>
@@ -96,6 +104,26 @@
     <span class="status-badge status-info">本轮运行</span>
   </div>
   <code class="output-code">{{ run.metrics.output_dir }}</code>
+</section>
+
+<section class="workflow-panel" aria-labelledby="result-workflow-title" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Agent Workflow</p>
+      <h2 id="result-workflow-title">本轮固定七步工具链</h2>
+      <p class="card-subtitle">每一步都来自 run_log.md，页面只做展示，不改变固定计划。</p>
+    </div>
+    <span class="status-badge status-success status-breathing">运行完成</span>
+  </div>
+  <ol class="workflow-steps" aria-label="本轮运行步骤">
+    {% for step in run.run_steps %}
+    <li class="workflow-step {% if step.status == 'success' %}is-complete{% elif step.status == 'warning' %}is-current{% else %}is-muted{% endif %}">
+      <span>{{ "%02d"|format(loop.index) }}</span>
+      <strong>{{ step.step_label | replace(loop.index ~ ". ", "") }}</strong>
+      <small>{{ step.status_label }}</small>
+    </li>
+    {% endfor %}
+  </ol>
 </section>
 
 <section id="overview" data-reveal>
@@ -286,6 +314,26 @@
       <span class="disabled-download">{{ item.label }}<small>{{ item.name }} 未生成</small></span>
       {% endif %}
     {% endfor %}
+  </div>
+</section>
+
+<section class="validation-panel" id="validation" aria-labelledby="result-validation-title" data-reveal>
+  <span class="scan-line" aria-hidden="true"></span>
+  <div class="validation-lead">
+    <div>
+      <p class="card-kicker">质量验证 / Validation</p>
+      <h2 id="result-validation-title">验证层用于检查流程稳定性与输出契约</h2>
+      <p>Validation 不影响核心分诊流程；本轮结果仍以 triage_results.csv、qa_report.md、run_log.md 和人工复核队列为准。</p>
+    </div>
+    <span class="status-badge status-success status-breathing">可回归</span>
+  </div>
+  <div class="validation-grid">
+    <article><strong>106 tests passed</strong><span>测试用例通过</span></article>
+    <article><strong>Golden set regression</strong><span>标准样本回归检查</span></article>
+    <article><strong>Adversarial samples</strong><span>边界样本与异常输入检查</span></article>
+    <article><strong>Scenario metrics</strong><span>按分类与优先级观察结果分布</span></article>
+    <article><strong>Output contract tests</strong><span>检查核心输出文件结构</span></article>
+    <article><strong>GitHub Actions CI passed</strong><span>自动化测试通过</span></article>
   </div>
 </section>
 {% endblock %}

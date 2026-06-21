@@ -1,4 +1,4 @@
-# Feedback Triage Agent v0.9.0
+# Feedback Triage Agent v0.9.1
 
 ## 本地 Web App
 
@@ -78,7 +78,7 @@ vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
 
 Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
 
-v0.9.0 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、产品周报摘要、规则质量评测、本地人工复核回写、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite 和 GitHub Actions CI。
+v0.9.1 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、产品周报摘要、规则质量评测、本地人工复核回写、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite、GitHub Actions CI，以及 Web UI 的轻量产品化 polish。
 
 本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
@@ -290,11 +290,13 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
 - `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
 
-## v0.9.0 范围
+## v0.9.1 范围
 
 - 使用 pandas 读取 CSV。
 - 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
 - 使用 FastAPI + Jinja2 提供本地 Web App 原型。
+- Web App 首页加入 v0.9.1 启动动画、轻毛玻璃层次、微量赛博状态感、固定七步流程预览、输出文件预览和 Validation 展示。
+- Validation 模块只说明测试、golden set、adversarial samples、scenario metrics、output contract 和 CI 等验证层；不在前端运行 harness，也不改变核心分诊流程。
 - Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
 - Web 上传入口使用自定义文件选择控件，避免系统默认文案显示为繁体。
 - Ask 默认使用 DeepSeek 解析受约束任务参数，失败时自动 fallback 到本地关键词和正则解析。

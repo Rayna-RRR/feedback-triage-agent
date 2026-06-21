@@ -3,14 +3,14 @@
 {% block title %}反馈分诊后台{% endblock %}
 
 {% block content %}
-<section class="page-title" data-reveal>
+<section class="page-title" id="overview" data-reveal>
   <div>
     <p class="breadcrumb">反馈分诊 / 首页</p>
     <h1>反馈分诊后台</h1>
     <p>把用户反馈 CSV 整理成问题分类、优先级、人工复核队列、问题卡片、QA 报告、run log 和产品周报摘要。</p>
   </div>
   <div class="page-actions">
-    <span class="status-badge status-success">规则兜底已就绪</span>
+    <span class="status-badge {{ web_llm_status.badge_class }}">{{ web_llm_status.label }}</span>
     <a class="button button-outline" href="#ask-entry">自然语言 Ask</a>
     <a class="button button-outline" href="#run-form">配置运行</a>
   </div>
@@ -23,6 +23,88 @@
 </section>
 {% endif %}
 
+<section class="home-overview" aria-label="当前运行状态" data-reveal>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-data" aria-hidden="true"></span>
+    <p>数据源状态</p>
+    <strong>{% if sample_exists and ai_reviews_exists %}已就绪{% else %}需检查{% endif %}</strong>
+    <small>内置样例与 AI 应用评论 CSV</small>
+  </article>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-flow" aria-hidden="true"></span>
+    <p>Agent 流程</p>
+    <strong>7 步固定计划</strong>
+    <small>load / validate / classify / badcase / cards / QA / export</small>
+  </article>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-review" aria-hidden="true"></span>
+    <p>人工复核边界</p>
+    <strong>保留</strong>
+    <small>P0、低置信度和多问题命中样本不会自动闭环</small>
+  </article>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-files" aria-hidden="true"></span>
+    <p>输出文件</p>
+    <strong>8 个核心交付物</strong>
+    <small>包含 weekly_summary.md、review_decisions.csv 和 outputs.zip</small>
+  </article>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-llm" aria-hidden="true"></span>
+    <p>LLM used / fallback</p>
+    <strong>{{ web_llm_status.label }}</strong>
+    <small>{{ web_llm_status.detail }}</small>
+  </article>
+  <article class="overview-metric">
+    <span class="metric-icon metric-icon-validation" aria-hidden="true"></span>
+    <p>Validation</p>
+    <strong>106 tests passed</strong>
+    <small>pytest、golden set、adversarial set 与 output contract</small>
+  </article>
+</section>
+
+<section class="workflow-panel" id="run-agent" aria-labelledby="workflow-title" data-reveal>
+  <div class="card-header">
+    <div>
+      <p class="card-kicker">Agent Workflow</p>
+      <h2 id="workflow-title">固定七步工具链</h2>
+      <p class="card-subtitle">运行入口、Ask 入口和结果页都沿用同一套固定计划，不让页面配置绕过复核边界。</p>
+    </div>
+    <span class="status-badge status-info status-breathing">计划就绪</span>
+  </div>
+  <ol class="workflow-steps" aria-label="固定七步计划">
+    <li class="workflow-step is-complete"><span>01</span><strong>读取反馈</strong><small>load</small></li>
+    <li class="workflow-step is-complete"><span>02</span><strong>字段检查</strong><small>validate</small></li>
+    <li class="workflow-step is-complete"><span>03</span><strong>问题分类</strong><small>classify</small></li>
+    <li class="workflow-step is-current"><span>04</span><strong>识别复核样本</strong><small>badcase</small></li>
+    <li class="workflow-step is-complete"><span>05</span><strong>生成问题卡片</strong><small>cards</small></li>
+    <li class="workflow-step is-complete"><span>06</span><strong>QA 检查</strong><small>QA</small></li>
+    <li class="workflow-step is-complete"><span>07</span><strong>导出报告</strong><small>export</small></li>
+  </ol>
+</section>
+
+<section class="review-preview-card" aria-label="人工复核队列预览" data-reveal>
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">人工复核队列 Preview</p>
+        <h2>需要人判断的样本类型</h2>
+      </div>
+      <span class="status-badge status-warning">不会自动结案</span>
+    </div>
+    <div class="table-wrap compact-table">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>问题类型</th><th>优先级</th><th>复核原因</th></tr>
+        </thead>
+        <tbody>
+          <tr class="risk-p0"><td><strong>P0 样本</strong></td><td>高风险反馈</td><td><span class="priority-pill priority-p0">P0</span></td><td>高风险或阻断问题</td></tr>
+          <tr class="risk-low-confidence"><td><strong>低置信</strong></td><td>需人工判断</td><td><span class="priority-pill priority-p1">P1</span></td><td>规则置信度不足</td></tr>
+          <tr class="risk-multi"><td><strong>多命中</strong></td><td>多个问题</td><td><span class="priority-pill priority-p2">P2</span></td><td>同一反馈命中多个问题类型</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="boundary-copy">P0、低置信度和多问题命中样本不会被直接自动结案。</p>
+</section>
+
 <section class="quality-chain" role="region" aria-labelledby="quality-chain-title" data-reveal>
   <div class="quality-chain-header">
     <div>
@@ -30,14 +112,14 @@
       <h2 id="quality-chain-title">三层质控链</h2>
       <p>每条反馈先形成可解释初稿，再由确定性规则复核，最后把高风险和不确定样本交给人工判断。</p>
     </div>
-    <span class="status-badge status-success">AI 初稿 / 规则兜底 / 人工复核</span>
+    <span class="status-badge {{ web_llm_status.badge_class }}">{{ web_llm_status.label }}</span>
   </div>
   <div class="quality-grid" aria-label="三层质控链">
     <article class="quality-card quality-ai">
       <span class="quality-step">01</span>
       <strong>AI 初稿</strong>
       <p>在明确启用时生成分类、摘要、用户需求和产品建议初稿，加速从大量反馈里提炼问题。</p>
-      <small>{% if web_llm_enabled %}Web 端 DeepSeek 已启用，用户勾选后才发送反馈文本。{% else %}当前 Web 端未启用 DeepSeek，演示默认不发送反馈文本。{% endif %}</small>
+      <small>{{ web_llm_status.detail }}</small>
     </article>
     <article class="quality-card quality-rules">
       <span class="quality-step">02</span>
@@ -55,66 +137,6 @@
   <p class="quality-note"><strong>公开演示数据边界：</strong>请不要上传敏感、真实用户隐私或商业保密数据；上传 CSV 和本轮输出会临时保存在运行目录中，默认约 {{ run_retention_hours }} 小时后清理。</p>
 </section>
 
-<section class="dashboard-grid" data-reveal>
-  <article class="card command-card">
-    <div class="card-header">
-      <div>
-        <p class="card-kicker">固定流程</p>
-        <h2>本地反馈分诊工作台</h2>
-      </div>
-      <span class="status-badge status-info">7 个步骤</span>
-    </div>
-    <p class="card-copy">选择数据源后运行固定分诊流程。LLM 初稿、规则兜底、QA 检查和人工复核边界仍由原有代码负责。</p>
-    <div class="step-rail" aria-label="固定工具链">
-      <span>读取</span>
-      <span>校验</span>
-      <span>分类</span>
-      <span>复核</span>
-      <span>卡片</span>
-      <span>QA</span>
-      <span>导出</span>
-    </div>
-  </article>
-
-  <article class="card readiness-card">
-    <div class="card-header">
-      <div>
-        <p class="card-kicker">输入要求</p>
-        <h2>输入与输出</h2>
-      </div>
-      <span class="status-badge status-success">公开演示</span>
-    </div>
-    <dl class="definition-list">
-      <div>
-        <dt>输入字段</dt>
-        <dd>id, source, app_name, review_text, rating</dd>
-      </div>
-      <div>
-        <dt>输出文件</dt>
-        <dd>标准化输入、问题卡片、QA 报告、运行日志、结构化结果、产品周报、人工复核模板、已复核结果、HTML 报告</dd>
-      </div>
-    </dl>
-  </article>
-</section>
-
-<section class="status-panel" aria-label="项目状态" data-reveal>
-  <article>
-    <span class="status-badge status-success">输入</span>
-    <strong>CSV 反馈数据</strong>
-    <p>读取内置样例、AI 应用评论数据；Ask 也可标准化常见外部评论 CSV。</p>
-  </article>
-  <article>
-    <span class="status-badge status-info">分诊</span>
-    <strong>固定七步工具链</strong>
-    <p>字段检查、分类、优先级、复核识别、问题卡片、QA 和导出保持原流程。</p>
-  </article>
-  <article>
-    <span class="status-badge status-warning">复核</span>
-    <strong>人工复核保留</strong>
-    <p>P0、低置信度、多问题命中样本不会被页面自动判定为完成。</p>
-  </article>
-</section>
-
 <form class="card ask-card" id="ask-entry" action="/ask" method="post" enctype="multipart/form-data" data-reveal>
   <div class="card-header">
     <div>
@@ -123,7 +145,7 @@
     </div>
     <span class="status-badge status-info">同一套 7 步流程</span>
   </div>
-  <p class="card-copy">先上传 CSV，再描述运行要求。{% if web_llm_enabled %}配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。{% else %}当前 Web 端未启用 DeepSeek，Ask 使用本地关键词和正则解析。{% endif %}反馈分类、QA 和人工复核仍由固定流程负责。</p>
+  <p class="card-copy">先上传 CSV，再描述运行要求。{% if web_llm_enabled %}配置 DeepSeek 后，Ask 会优先用模型理解任务并转换为受约束参数；不可用时自动回退本地关键词和正则解析。{% else %}{{ web_llm_status.detail }} Ask 使用本地关键词和正则解析。{% endif %}反馈分类、QA 和人工复核仍由固定流程负责。</p>
   <div class="upload-row ask-upload">
     <label for="ask_upload_file">1. 上传 CSV</label>
     <input id="ask_upload_file" class="file-input-native" name="upload_file" type="file" accept=".csv,text/csv">
@@ -143,7 +165,7 @@
     </span>
   </label>
   <div class="ask-actions">
-    <small>{% if web_llm_enabled %}默认只把任务文本和上传文件名发送给 DeepSeek，不发送 CSV 内容；“只用规则”控制反馈分诊方式，不会关闭 Ask 的模型解析。{% else %}当前 Ask 不调用 DeepSeek；“只用规则”会继续使用确定性本地分诊。{% endif %}</small>
+    <small>{% if web_llm_enabled %}默认只把任务文本和上传文件名发送给 DeepSeek，不发送 CSV 内容；“只用规则”控制反馈分诊方式，不会关闭 Ask 的模型解析。{% else %}{{ web_llm_status.detail }} 当前 Ask 不调用 DeepSeek；“只用规则”会继续使用确定性本地分诊。{% endif %}</small>
     <button type="submit">解析任务并运行</button>
   </div>
 </form>
@@ -207,8 +229,8 @@
       <label class="check-card">
         <input type="checkbox" name="use_llm" value="on" {% if not web_llm_enabled %}disabled{% endif %}>
         <span>
-          <strong>使用 LLM 初稿{% if not web_llm_enabled %}（未启用）{% endif %}</strong>
-          <small>{% if web_llm_enabled %}勾选后会把反馈文本发送给 DeepSeek；最多处理 {{ max_llm_rows }} 条{% else %}需要同时设置 DEEPSEEK_API_KEY 和 FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true{% endif %}</small>
+          <strong>使用 LLM 初稿{% if not web_llm_enabled %}（{{ web_llm_status.label }}）{% endif %}</strong>
+          <small>{% if web_llm_enabled %}勾选后会把反馈文本发送给 DeepSeek；最多处理 {{ max_llm_rows }} 条{% else %}{{ web_llm_status.detail }}{% endif %}</small>
         </span>
       </label>
 
@@ -236,7 +258,30 @@
     </div>
   </section>
 
-  <section class="card submit-card" id="reports" data-reveal>
+  <section class="output-preview-card" id="reports" data-reveal>
+    <div class="card-header">
+      <div>
+        <p class="card-kicker">输出文件 Preview</p>
+        <h2>每次运行可复查的交付物</h2>
+      </div>
+      <span class="status-badge status-success">结构稳定</span>
+    </div>
+    <div class="output-file-grid">
+      <span><strong>triage_results.csv</strong><small>结构化结果</small></span>
+      <span><strong>issue_cards.md</strong><small>问题卡片</small></span>
+      <span><strong>qa_report.md</strong><small>QA 报告</small></span>
+      <span><strong>run_log.md</strong><small>七步运行记录</small></span>
+      <span class="is-highlighted"><strong>weekly_summary.md</strong><small>产品周报摘要</small></span>
+      <span><strong>review_decisions.csv</strong><small>人工复核模板</small></span>
+      <span><strong>report.html</strong><small>静态 HTML 报告</small></span>
+      <span><strong>outputs.zip</strong><small>全部输出 zip</small></span>
+      <span><strong>normalized_feedback.csv</strong><small>可选格式标准化</small></span>
+      <span><strong>triage_results_reviewed.csv</strong><small>已复核结果</small></span>
+      <span><strong>review_summary.md</strong><small>复核摘要</small></span>
+    </div>
+  </section>
+
+  <section class="card submit-card" id="run-submit" data-reveal>
     <div>
       <p class="card-kicker">开始运行</p>
       <h2>生成分诊结果和报告文件</h2>
@@ -245,4 +290,24 @@
     <button type="submit">开始分诊</button>
   </section>
 </form>
+
+<section class="validation-panel" id="validation" aria-labelledby="validation-title" data-reveal>
+  <span class="scan-line" aria-hidden="true"></span>
+  <div class="validation-lead">
+    <div>
+      <p class="card-kicker">质量验证 / Validation</p>
+      <h2 id="validation-title">验证层用于检查流程稳定性与输出契约</h2>
+      <p>Validation 不属于核心分诊功能，也不在前端运行 harness；它用于证明流程可回归、可复查、可持续迭代。</p>
+    </div>
+    <span class="status-badge status-success status-breathing">Validation Layer</span>
+  </div>
+  <div class="validation-grid">
+    <article><strong>106 tests passed</strong><span>测试用例通过</span></article>
+    <article><strong>Golden set regression</strong><span>标准样本回归检查</span></article>
+    <article><strong>Adversarial samples</strong><span>边界样本与异常输入检查</span></article>
+    <article><strong>Scenario metrics</strong><span>按分类与优先级观察结果分布</span></article>
+    <article><strong>Output contract tests</strong><span>检查核心输出文件结构</span></article>
+    <article><strong>GitHub Actions CI passed</strong><span>自动化测试通过</span></article>
+  </div>
+</section>
 {% endblock %}
