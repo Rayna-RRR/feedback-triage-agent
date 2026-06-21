@@ -39,6 +39,8 @@ def test_web_homepage_is_accessible(tmp_path: Path, monkeypatch) -> None:
     assert "AI 初稿 / 规则兜底 / 人工复核" in response.text
     assert "公开演示数据边界" in response.text
     assert "使用 LLM 初稿（未启用）" in response.text
+    assert "产品周报" in response.text
+    assert "已复核结果" in response.text
     assert "Agent workflow" not in response.text
     assert "app.css?v=" in response.text
     assert "开始分诊" in response.text
