@@ -1,6 +1,69 @@
 # Feedback Triage Agent v0.9.1
 
-## 本地 Web App
+Feedback Triage Agent 是一个本地 CLI + FastAPI Web App Agent Demo，用于把零散用户反馈分诊成可复核的问题卡片、人工复核队列和报告输出。
+
+## Online Demo / GitHub / Docs
+
+- **Online Demo**: [https://feedback-triage-agent.vercel.app/](https://feedback-triage-agent.vercel.app/)
+- **GitHub**: [https://github.com/Rayna-RRR/feedback-triage-agent](https://github.com/Rayna-RRR/feedback-triage-agent)
+- **Docs 展示页**: [`docs/index.html`](docs/index.html)
+- **样例 HTML 报告**: [`docs/demo-report.html`](docs/demo-report.html)
+- **30 秒项目说明**: [`docs/portfolio_overview.md`](docs/portfolio_overview.md)
+
+GitHub 仓库侧栏的 Website 字段建议维护为 Online Demo 链接：`https://feedback-triage-agent.vercel.app/`。
+
+## 30 秒项目概览
+
+这个项目模拟 AI 产品或产品助理工作中的用户反馈分诊流程：从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查、产品周报摘要和报告导出。
+
+v0.9.1 支持 Vercel Demo、本地 FastAPI Web App、CLI/Web Ask 入口、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、人工复核队列、问题卡片、静态 HTML 报告、QA 报告、run log、产品周报摘要、规则质量评测和 GitHub Actions CI。
+
+项目重点不是展示“模型替人做决定”，而是展示一个可审计的 Agent 工作流：工具调用、状态记录、LLM 初稿、规则 fallback、人工复核边界和最终交付物都能被追踪。
+
+## 它解决的问题
+
+AI 产品团队经常面对来自应用商店、社区、客服工单、访谈记录的非结构化反馈。普通汇总容易停留在“用户说了什么”，而产品工作更需要把反馈转成可复核的问题类型、优先级、用户需求和产品建议。
+
+这个项目展示一条最小闭环：
+
+用户反馈 CSV -> Agent 固定计划 -> 工具调用 -> 状态记录 -> 人工复核队列 -> 问题卡片 -> QA 报告
+
+当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：DeepSeek 或本地规则把自然语言任务解析成受约束参数，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
+
+## 核心工作流
+
+load_feedback -> validate_schema -> classify_feedback -> detect_badcases -> generate_issue_cards -> qa_check -> export_report
+
+每一步都是独立 tool，返回结构化 `ToolResult`。Agent runner 按固定计划依次调用工具，并维护 run state、run log 和人工复核队列。`classify_feedback` 会在可用时调用 DeepSeek 生成初稿，否则 fallback 到 `rules.py`。
+
+## 截图 / 样例输出
+
+如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接看：
+
+- [`docs/index.html`](docs/index.html): 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
+- [`docs/demo-report.html`](docs/demo-report.html): 基于一次 `data/output_ask` 导出快照生成的样例 HTML 报告。
+- [`docs/portfolio_overview.md`](docs/portfolio_overview.md): 给非工程评审看的 30 秒项目说明。
+
+作品集截图位于 `docs/assets/screenshots/`：
+
+- `feedback_agent_01_home.png`: 项目首页与能力总览。
+- `feedback_agent_02_ask.png`: 自然语言 Ask 上传入口。
+- `feedback_agent_03_run_config.png`: 结构化运行配置。
+- `feedback_agent_04_summary.png`: 运行总览与分布。
+- `feedback_agent_05_review_queue.png`: 人工复核队列。
+- `feedback_agent_06_issue_cards.png`: 问题卡片摘要。
+- `feedback_agent_07_downloads.png`: 下载文件区。
+
+## 为什么适合 AI 产品 / 产品助理作品集
+
+这个项目面向 AI 产品、产品助理和 AI 应用运营岗位，重点展示：
+
+- 能把模糊反馈转成结构化产品问题。
+- 理解 Agent 不只是脚本，而是目标、工具、状态、日志和复核边界的组合。
+- 能区分 AI 自动化适合做什么，以及哪些高风险判断必须交给人。
+- 能用最小工程闭环表达产品思考，而不是只写概念方案。
+
+## 最短运行方式
 
 想实际操作分诊流程，可以启动本地 Web App：
 
@@ -16,88 +79,6 @@ http://127.0.0.1:8000
 
 Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持自然语言 Ask、选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
 
-Web 运行输出默认写入本地 `data/web_runs/`。部署到 Vercel 时会自动改用 `/tmp/feedback-triage-runs`，也可以用 `FEEDBACK_TRIAGE_WEB_RUNS_DIR` 指定可写目录。公开 Demo 的上传 CSV 和输出文件只适合临时保存，默认约 24 小时后清理，平台重启或实例回收后也可能丢失。
-
-## Vercel 公开 Demo 部署
-
-当前仓库包含 Vercel 入口：
-
-- `app.py`: 导出 FastAPI `app`，供 Vercel FastAPI 预设识别。
-- `.vercelignore`: 排除 `.venv`、缓存、本地输出和历史 Web run。
-
-生产部署命令：
-
-```bash
-vercel --prod
-```
-
-Vercel 环境变量建议：
-
-```bash
-FEEDBACK_TRIAGE_RUN_RETENTION_HOURS=24
-FEEDBACK_TRIAGE_MAX_WEB_RUNS=50
-```
-
-如果要在线上开放 DeepSeek，必须同时设置：
-
-```bash
-DEEPSEEK_API_KEY=your_deepseek_api_key
-FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
-```
-
-可以在 Vercel Dashboard 的 Project Settings -> Environment Variables 中添加，也可以用 CLI 分别添加到 Production：
-
-```bash
-vercel env add DEEPSEEK_API_KEY production
-vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
-```
-
-`FEEDBACK_TRIAGE_WEB_LLM_ENABLED` 的值填写 `true`。环境变量变更后需要重新生产部署一次，新的 Serverless Function 才会读取到配置。本地变量模板见 `.env.example`，不要把真实 key 写入这个文件。
-
-不设置 `FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true` 时，Web 端不会调用 DeepSeek：Ask 使用本地规则解析，反馈分诊也只用 `rules.py`。CLI 的 `--llm` 行为不受这个 Web 开关影响。
-
-公开 Demo 请不要上传真实用户隐私、商业保密或生产反馈原文。Vercel 可以先用于快速上线和分享链接；如果后续需要更稳定的中国大陆访问，应迁移到大陆云服务器并按要求完成 ICP 备案。
-
-## 展示入口
-
-如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接在浏览器打开：
-
-- `docs/index.html`: 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
-- `docs/portfolio_overview.md`: 给非工程评审看的 30 秒项目说明。
-- `docs/demo-report.html`: 基于一次 `data/output_ask` 导出快照生成的样例 HTML 报告。
-
-作品集截图位于 `docs/assets/screenshots/`：
-
-- `feedback_agent_01_home.png`: 项目首页与能力总览。
-- `feedback_agent_02_ask.png`: 自然语言 Ask 上传入口。
-- `feedback_agent_03_run_config.png`: 结构化运行配置。
-- `feedback_agent_04_summary.png`: 运行总览与分布。
-- `feedback_agent_05_review_queue.png`: 人工复核队列。
-- `feedback_agent_06_issue_cards.png`: 问题卡片摘要。
-- `feedback_agent_07_downloads.png`: 下载文件区。
-
-Feedback Triage Agent 是一个轻量本地 Agent Demo，用于模拟 AI 产品或产品助理工作中的用户反馈分诊流程。它从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查和报告导出。
-
-v0.9.1 支持本地 FastAPI Web App、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、静态 HTML 报告、产品周报摘要、规则质量评测、本地人工复核回写、Output Contract Test、adversarial evaluation set、scenario metrics、Evaluation Harness Lite、GitHub Actions CI，以及 Web UI 的轻量产品化 polish。
-
-本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
-
-## 解决的问题
-
-AI 产品团队经常面对来自应用商店、社区、客服工单、访谈记录的非结构化反馈。普通汇总容易停留在“用户说了什么”，而产品工作更需要把反馈转成可复核的问题类型、优先级、用户需求和产品建议。
-
-这个项目展示一条最小闭环：
-
-用户反馈 CSV -> Agent 固定计划 -> 工具调用 -> 状态记录 -> 人工复核队列 -> 问题卡片 -> QA 报告
-
-当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：DeepSeek 或本地规则把自然语言任务解析成受约束参数，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
-
-## Agent 工作流
-
-load_feedback -> validate_schema -> classify_feedback -> detect_badcases -> generate_issue_cards -> qa_check -> export_report
-
-每一步都是独立 tool，返回结构化 `ToolResult`。Agent runner 按固定计划依次调用工具，并维护 run state、run log 和人工复核队列。`classify_feedback` 会在可用时调用 DeepSeek 生成初稿，否则 fallback 到 `rules.py`。
-
 ## 本地安装
 
 项目已在 Python 3.9.6 下验证通过，推荐 Python 3.9+。
@@ -111,30 +92,7 @@ python -m pip install -e ".[dev]"
 
 如果系统默认 `python` 低于 3.9，请显式使用 Python 3.9+ 创建虚拟环境。
 
-## DeepSeek API 可选配置
-
-不要把 API key 写入代码或提交到 Git。需要使用 DeepSeek Ask 解析或反馈初稿时，在本地 shell 设置环境变量：
-
-```bash
-export DEEPSEEK_API_KEY="your_deepseek_api_key"
-```
-
-可选环境变量：
-
-```bash
-export DEEPSEEK_MODEL="deepseek-v4-pro"
-export DEEPSEEK_API_BASE="https://api.deepseek.com"
-export DEEPSEEK_TIMEOUT_SECONDS="20"
-```
-
-DeepSeek 在项目中有两个独立用途：
-
-1. **Ask 任务解析**：配置 API key 后默认启用，只发送任务文本和上传文件名，不发送 CSV 内容。模型返回受 Pydantic 校验的输入路径、输出目录、格式转换、HTML 报告和反馈分诊方式参数。不可用或响应无效时回退到原有关键词与正则解析。
-2. **反馈初稿**：只有用户明确要求“使用 LLM / 使用 DeepSeek”时，才会发送反馈文本并生成分类、摘要、用户需求和产品建议初稿。“只用规则”会关闭这一层。
-
-默认模型为 `deepseek-v4-pro`。结构化 JSON 任务使用非思考模式，减少额外推理文本对解析的干扰。两个用途的来源、模型、API 返回的输入/输出/总 token 数和 fallback 都会记录在 `qa_report.md`；模型与 fallback 也会进入 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
-
-## 运行命令
+## CLI 命令参考
 
 启动本地 Web App：
 
@@ -213,6 +171,71 @@ Web 首页提供相同入口，并可勾选“仅用本地规则解析 Ask”。
 ```bash
 python -m feedback_triage_agent.cli report --output data/output_ask
 ```
+
+## Vercel / DeepSeek / 环境变量
+
+当前仓库包含 Vercel 入口：
+
+- `app.py`: 导出 FastAPI `app`，供 Vercel FastAPI 预设识别。
+- `.vercelignore`: 排除 `.venv`、缓存、本地输出和历史 Web run。
+
+生产部署命令：
+
+```bash
+vercel --prod
+```
+
+Vercel 环境变量建议：
+
+```bash
+FEEDBACK_TRIAGE_RUN_RETENTION_HOURS=24
+FEEDBACK_TRIAGE_MAX_WEB_RUNS=50
+```
+
+Web 运行输出默认写入本地 `data/web_runs/`。部署到 Vercel 时会自动改用 `/tmp/feedback-triage-runs`，也可以用 `FEEDBACK_TRIAGE_WEB_RUNS_DIR` 指定可写目录。公开 Demo 的上传 CSV 和输出文件只适合临时保存，默认约 24 小时后清理，平台重启或实例回收后也可能丢失。
+
+不要把 API key 写入代码或提交到 Git。需要使用 DeepSeek Ask 解析或反馈初稿时，在本地 shell 设置环境变量：
+
+```bash
+export DEEPSEEK_API_KEY="your_deepseek_api_key"
+```
+
+可选环境变量：
+
+```bash
+export DEEPSEEK_MODEL="deepseek-v4-pro"
+export DEEPSEEK_API_BASE="https://api.deepseek.com"
+export DEEPSEEK_TIMEOUT_SECONDS="20"
+```
+
+如果要在线上开放 DeepSeek，必须同时设置：
+
+```bash
+DEEPSEEK_API_KEY=your_deepseek_api_key
+FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
+```
+
+可以在 Vercel Dashboard 的 Project Settings -> Environment Variables 中添加，也可以用 CLI 分别添加到 Production：
+
+```bash
+vercel env add DEEPSEEK_API_KEY production
+vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
+```
+
+`FEEDBACK_TRIAGE_WEB_LLM_ENABLED` 的值填写 `true`。环境变量变更后需要重新生产部署一次，新的 Serverless Function 才会读取到配置。本地变量模板见 `.env.example`，不要把真实 key 写入这个文件。
+
+DeepSeek 在项目中有两个独立用途：
+
+1. **Ask 任务解析**：配置 API key 后默认启用，只发送任务文本和上传文件名，不发送 CSV 内容。模型返回受 Pydantic 校验的输入路径、输出目录、格式转换、HTML 报告和反馈分诊方式参数。不可用或响应无效时回退到原有关键词与正则解析。
+2. **反馈初稿**：只有用户明确要求“使用 LLM / 使用 DeepSeek”时，才会发送反馈文本并生成分类、摘要、用户需求和产品建议初稿。“只用规则”会关闭这一层。
+
+默认模型为 `deepseek-v4-pro`。结构化 JSON 任务使用非思考模式，减少额外推理文本对解析的干扰。两个用途的来源、模型、API 返回的输入/输出/总 token 数和 fallback 都会记录在 `qa_report.md`；模型与 fallback 也会进入 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
+
+不设置 `FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true` 时，Web 端不会调用 DeepSeek：Ask 使用本地规则解析，反馈分诊也只用 `rules.py`。CLI 的 `--llm` 行为不受这个 Web 开关影响。
+
+公开 Demo 请不要上传真实用户隐私、商业保密或生产反馈原文。Vercel 可以先用于快速上线和分享链接；如果后续需要更稳定的中国大陆访问，应迁移到大陆云服务器并按要求完成 ICP 备案。
+
+## 测试与评测
 
 运行测试：
 
@@ -326,8 +349,6 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 增加 GitHub Actions CI，在 push / PR 时自动运行 pytest 与 Evaluation Harness Lite。
 - 保留 external review assisted maintainability findings 作为历史审查材料，当前版本聚焦作品集说明和输出物可读性。
 
-暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
-
 ## 后续可扩展方向
 
 - 增加多人复核冲突处理和决策版本历史，但仍保持本地轻量边界。
@@ -336,11 +357,10 @@ python -m feedback_triage_agent.cli review-apply --output data/output
 - 将 P0 样本推送到工单系统或告警渠道。
 - 后续再考虑 RAG、向量数据库和文档检索，用于引入产品文档、FAQ 或历史工单上下文。
 
-## 作品集价值
+## 项目边界
 
-这个项目面向 AI 产品、产品助理和 AI 应用运营岗位，重点展示：
+本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
 
-- 能把模糊反馈转成结构化产品问题。
-- 理解 Agent 不只是脚本，而是目标、工具、状态、日志和复核边界的组合。
-- 能区分 AI 自动化适合做什么，以及哪些高风险判断必须交给人。
-- 能用最小工程闭环表达产品思考，而不是只写概念方案。
+暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
+
+P0、低置信度、多问题命中、文本过短等样本不会被视为可自动闭环；它们必须进入人工复核队列。
