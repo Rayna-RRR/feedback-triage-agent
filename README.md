@@ -10,8 +10,6 @@ Feedback Triage Agent 是一个本地 CLI + FastAPI Web App Agent Demo，用于�
 - **样例 HTML 报告**: [`docs/demo-report.html`](docs/demo-report.html)
 - **30 秒项目说明**: [`docs/portfolio_overview.md`](docs/portfolio_overview.md)
 
-GitHub 仓库侧栏的 Website 字段建议维护为 Online Demo 链接：`https://feedback-triage-agent.vercel.app/`。
-
 ## 30 秒项目概览
 
 这个项目模拟 AI 产品或产品助理工作中的用户反馈分诊流程：从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查、产品周报摘要和报告导出。
