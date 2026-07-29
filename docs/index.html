@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Feedback Triage Agent v0.9.1 展示入口</title>
+  <title>历史分诊引擎说明 | 发版后反馈风险工作台</title>
   <style>
     :root {
       --ink: #101418;
@@ -117,6 +117,23 @@
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
     }
+
+    .archive-notice {
+      position: relative;
+      z-index: 2;
+      width: min(1120px, calc(100% - 32px));
+      margin: 18px auto 0;
+      padding: 14px 18px;
+      border: 1px solid rgba(36, 76, 137, 0.2);
+      border-radius: 16px;
+      color: #26313b;
+      background: rgba(255, 252, 246, 0.88);
+      box-shadow: 0 12px 32px rgba(16, 20, 24, 0.07);
+      line-height: 1.65;
+    }
+
+    .archive-notice strong { color: var(--blue); }
+    .archive-notice a { color: var(--blue); text-decoration: underline; }
 
     .hero {
       min-height: 760px;
@@ -580,7 +597,7 @@
   <nav class="nav" aria-label="项目导航">
     <a class="brand" href="#top">
       <span class="brand-mark" aria-hidden="true"></span>
-      <span>Feedback Triage Agent</span>
+      <span>Feedback Risk Workbench</span>
     </a>
     <div class="nav-links">
       <a href="#problem">解决什么</a>
@@ -592,16 +609,23 @@
     </div>
   </nav>
 
+  <aside class="archive-notice">
+    <strong>历史能力说明：</strong>
+    本页保留 v0.9.1 单批次 Feedback Triage Agent 的输出和复现方式。该引擎现已纳入
+    <a href="https://feedback-triage-agent.vercel.app/">发版后反馈风险工作台</a>，
+    主产品以版本观察任务、问题簇比较、原始证据、人工复核和后续窗口验证为一条完整流程；本页不是第二个独立 Demo。
+  </aside>
+
   <main id="top">
     <header class="hero">
       <div data-reveal>
         <h1>把零散用户评论<span class="inline-signal" aria-hidden="true"></span>整理成可复核的问题卡片。</h1>
         <p class="hero-copy">
-          v0.9.1 是一个反馈分诊工作流 Agent。它提供 Vercel Demo、本地 FastAPI Web App 和 Ask 入口，读取 CSV 评论后按固定工具计划完成字段检查、规则/LLM 初稿、风险识别、人工复核队列、问题卡片、QA 报告、run log、产品周报和 HTML 报告导出。
+          本页记录 v0.9.1 单批次反馈分诊引擎：读取 CSV 后按固定工具计划完成字段检查、规则/LLM 初稿、风险识别、人工复核队列、问题卡片、QA 报告、run log、产品周报和 HTML 报告导出。合并后的主工作台在此基础上增加版本窗口、问题簇比较、证据和处理闭环。
         </p>
         <div class="hero-actions">
-          <a class="button primary" href="https://feedback-triage-agent.vercel.app/">打开线上 Demo</a>
-          <a class="button primary" href="demo-report.html">查看样例报告</a>
+          <a class="button primary" href="https://feedback-triage-agent.vercel.app/">打开合并后的工作台</a>
+          <a class="button primary" href="demo-report.html">查看历史样例报告</a>
           <a class="button secondary" href="portfolio_overview.md">30 秒项目说明</a>
           <a class="button secondary" href="#reproduce">查看复现命令</a>
         </div>

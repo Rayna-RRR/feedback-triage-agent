@@ -1,0 +1,1841 @@
+{
+  "schema_version": 1,
+  "task": {
+    "task_id": "task_20260728_103741_v2-4_43ba39",
+    "name": "v2.4 增量导入对照",
+    "product_name": "Acme Copilot",
+    "baseline_version": "v2.3",
+    "current_version": "v2.4",
+    "baseline_window_start": "2026-07-01T00:00",
+    "baseline_window_end": "2026-07-03T00:00",
+    "current_window_start": "2026-07-03T00:00",
+    "current_window_end": "2026-07-05T00:00",
+    "baseline_window_hours": 48.0,
+    "current_window_hours": 48.0,
+    "comparison_basis": "equivalent_window",
+    "comparison_note": "",
+    "change_summary": "",
+    "default_import_mode": "cumulative",
+    "status": "观察中",
+    "created_at": "2026-07-28T02:37:41+00:00",
+    "updated_at": "2026-07-28T02:41:03+00:00"
+  },
+  "imports": [
+    {
+      "import_id": "import_ba8896815fb4",
+      "status": "success",
+      "window_kind": "baseline",
+      "observation_hours": 48,
+      "import_mode": "incremental",
+      "source": "App Store",
+      "filename": "baseline_48h.csv",
+      "imported_at": "2026-07-28T02:40:06+00:00",
+      "accepted_count": 30,
+      "duplicate_count": 0,
+      "error_count": 0,
+      "errors": [],
+      "generated_id_count": 0,
+      "missing_rating_count": 0,
+      "column_mapping": {
+        "id": "id",
+        "source": "source",
+        "app_name": "app_name",
+        "review_text": "review_text",
+        "rating": "rating",
+        "created_at": "created_at"
+      },
+      "classification_source": "rules",
+      "records": [
+        {
+          "feedback_id": "B001",
+          "record_key": "84d185bc351c0deb68322dca3fbf128f1ff8ba4a",
+          "fingerprint": "84d185bc351c0deb68322dca3fbf128f1ff8ba4a",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "点击导出按钮后没有生成文件",
+          "rating": 2,
+          "created_at": "2026-07-01T00:10:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B002",
+          "record_key": "fa8f677384c495a77c2a4c8b50413d62191ce028",
+          "fingerprint": "fa8f677384c495a77c2a4c8b50413d62191ce028",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮显示成功但下载文件的列顺序完全乱了",
+          "rating": 2,
+          "created_at": "2026-07-01T01:20:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B003",
+          "record_key": "c2238c11227600c7afd42cd541ca23aee2b791a6",
+          "fingerprint": "c2238c11227600c7afd42cd541ca23aee2b791a6",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮完成后表格格式错乱文字挤在一起",
+          "rating": 2,
+          "created_at": "2026-07-01T02:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B004",
+          "record_key": "4db8189c11bbf704f6a6c961fcfbb01aecaae5b7",
+          "fingerprint": "4db8189c11bbf704f6a6c961fcfbb01aecaae5b7",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "账号登录失败验证码一直收不到",
+          "rating": 1,
+          "created_at": "2026-07-01T03:40:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "性能与稳定性问题",
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "性能与稳定性问题": [
+              "失败"
+            ],
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B005",
+          "record_key": "03f6ae406cd21c4e1dbac178de99410aa6450cc7",
+          "fingerprint": "03f6ae406cd21c4e1dbac178de99410aa6450cc7",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "重新登录时始终进不去工作区",
+          "rating": 2,
+          "created_at": "2026-07-01T04:50:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "账号、隐私与数据问题": [
+              "登录"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B006",
+          "record_key": "a2243c14a2745584ac6dc4a0e5fd163e51e023b2",
+          "fingerprint": "a2243c14a2745584ac6dc4a0e5fd163e51e023b2",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "登录入口提示账号验证失败",
+          "rating": 2,
+          "created_at": "2026-07-01T06:00:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题",
+            "性能与稳定性问题",
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "入口"
+            ],
+            "性能与稳定性问题": [
+              "失败"
+            ],
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B007",
+          "record_key": "b9a53295da98b3fef2d0e71ba59a194d55d7d2a6",
+          "fingerprint": "b9a53295da98b3fef2d0e71ba59a194d55d7d2a6",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "账号无法登录移动端",
+          "rating": 2,
+          "created_at": "2026-07-01T07:10:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.83,
+          "matched_categories": [
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B008",
+          "record_key": "49e7edc0aeee034875c8d121e6e6b21d37af8c67",
+          "fingerprint": "49e7edc0aeee034875c8d121e6e6b21d37af8c67",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "回答引用了不存在的条目内容不准确",
+          "rating": 2,
+          "created_at": "2026-07-01T08:20:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "不准确"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B009",
+          "record_key": "c2a0fa1c536f324f31564cd2b1ec9c5f352304d3",
+          "fingerprint": "c2a0fa1c536f324f31564cd2b1ec9c5f352304d3",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "引用的文档段落对不上回答错了",
+          "rating": 2,
+          "created_at": "2026-07-01T09:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.83,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "回答错",
+              "错了"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B010",
+          "record_key": "9eb0437c8a4689336d24bccf82db10432f194d04",
+          "fingerprint": "9eb0437c8a4689336d24bccf82db10432f194d04",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "答案里的来源链接和引用内容不一致回答不准",
+          "rating": 2,
+          "created_at": "2026-07-01T10:40:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P1",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B011",
+          "record_key": "4986a390041aa8b11ac165b65100b516b9bc48cc",
+          "fingerprint": "4986a390041aa8b11ac165b65100b516b9bc48cc",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "引用资料被张冠李戴答错了",
+          "rating": 2,
+          "created_at": "2026-07-01T11:50:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "错了"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B012",
+          "record_key": "14e57aea89467ccc3fd54d7fc1ccbdf1c49574fd",
+          "fingerprint": "14e57aea89467ccc3fd54d7fc1ccbdf1c49574fd",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "回答把文档引用编错了",
+          "rating": 2,
+          "created_at": "2026-07-01T13:00:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "错了"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B013",
+          "record_key": "0d5fa7cb456ab328fe06a2b65c5ff131c138b424",
+          "fingerprint": "0d5fa7cb456ab328fe06a2b65c5ff131c138b424",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "引用页码对不上给出的结论错了",
+          "rating": 2,
+          "created_at": "2026-07-01T14:10:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "错了"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B014",
+          "record_key": "92cc905ac5f8b474881daa77aaa25dc6f5e16b25",
+          "fingerprint": "92cc905ac5f8b474881daa77aaa25dc6f5e16b25",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "来源引用不准确给出的结论错误",
+          "rating": 2,
+          "created_at": "2026-07-01T15:20:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "不准确"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B015",
+          "record_key": "005768dcc8f7aad881d6b8c4e1e77d6dbd76aa21",
+          "fingerprint": "005768dcc8f7aad881d6b8c4e1e77d6dbd76aa21",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "这款工具整体很好用",
+          "rating": 5,
+          "created_at": "2026-07-01T16:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.83,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "好用",
+              "很好"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B016",
+          "record_key": "56e45b3c9292725cda8bfaea5e6e138abbb75ea6",
+          "fingerprint": "56e45b3c9292725cda8bfaea5e6e138abbb75ea6",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "日常整理资料很顺手",
+          "rating": 5,
+          "created_at": "2026-07-01T17:40:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B017",
+          "record_key": "aefc3c697679bb1ddff4e7c74502d1a80c49b8fb",
+          "fingerprint": "aefc3c697679bb1ddff4e7c74502d1a80c49b8fb",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "响应速度令人满意",
+          "rating": 5,
+          "created_at": "2026-07-01T18:50:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "满意"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B018",
+          "record_key": "4aed8109ad56a90a96e2841d868df16a4f60322f",
+          "fingerprint": "4aed8109ad56a90a96e2841d868df16a4f60322f",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "写作辅助效果不错",
+          "rating": 5,
+          "created_at": "2026-07-01T19:10:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "不错"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B019",
+          "record_key": "b6d643fc1c39847992c69f4c4e7863f42b93ca89",
+          "fingerprint": "b6d643fc1c39847992c69f4c4e7863f42b93ca89",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "生成摘要很有帮助",
+          "rating": 5,
+          "created_at": "2026-07-01T20:20:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B020",
+          "record_key": "8080c244ae9be578670cda5aa8644667ccd94a69",
+          "fingerprint": "8080c244ae9be578670cda5aa8644667ccd94a69",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "整体体验值得推荐",
+          "rating": 5,
+          "created_at": "2026-07-01T21:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "推荐"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B021",
+          "record_key": "7bb9f1836af9f8ae056cb90c641a281e7d9ca4d4",
+          "fingerprint": "7bb9f1836af9f8ae056cb90c641a281e7d9ca4d4",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "搜索知识库很方便",
+          "rating": 4,
+          "created_at": "2026-07-01T21:45:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B022",
+          "record_key": "1ff91aa69d845dc4d322624380783b41f8ce6e47",
+          "fingerprint": "1ff91aa69d845dc4d322624380783b41f8ce6e47",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "回答思路清楚而且稳定",
+          "rating": 5,
+          "created_at": "2026-07-01T22:00:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B023",
+          "record_key": "6312ad331abd92e5233e5458448f2812e4720dfb",
+          "fingerprint": "6312ad331abd92e5233e5458448f2812e4720dfb",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "团队成员都觉得产品实用",
+          "rating": 5,
+          "created_at": "2026-07-01T22:15:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "用户预期与产品定位问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "用户预期与产品定位问题"
+          ],
+          "matched_keywords": {
+            "用户预期与产品定位问题": [
+              "产品"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "用户预期与产品定位问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B024",
+          "record_key": "ddf3ac4ad679c261e3f8d25dba1682c054165e10",
+          "fingerprint": "ddf3ac4ad679c261e3f8d25dba1682c054165e10",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导入资料的体验很顺畅",
+          "rating": 4,
+          "created_at": "2026-07-01T22:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B025",
+          "record_key": "3750618a3e90bfac395ec2ee28b2765b60025387",
+          "fingerprint": "3750618a3e90bfac395ec2ee28b2765b60025387",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "客服响应及时问题解决了",
+          "rating": 4,
+          "created_at": "2026-07-01T22:45:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B026",
+          "record_key": "efe7f7789ffc81366a99bdb94be312c19eb35af9",
+          "fingerprint": "efe7f7789ffc81366a99bdb94be312c19eb35af9",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "界面简洁容易上手",
+          "rating": 5,
+          "created_at": "2026-07-01T23:00:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "界面"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B027",
+          "record_key": "03fd07845e7609acd9279a088c094f1a3dc7b0b6",
+          "fingerprint": "03fd07845e7609acd9279a088c094f1a3dc7b0b6",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "通知提醒很清楚",
+          "rating": 4,
+          "created_at": "2026-07-01T23:15:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "文本过短",
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B028",
+          "record_key": "169ccfe87dd1e16fa10964d643b95f8468370643",
+          "fingerprint": "169ccfe87dd1e16fa10964d643b95f8468370643",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "多端同步使用方便",
+          "rating": 5,
+          "created_at": "2026-07-01T23:30:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "账号、隐私与数据问题": [
+              "同步"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B029",
+          "record_key": "ecb15dbcc878e00d01559ad9289db20d60915296",
+          "fingerprint": "ecb15dbcc878e00d01559ad9289db20d60915296",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "这次更新前整体表现稳定",
+          "rating": 4,
+          "created_at": "2026-07-01T23:45:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "B030",
+          "record_key": "3152ac3a5153e6b35c10e8cba54dca81d798d5f1",
+          "fingerprint": "3152ac3a5153e6b35c10e8cba54dca81d798d5f1",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "继续保持现在的体验就很好",
+          "rating": 4,
+          "created_at": "2026-07-02T00:00:00+08:00",
+          "metadata": {
+            "version": "v2.3"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "很好"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        }
+      ]
+    },
+    {
+      "import_id": "import_37252562b417",
+      "status": "success",
+      "window_kind": "current",
+      "observation_hours": 48,
+      "import_mode": "incremental",
+      "source": "App Store",
+      "filename": "current_48h.csv",
+      "imported_at": "2026-07-28T02:41:03+00:00",
+      "accepted_count": 30,
+      "duplicate_count": 0,
+      "error_count": 0,
+      "errors": [],
+      "generated_id_count": 0,
+      "missing_rating_count": 0,
+      "column_mapping": {
+        "id": "id",
+        "source": "source",
+        "app_name": "app_name",
+        "review_text": "review_text",
+        "rating": "rating",
+        "created_at": "created_at"
+      },
+      "classification_source": "rules",
+      "records": [
+        {
+          "feedback_id": "C001",
+          "record_key": "07b8b4dacdc14d274d64451c401c76d8522064e3",
+          "fingerprint": "07b8b4dacdc14d274d64451c401c76d8522064e3",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "点击导出按钮后完全没有生成文件",
+          "rating": 1,
+          "created_at": "2026-07-03T00:10:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C002",
+          "record_key": "386f526752253e8890d2508158adaf1e6f0daced",
+          "fingerprint": "386f526752253e8890d2508158adaf1e6f0daced",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮点下去一直卡在99%不动",
+          "rating": 1,
+          "created_at": "2026-07-03T01:20:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "性能与稳定性问题",
+          "priority": "P1",
+          "confidence": 0.55,
+          "matched_categories": [
+            "交互体验问题",
+            "性能与稳定性问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ],
+            "性能与稳定性问题": [
+              "卡"
+            ]
+          },
+          "review_reasons": [
+            "分类低置信度",
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "性能与稳定性问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C003",
+          "record_key": "60e4dfdd9703ff19ff940f19e19ff466212b240f",
+          "fingerprint": "60e4dfdd9703ff19ff940f19e19ff466212b240f",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出入口点击后没有任何反应",
+          "rating": 2,
+          "created_at": "2026-07-03T02:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "入口"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C004",
+          "record_key": "821c16fbd21c5e7a494d059f9b9e423e317ff07b",
+          "fingerprint": "821c16fbd21c5e7a494d059f9b9e423e317ff07b",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮点击后文件迟迟不出现",
+          "rating": 2,
+          "created_at": "2026-07-03T03:40:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C005",
+          "record_key": "f9e358874dd42d9f2a20af7284c28067b826ff1e",
+          "fingerprint": "f9e358874dd42d9f2a20af7284c28067b826ff1e",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮提示失败让我重试",
+          "rating": 1,
+          "created_at": "2026-07-03T04:50:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "性能与稳定性问题",
+          "priority": "P1",
+          "confidence": 0.55,
+          "matched_categories": [
+            "交互体验问题",
+            "性能与稳定性问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ],
+            "性能与稳定性问题": [
+              "失败"
+            ]
+          },
+          "review_reasons": [
+            "分类低置信度",
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "性能与稳定性问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C006",
+          "record_key": "fc9f080c813dc01b5bd9ff573024b98aee957a22",
+          "fingerprint": "fc9f080c813dc01b5bd9ff573024b98aee957a22",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "按下导出按钮后一直转圈文件没出来",
+          "rating": 1,
+          "created_at": "2026-07-03T06:00:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "性能与稳定性问题",
+          "priority": "P1",
+          "confidence": 0.55,
+          "matched_categories": [
+            "交互体验问题",
+            "性能与稳定性问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ],
+            "性能与稳定性问题": [
+              "转圈"
+            ]
+          },
+          "review_reasons": [
+            "分类低置信度",
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "性能与稳定性问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C007",
+          "record_key": "50631a1c25eb6a90bb152f148d3d04aa7ea9e599",
+          "fingerprint": "50631a1c25eb6a90bb152f148d3d04aa7ea9e599",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "模型回答的上下文只展示到一半后续内容被截断",
+          "rating": 2,
+          "created_at": "2026-07-03T07:10:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "模型"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C008",
+          "record_key": "47940ee92767d009c62c9f698eafbe1113a2803e",
+          "fingerprint": "47940ee92767d009c62c9f698eafbe1113a2803e",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "长模型回答的上下文被截断只剩开头",
+          "rating": 2,
+          "created_at": "2026-07-03T08:20:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "模型"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C009",
+          "record_key": "1a4f1c5e5bccf1f825af1027a28b9f45474270c2",
+          "fingerprint": "1a4f1c5e5bccf1f825af1027a28b9f45474270c2",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "模型输出的上下文到中途就断了后面没有显示",
+          "rating": 2,
+          "created_at": "2026-07-03T09:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "模型"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C010",
+          "record_key": "05b6e9f5f4f3834bb250f44eef22a36607f0bb12",
+          "fingerprint": "05b6e9f5f4f3834bb250f44eef22a36607f0bb12",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "模型回答太长时上下文后半段会被截掉",
+          "rating": 2,
+          "created_at": "2026-07-03T10:40:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "模型"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C011",
+          "record_key": "ae35110907e97cd36d4f96c362924d3a5b2a8198",
+          "fingerprint": "ae35110907e97cd36d4f96c362924d3a5b2a8198",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "账号登录失败验证码还是收不到",
+          "rating": 1,
+          "created_at": "2026-07-03T11:50:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "性能与稳定性问题",
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "性能与稳定性问题": [
+              "失败"
+            ],
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C012",
+          "record_key": "4a520a231e4262c8023548d1f42892a85f0b2208",
+          "fingerprint": "4a520a231e4262c8023548d1f42892a85f0b2208",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "重新登录仍然无法进入工作区",
+          "rating": 2,
+          "created_at": "2026-07-03T13:00:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "账号、隐私与数据问题": [
+              "登录"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C013",
+          "record_key": "45bd19ec6c0c95a6805ca391f1863d214b51acac",
+          "fingerprint": "45bd19ec6c0c95a6805ca391f1863d214b51acac",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "登录入口又提示账号验证失败",
+          "rating": 2,
+          "created_at": "2026-07-03T14:10:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题",
+            "性能与稳定性问题",
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "入口"
+            ],
+            "性能与稳定性问题": [
+              "失败"
+            ],
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [
+            "同时命中多个问题类型"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C014",
+          "record_key": "97b4b5e998fd74f2426f1a370d6d20e53e8df8b9",
+          "fingerprint": "97b4b5e998fd74f2426f1a370d6d20e53e8df8b9",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "账号登录不上移动端应用",
+          "rating": 2,
+          "created_at": "2026-07-03T15:20:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "账号、隐私与数据问题",
+          "priority": "P1",
+          "confidence": 0.83,
+          "matched_categories": [
+            "账号、隐私与数据问题"
+          ],
+          "matched_keywords": {
+            "账号、隐私与数据问题": [
+              "登录",
+              "账号"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "账号、隐私与数据问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C015",
+          "record_key": "d288c9345e9f88b85d77cbef671bda8d38a638ad",
+          "fingerprint": "d288c9345e9f88b85d77cbef671bda8d38a638ad",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "回答引用了错误的文档内容不准确",
+          "rating": 2,
+          "created_at": "2026-07-03T16:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "不准确"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C016",
+          "record_key": "a662c58eeed494a8708e61d5cc8fb8d16d41a74a",
+          "fingerprint": "a662c58eeed494a8708e61d5cc8fb8d16d41a74a",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "引用段落与答案对不上回答错了",
+          "rating": 2,
+          "created_at": "2026-07-03T17:40:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "模型能力问题",
+          "priority": "P1",
+          "confidence": 0.83,
+          "matched_categories": [
+            "模型能力问题"
+          ],
+          "matched_keywords": {
+            "模型能力问题": [
+              "回答错",
+              "错了"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "模型能力问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C017",
+          "record_key": "1fc71c12156ac73d25d35aa454d7dae7435ca2b0",
+          "fingerprint": "1fc71c12156ac73d25d35aa454d7dae7435ca2b0",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "最近更新后感觉越来越不好用",
+          "rating": 3,
+          "created_at": "2026-07-03T18:50:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "不好用"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C018",
+          "record_key": "e50bac1d653de09f3a59f1423bf730af0cdbb6bb",
+          "fingerprint": "e50bac1d653de09f3a59f1423bf730af0cdbb6bb",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "整体变得不太好用但说不清具体哪里",
+          "rating": 3,
+          "created_at": "2026-07-03T19:10:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C019",
+          "record_key": "1b71dc7a5488cf72044e4982e45b1cd93a4772ab",
+          "fingerprint": "1b71dc7a5488cf72044e4982e45b1cd93a4772ab",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮显示成功但下载文件的列顺序完全乱了",
+          "rating": 2,
+          "created_at": "2026-07-03T20:20:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C020",
+          "record_key": "b9df60a1e5e0f1001a5098a1fc53bbffbc5102b6",
+          "fingerprint": "b9df60a1e5e0f1001a5098a1fc53bbffbc5102b6",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "导出按钮完成后表格格式错乱文字挤在一起",
+          "rating": 2,
+          "created_at": "2026-07-03T21:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P1",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "按钮"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C021",
+          "record_key": "07702b2e58ee9f4b6d0b07ee455680d4132a9204",
+          "fingerprint": "07702b2e58ee9f4b6d0b07ee455680d4132a9204",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "这版处理日常事务很高效",
+          "rating": 5,
+          "created_at": "2026-07-03T21:45:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C022",
+          "record_key": "75fd41404c8b4c99edd4f3289402aa59a65c38e3",
+          "fingerprint": "75fd41404c8b4c99edd4f3289402aa59a65c38e3",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "整理会议纪要比以前省时",
+          "rating": 5,
+          "created_at": "2026-07-03T22:00:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C023",
+          "record_key": "f02c1de054d72ef858795deef062dac9765264c9",
+          "fingerprint": "f02c1de054d72ef858795deef062dac9765264c9",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "回答思路依然很清晰",
+          "rating": 5,
+          "created_at": "2026-07-03T22:15:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C024",
+          "record_key": "926e054784caea7ffb428c318bd03c17b631142a",
+          "fingerprint": "926e054784caea7ffb428c318bd03c17b631142a",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "上传文档速度不错",
+          "rating": 4,
+          "created_at": "2026-07-03T22:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "不错"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C025",
+          "record_key": "20fc51af646419e0def8523b284611a311f8e276",
+          "fingerprint": "20fc51af646419e0def8523b284611a311f8e276",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "团队协作体验满意",
+          "rating": 5,
+          "created_at": "2026-07-03T22:45:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "满意"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C026",
+          "record_key": "6a9e8f0041b2be6ea0c7fa2b2e72dba8fdf80f9c",
+          "fingerprint": "6a9e8f0041b2be6ea0c7fa2b2e72dba8fdf80f9c",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "界面看起来很清爽",
+          "rating": 5,
+          "created_at": "2026-07-03T23:00:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "交互体验问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "交互体验问题"
+          ],
+          "matched_keywords": {
+            "交互体验问题": [
+              "界面"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "交互体验问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C027",
+          "record_key": "d5a06c709aff37d1061d3c680e1bcfae983e3a7b",
+          "fingerprint": "d5a06c709aff37d1061d3c680e1bcfae983e3a7b",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "搜索结果很有帮助",
+          "rating": 4,
+          "created_at": "2026-07-03T23:15:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C028",
+          "record_key": "5e723cf5fe29dcc20899e6d3b8a79777a06fc4d0",
+          "fingerprint": "5e723cf5fe29dcc20899e6d3b8a79777a06fc4d0",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "提醒功能运行正常",
+          "rating": 4,
+          "created_at": "2026-07-03T23:30:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C029",
+          "record_key": "47c38b3bc203c0b0a97e765ec89c33a58b8a2b15",
+          "fingerprint": "47c38b3bc203c0b0a97e765ec89c33a58b8a2b15",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "新版本整体值得推荐",
+          "rating": 5,
+          "created_at": "2026-07-03T23:45:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "正向反馈/无明确问题",
+          "priority": "P2",
+          "confidence": 0.69,
+          "matched_categories": [
+            "正向反馈/无明确问题"
+          ],
+          "matched_keywords": {
+            "正向反馈/无明确问题": [
+              "推荐"
+            ]
+          },
+          "review_reasons": [],
+          "classification_source": "rules",
+          "rule_issue_category": "正向反馈/无明确问题",
+          "llm_rule_disagreement": false
+        },
+        {
+          "feedback_id": "C030",
+          "record_key": "1ef00dc197d5d268561be4ac4fcf065f9247b854",
+          "fingerprint": "1ef00dc197d5d268561be4ac4fcf065f9247b854",
+          "source": "App Store",
+          "app_name": "Acme Copilot",
+          "review_text": "目前使用下来基本稳定",
+          "rating": 4,
+          "created_at": "2026-07-04T00:00:00+08:00",
+          "metadata": {
+            "version": "v2.4"
+          },
+          "issue_category": "不明确/其他",
+          "priority": "P2",
+          "confidence": 0.25,
+          "matched_categories": [],
+          "matched_keywords": {},
+          "review_reasons": [
+            "分类低置信度"
+          ],
+          "classification_source": "rules",
+          "rule_issue_category": "不明确/其他",
+          "llm_rule_disagreement": false
+        }
+      ]
+    }
+  ],
+  "cluster_actions": [],
+  "merge_rules": [],
+  "split_rules": [],
+  "audit_events": [
+    {
+      "event_id": "audit_8b1cd0d37fcb",
+      "timestamp": "2026-07-28T02:37:41+00:00",
+      "action": "创建观察任务",
+      "message": "已创建 v2.3 → v2.4 的版本观察任务。",
+      "actor": "human",
+      "details": {
+        "comparison_basis": "equivalent_window",
+        "baseline_window_hours": 48.0,
+        "current_window_hours": 48.0
+      }
+    },
+    {
+      "event_id": "audit_e2cd0fafb02c",
+      "timestamp": "2026-07-28T02:40:06+00:00",
+      "action": "导入反馈",
+      "message": "baseline 48h 已导入 30 条有效反馈；去重 0 条，异常 0 条。",
+      "actor": "system",
+      "details": {
+        "import_id": "import_ba8896815fb4",
+        "status": "success",
+        "window_kind": "baseline",
+        "observation_hours": 48,
+        "import_mode": "incremental",
+        "source": "App Store",
+        "filename": "baseline_48h.csv",
+        "imported_at": "2026-07-28T02:40:06+00:00",
+        "accepted_count": 30,
+        "duplicate_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "generated_id_count": 0,
+        "missing_rating_count": 0,
+        "column_mapping": {
+          "id": "id",
+          "source": "source",
+          "app_name": "app_name",
+          "review_text": "review_text",
+          "rating": "rating",
+          "created_at": "created_at"
+        },
+        "classification_source": "rules",
+        "engine": "rules"
+      }
+    },
+    {
+      "event_id": "audit_a08255fa22b1",
+      "timestamp": "2026-07-28T02:41:03+00:00",
+      "action": "导入反馈",
+      "message": "current 48h 已导入 30 条有效反馈；去重 0 条，异常 0 条。",
+      "actor": "system",
+      "details": {
+        "import_id": "import_37252562b417",
+        "status": "success",
+        "window_kind": "current",
+        "observation_hours": 48,
+        "import_mode": "incremental",
+        "source": "App Store",
+        "filename": "current_48h.csv",
+        "imported_at": "2026-07-28T02:41:03+00:00",
+        "accepted_count": 30,
+        "duplicate_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "generated_id_count": 0,
+        "missing_rating_count": 0,
+        "column_mapping": {
+          "id": "id",
+          "source": "source",
+          "app_name": "app_name",
+          "review_text": "review_text",
+          "rating": "rating",
+          "created_at": "created_at"
+        },
+        "classification_source": "rules",
+        "engine": "rules"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+record_key,id,decision,original_issue_category,original_priority,final_issue_category,final_priority,human_review_reasons,reviewer_note,reviewed_at
+B004::4,B004,pending,账号、隐私与数据问题,P1,,,同时命中多个问题类型,,
+B006::6,B006,pending,账号、隐私与数据问题,P1,,,同时命中多个问题类型,,
+B010::10,B010,pending,不明确/其他,P1,,,分类低置信度,,
+B016::16,B016,pending,不明确/其他,P2,,,分类低置信度,,
+B019::19,B019,pending,不明确/其他,P2,,,分类低置信度,,
+B021::21,B021,pending,不明确/其他,P2,,,分类低置信度,,
+B022::22,B022,pending,不明确/其他,P2,,,分类低置信度,,
+B024::24,B024,pending,不明确/其他,P2,,,分类低置信度,,
+B025::25,B025,pending,不明确/其他,P2,,,分类低置信度,,
+B027::27,B027,pending,不明确/其他,P2,,,文本过短；分类低置信度,,
+B029::29,B029,pending,不明确/其他,P2,,,分类低置信度,,

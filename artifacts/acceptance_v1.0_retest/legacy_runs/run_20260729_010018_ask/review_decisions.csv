@@ -1,0 +1,8 @@
+record_key,id,decision,original_issue_category,original_priority,final_issue_category,final_priority,human_review_reasons,reviewer_note,reviewed_at
+fb003::3,fb003,pending,性能与稳定性问题,P0,,,P0 样本,,
+fb004::4,fb004,pending,会员与商业化问题,P0,,,P0 样本,,
+fb005::5,fb005,pending,内容安全与合规问题,P1,,,同时命中多个问题类型；内容安全与合规样本,,
+fb006::6,fb006,pending,账号、隐私与数据问题,P1,,,同时命中多个问题类型,,
+fb009::9,fb009,pending,不明确/其他,P1,,,文本过短；分类低置信度,,
+fb010::10,fb010,pending,交互体验问题,P1,,,同时命中多个问题类型,,
+fb012::12,fb012,pending,会员与商业化问题,P0,,,P0 样本,,

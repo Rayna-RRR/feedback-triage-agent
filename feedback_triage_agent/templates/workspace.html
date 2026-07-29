@@ -1,0 +1,629 @@
+{% extends "risk_base.html" %}
+
+{% block title %}{{ task.name | default("观察任务") }} · 发版反馈风险工作台{% endblock %}
+
+{% block navigation %}
+<a href="/">
+  <span class="risk-nav-icon" aria-hidden="true">←</span>
+  全部任务
+</a>
+<a class="is-active" href="#overview">
+  <span class="risk-nav-icon" aria-hidden="true">⌁</span>
+  风险总览
+</a>
+<a href="#clusters">
+  <span class="risk-nav-icon" aria-hidden="true">◎</span>
+  问题簇
+</a>
+<a href="#import-feedback">
+  <span class="risk-nav-icon" aria-hidden="true">⇧</span>
+  导入反馈
+</a>
+<a href="#owner-summary">
+  <span class="risk-nav-icon" aria-hidden="true">≡</span>
+  负责人摘要
+</a>
+<a href="#audit-log">
+  <span class="risk-nav-icon" aria-hidden="true">⌕</span>
+  运行留痕
+</a>
+{% endblock %}
+
+{% block content %}
+{% set metrics = workspace.metrics | default({}) %}
+{% set clusters = workspace.clusters | default([]) %}
+{% set imports = workspace.imports | default([]) %}
+{% set audit_events = workspace.audit_events | default(workspace.audit | default([])) %}
+{% set followup_comparison = workspace.followup_comparison | default(None) %}
+
+<section class="risk-workspace-header" id="overview">
+  <div>
+    <div class="risk-breadcrumb"><a href="/">观察任务</a><span>/</span><span>{{ task.name | default("未命名任务") }}</span></div>
+    <p class="risk-eyebrow">{{ task.product_name | default("未填写产品名") }}</p>
+    <h1>{{ task.name | default("未命名观察任务") }}</h1>
+    <div class="risk-version-line">
+      <span>{{ task.baseline_version | default("基线版本") }}</span>
+      <span aria-hidden="true">→</span>
+      <strong>{{ task.current_version | default("当前版本") }}</strong>
+      {% if task.comparison_basis | default("equal_window") in ["equal_window", "equivalent_window"] %}
+      <span class="risk-pill risk-pill-ok">同等窗口</span>
+      {% else %}
+      <span class="risk-pill risk-pill-warning">非同等口径</span>
+      {% endif %}
+    </div>
+  </div>
+  <a class="risk-button risk-button-primary" href="#import-feedback">导入本窗口反馈</a>
+</section>
+
+{% if task.compatibility_note %}
+<div class="risk-basis-warning" role="note">
+  <div>
+    <strong>旧任务兼容边界</strong>
+    <p>{{ task.compatibility_note }}</p>
+  </div>
+</div>
+{% endif %}
+
+{% if task.comparison_basis | default("equal_window") not in ["equal_window", "equivalent_window"] %}
+<div class="risk-basis-warning" role="note">
+  <div>
+    <strong>当前不是同等窗口比较</strong>
+    <p>{{ task.comparison_note | default("未提供口径说明；当前结论应视为证据不足。") }}</p>
+  </div>
+</div>
+{% endif %}
+
+{% if message %}
+<div class="risk-alert risk-alert-success" role="status">
+  <strong>操作已记录</strong>
+  <p>{{ message }}</p>
+</div>
+{% endif %}
+{% if error %}
+<div class="risk-alert risk-alert-error" role="alert">
+  <strong>本次操作未完成</strong>
+  <p>{{ error }}</p>
+</div>
+{% endif %}
+
+<section class="risk-toolbar" aria-label="观察窗口和来源筛选">
+  <form method="get" action="/tasks/{{ task.task_id | default(task.id) }}">
+    <fieldset class="risk-segmented">
+      <legend>观察窗口</legend>
+      {% for window in [24, 48, 72] %}
+      <label>
+        <input type="radio" name="window" value="{{ window }}" {% if selected_window | int == window %}checked{% endif %}>
+        <span>{{ window }}h</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    <label class="risk-source-filter">
+      <span>反馈来源</span>
+      <select name="source">
+        <option value="all" {% if selected_source == "all" %}selected{% endif %}>全部来源</option>
+        {% for source in sources %}
+        <option value="{{ source }}" {% if selected_source == source %}selected{% endif %}>{{ source }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="risk-button risk-button-secondary" type="submit">应用筛选</button>
+  </form>
+  <p>每个版本窗口独立保存累计快照；筛选只改变当前视图，不改写上一轮导入、结论或证据。</p>
+</section>
+
+<section class="risk-metric-grid risk-metric-grid-workspace" aria-label="风险概览">
+  <article class="risk-metric-card">
+    <span>基线反馈</span>
+    <strong>{{ metrics.baseline_feedback_count | default(metrics.baseline_total | default(metrics.baseline_count | default(0))) }}</strong>
+    <small>{{ task.baseline_version | default("基线版本") }} · {{ selected_window }}h</small>
+  </article>
+  <article class="risk-metric-card">
+    <span>当前反馈</span>
+    <strong>{{ metrics.current_feedback_count | default(metrics.current_total | default(metrics.current_count | default(0))) }}</strong>
+    <small>{{ task.current_version | default("当前版本") }} · {{ selected_window }}h</small>
+  </article>
+  <article class="risk-metric-card">
+    <span>问题簇</span>
+    <strong>{{ metrics.cluster_count | default(clusters | length) }}</strong>
+    <small>相似反馈聚合后的问题单元</small>
+  </article>
+  <article class="risk-metric-card risk-metric-attention">
+    <span>待人工复核</span>
+    <strong>{{ metrics.pending_review_count | default(metrics.review_required_count | default(0)) }}</strong>
+    <small>高风险、低置信度或判断冲突</small>
+  </article>
+  {% if followup_comparison %}
+  <article class="risk-metric-card">
+    <span>后续反馈</span>
+    <strong>{{ metrics.followup_feedback_count | default(0) }}</strong>
+    <small>{{ task.current_version | default("当前版本") }} · 后续 {{ selected_window }}h</small>
+  </article>
+  {% endif %}
+</section>
+
+<section class="risk-section risk-round-summary" aria-labelledby="round-summary-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Independent windows</p>
+      <h2 id="round-summary-title">两轮窗口变化</h2>
+      <p>当前相对基线与后续相对当前分别计算；后一轮不会覆盖前一轮的数量、状态或原始证据。</p>
+    </div>
+  </div>
+  <div class="risk-round-grid">
+    {% for comparison in workspace.comparisons | default([]) %}
+    <article class="risk-round-card">
+      <div class="risk-round-card-heading">
+        <strong>{{ comparison.left_label }} → {{ comparison.right_label }}</strong>
+        <span>{{ comparison.metrics.left_feedback_count }} 条 → {{ comparison.metrics.right_feedback_count }} 条</span>
+      </div>
+      <p>{{ comparison.metrics.cluster_count }} 个问题簇，来自独立的 {{ comparison.left_label }} 与 {{ comparison.right_label }} 快照。</p>
+    </article>
+    {% endfor %}
+    {% if not followup_comparison %}
+    <div class="risk-inline-empty risk-round-empty">
+      <strong>后续窗口尚未导入</strong>
+      <p>导入后会新增“后续相对当前”一轮比较，当前窗口仍保持原数量。</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="risk-section" id="clusters" aria-labelledby="clusters-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Issue clusters</p>
+      <h2 id="clusters-title">问题簇与原始证据</h2>
+      <p>风险是问题簇级判断。每张卡片应能回到组成它的基线和当前反馈，而不是把一条反馈直接当成一个问题。</p>
+    </div>
+    <div class="risk-legend" aria-label="变化状态说明">
+      <span><i class="is-new"></i>新增</span>
+      <span><i class="is-worse"></i>加重</span>
+      <span><i class="is-stable"></i>稳定</span>
+      <span><i class="is-better"></i>缓解</span>
+      <span><i class="is-uncertain"></i>证据不足</span>
+    </div>
+  </div>
+
+  {% if clusters %}
+  <div class="risk-cluster-list">
+    {% for cluster in clusters %}
+    {% set risk_level = cluster.risk_level | default("P2") %}
+    {% set change_status = cluster.change_status | default("证据不足") %}
+    {% set review_status = cluster.review_status | default("待复核") %}
+    <article class="risk-cluster-card" id="cluster-{{ cluster.cluster_id | default(loop.index) }}">
+      <div class="risk-cluster-accent
+        {% if risk_level == 'P0' %}is-p0
+        {% elif risk_level == 'P1' %}is-p1
+        {% else %}is-p2{% endif %}" aria-hidden="true"></div>
+
+      <header class="risk-cluster-header">
+        <div>
+          <div class="risk-cluster-labels">
+            <span class="risk-priority
+              {% if risk_level == 'P0' %}is-p0
+              {% elif risk_level == 'P1' %}is-p1
+              {% else %}is-p2{% endif %}">{{ risk_level }}</span>
+            <span class="risk-change-pill
+              {% if change_status in ['新增', 'new'] %}is-new
+              {% elif change_status in ['加重', 'worsened'] %}is-worse
+              {% elif change_status in ['稳定', 'stable'] %}is-stable
+              {% elif change_status in ['缓解', 'improved'] %}is-better
+              {% else %}is-uncertain{% endif %}">{{ change_status }}</span>
+            <span class="risk-pill {% if review_status in ['待复核', 'pending'] %}risk-pill-warning{% elif review_status in ['已驳回', 'rejected'] %}risk-pill-muted{% else %}risk-pill-ok{% endif %}">{{ review_status }}</span>
+          </div>
+          <h3>{{ cluster.title | default("未命名问题簇") }}</h3>
+          <p>{{ cluster.summary | default(cluster.issue_category | default(cluster.category | default("暂无问题摘要"))) }}</p>
+        </div>
+        <span class="risk-cluster-id">#{{ cluster.cluster_id | default(loop.index) }}</span>
+      </header>
+
+      <div class="risk-cluster-body">
+        <section class="risk-comparison" aria-label="前后版本反馈对比">
+          <div>
+            <span>基线</span>
+            <strong>{{ cluster.baseline_count | default(0) }} 条</strong>
+            <small>{{ ((cluster.baseline_share | default(0) | float) * 100) | round(1) }}%</small>
+          </div>
+          <div class="risk-comparison-arrow" aria-hidden="true">→</div>
+          <div>
+            <span>当前</span>
+            <strong>{{ cluster.current_count | default(0) }} 条</strong>
+            <small>{{ ((cluster.current_share | default(0) | float) * 100) | round(1) }}%</small>
+          </div>
+          <div class="risk-delta">
+            <span>占比变化</span>
+            <strong>
+              {% if cluster.delta_share | default(0) | float > 0 %}+{% endif %}{{ ((cluster.delta_share | default(0) | float) * 100) | round(1) }} 个百分点
+            </strong>
+          </div>
+        </section>
+
+        <section class="risk-rationale">
+          <div>
+            <h4>风险依据</h4>
+            {% if cluster.risk_reasons %}
+            <ul>
+              {% for reason in cluster.risk_reasons %}
+              <li>{{ reason }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="risk-muted-copy">暂无可展示的风险依据，不能仅凭风险标签做决定。</p>
+            {% endif %}
+          </div>
+          <div>
+            <h4>证据缺口</h4>
+            {% if cluster.evidence_gaps %}
+            <ul class="risk-gap-list">
+              {% for gap in cluster.evidence_gaps %}
+              <li>{{ gap }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="risk-muted-copy">当前未记录证据缺口。</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <dl class="risk-cluster-meta">
+          <div><dt>分类</dt><dd>{{ cluster.issue_category | default(cluster.category | default("未分类")) }}</dd></div>
+          <div><dt>置信度</dt><dd>{{ cluster.confidence | default("未计算") }}</dd></div>
+          <div><dt>负责人</dt><dd>{{ cluster.owner | default("待分配", true) }}</dd></div>
+          <div><dt>处理状态</dt><dd>{{ cluster.work_status | default("待处理") }}</dd></div>
+          <div><dt>下步动作</dt><dd>{{ cluster.next_action | default(cluster.handling_action | default("待人工确认", true), true) }}</dd></div>
+          <div><dt>后续验证</dt><dd>{{ cluster.trajectory | default("等待下一观察窗口") }}</dd></div>
+        </dl>
+
+        <details class="risk-evidence">
+          <summary>
+            <span>查看原始反馈证据</span>
+            <small>{% if cluster.members %}{{ cluster.members | length }}{% else %}{{ (cluster.baseline_evidence | default([]) | length) + (cluster.current_evidence | default([]) | length) }}{% endif %} 条成员反馈</small>
+          </summary>
+          {% if cluster.members %}
+          <div class="risk-evidence-list">
+            {% for evidence in cluster.members %}
+            <blockquote class="risk-evidence-item">
+              <p><strong>原文：</strong>“{{ evidence.review_text | default(evidence.text | default("原始反馈文本缺失")) }}”</p>
+              <footer>
+                <span>反馈 ID：{{ evidence.feedback_id | default(evidence.id | default("缺失")) }}</span>
+                <span>来源：{{ evidence.source | default("来源未知") }}</span>
+                <span>产品版本：{{ evidence.version | default("版本未知") }}</span>
+                <span>所属窗口：{{ evidence.window_label | default(evidence.window_kind | default(evidence.window | default("窗口未标记"))) }}</span>
+                <span>窗口起止：{{ evidence.window_start | default("开始时间未知") }} → {{ evidence.window_end | default("结束时间未知") }}</span>
+                {% if evidence.evidence_id %}<span>证据键: {{ evidence.evidence_id }}</span>{% endif %}
+                {% if evidence.rating is defined and evidence.rating is not none %}<span>评分 {{ evidence.rating }}</span>{% endif %}
+              </footer>
+              {% if evidence.review_reasons %}
+              <small class="risk-evidence-warning">需复核：{{ evidence.review_reasons | join("；") }}</small>
+              {% endif %}
+            </blockquote>
+            {% endfor %}
+          </div>
+          {% elif cluster.baseline_evidence or cluster.current_evidence %}
+          <div class="risk-evidence-list">
+            {% for evidence in cluster.baseline_evidence | default([]) %}
+            <blockquote class="risk-evidence-item">
+              <p><strong>原文：</strong>“{{ evidence.review_text | default("原始反馈文本缺失") }}”</p>
+              <footer>
+                <span>反馈 ID：{{ evidence.feedback_id | default(evidence.source_record_id | default(evidence.evidence_id | default("缺失"))) }}</span>
+                <span>来源：{{ evidence.source | default("来源未知") }}</span>
+                <span>产品版本：{{ evidence.version | default("版本未知") }}</span>
+                <span>所属窗口：{{ evidence.window_label | default("基线窗口") }}</span>
+                <span>窗口起止：{{ evidence.window_start | default("开始时间未知") }} → {{ evidence.window_end | default("结束时间未知") }}</span>
+                {% if evidence.rating is defined and evidence.rating is not none %}<span>评分 {{ evidence.rating }}</span>{% endif %}
+              </footer>
+              {% if evidence.review_reasons %}
+              <small class="risk-evidence-warning">需复核：{{ evidence.review_reasons | join("；") }}</small>
+              {% endif %}
+            </blockquote>
+            {% endfor %}
+            {% for evidence in cluster.current_evidence | default([]) %}
+            <blockquote class="risk-evidence-item">
+              <p><strong>原文：</strong>“{{ evidence.review_text | default("原始反馈文本缺失") }}”</p>
+              <footer>
+                <span>反馈 ID：{{ evidence.feedback_id | default(evidence.source_record_id | default(evidence.evidence_id | default("缺失"))) }}</span>
+                <span>来源：{{ evidence.source | default("来源未知") }}</span>
+                <span>产品版本：{{ evidence.version | default("版本未知") }}</span>
+                <span>所属窗口：{{ evidence.window_label | default("当前窗口") }}</span>
+                <span>窗口起止：{{ evidence.window_start | default("开始时间未知") }} → {{ evidence.window_end | default("结束时间未知") }}</span>
+                {% if evidence.rating is defined and evidence.rating is not none %}<span>评分 {{ evidence.rating }}</span>{% endif %}
+              </footer>
+              {% if evidence.review_reasons %}
+              <small class="risk-evidence-warning">需复核：{{ evidence.review_reasons | join("；") }}</small>
+              {% endif %}
+            </blockquote>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="risk-inline-empty">
+            <strong>没有可回看的原始反馈</strong>
+            <p>当前问题簇缺少证据成员，应标记为证据不足，不能进入已确认摘要。</p>
+          </div>
+          {% endif %}
+        </details>
+
+        <details class="risk-action-panel">
+          <summary>人工复核与处理</summary>
+          <form action="/tasks/{{ task.task_id | default(task.id) }}/clusters/{{ cluster.cluster_id }}/actions" method="post" data-cluster-action-form>
+            <input type="hidden" name="selected_window" value="{{ selected_window }}">
+            <input type="hidden" name="selected_source" value="{{ selected_source }}">
+            <div class="risk-action-grid">
+              <label class="risk-field">
+                <span>操作</span>
+                <select name="action" data-cluster-action>
+                  <option value="confirm">确认风险结论</option>
+                  <option value="reject">驳回风险结论</option>
+                  <option value="keep_open">保持观察</option>
+                  <option value="update">更新负责人和处理动作</option>
+                  <option value="merge">合并到其他问题簇</option>
+                  <option value="split">拆分成员反馈</option>
+                </select>
+              </label>
+
+              <div class="risk-action-fields" data-action-group="confirm update">
+                <label class="risk-field">
+                  <span>确认后的风险等级</span>
+                  <select name="risk_level">
+                    <option value="">保持当前等级</option>
+                    <option value="P0">P0 · 阻断或严重风险</option>
+                    <option value="P1">P1 · 需要优先处理</option>
+                    <option value="P2">P2 · 继续观察</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="risk-action-fields risk-action-fields-wide" data-action-group="confirm keep_open update">
+                <div class="risk-field-grid risk-field-grid-2">
+                  <label class="risk-field">
+                    <span>负责人</span>
+                    <input name="owner" type="text" maxlength="120" value="{{ cluster.owner | default('', true) }}" placeholder="姓名或负责团队">
+                  </label>
+                  <label class="risk-field">
+                    <span>处理状态</span>
+                    <select name="work_status">
+                      <option value="">保持当前状态</option>
+                      <option value="待处理">待处理</option>
+                      <option value="处理中">处理中</option>
+                      <option value="待验证">待验证</option>
+                      <option value="已缓解">已缓解</option>
+                      <option value="已关闭">已关闭</option>
+                    </select>
+                  </label>
+                  <label class="risk-field">
+                    <span>下一步动作</span>
+                    <input name="next_action" type="text" maxlength="300" value="{{ cluster.next_action | default(cluster.handling_action | default('', true), true) }}" placeholder="例如：排查 Android 端崩溃堆栈">
+                  </label>
+                  <label class="risk-field">
+                    <span>处理结果</span>
+                    <input name="result" type="text" maxlength="500" value="{{ cluster.result | default(cluster.handling_result | default('', true), true) }}" placeholder="没有结果时可留空，后续再补">
+                  </label>
+                </div>
+              </div>
+
+              <div class="risk-action-fields" data-action-group="merge" hidden>
+                <label class="risk-field">
+                  <span>目标问题簇 ID <em>*</em></span>
+                  <input name="target_cluster_id" type="text" maxlength="120" placeholder="合并后保留的 cluster ID">
+                </label>
+              </div>
+
+              <div class="risk-action-fields" data-action-group="split" hidden>
+                <label class="risk-field">
+                  <span>要拆出的反馈 ID <em>*</em></span>
+                  <textarea name="feedback_ids" rows="3" maxlength="1200" placeholder="多个 ID 用逗号分隔；跨来源重名时填写“来源:反馈 ID”"></textarea>
+                </label>
+              </div>
+
+              <label class="risk-field risk-action-note">
+                <span>操作说明</span>
+                <textarea name="note" rows="3" maxlength="800" placeholder="说明确认、驳回、合并或拆分的依据；会写入审计记录。"></textarea>
+              </label>
+            </div>
+            <div class="risk-action-submit">
+              <p>人工操作不会覆盖原始反馈和系统初始判断，会作为新记录追加。</p>
+              <button class="risk-button risk-button-primary" type="submit">记录本次操作</button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="risk-empty-state">
+    <span class="risk-empty-mark" aria-hidden="true">◎</span>
+    <h3>当前筛选下没有问题簇</h3>
+    <p>请先导入基线和当前反馈。若已经导入，也可能是当前窗口或来源筛选没有匹配数据。</p>
+    <a class="risk-button risk-button-primary" href="#import-feedback">导入反馈</a>
+  </div>
+  {% endif %}
+</section>
+
+{% if followup_comparison %}
+<section class="risk-section risk-followup-section" id="followup-round" aria-labelledby="followup-round-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Follow-up comparison</p>
+      <h2 id="followup-round-title">后续相对当前</h2>
+      <p>这里单独展示当前 → 后续的数量、状态和原始证据；前一轮“当前相对基线”仍保留在上方。</p>
+    </div>
+    <span class="risk-step-badge">第二轮</span>
+  </div>
+  {% if followup_comparison.clusters %}
+  <div class="risk-followup-list">
+    {% for cluster in followup_comparison.clusters %}
+    <article class="risk-followup-card">
+      <div class="risk-followup-card-top">
+        <div>
+          <span class="risk-change-pill {% if cluster.change_status == '加重' %}is-worse{% elif cluster.change_status == '缓解' %}is-better{% elif cluster.change_status == '稳定' %}is-stable{% else %}is-uncertain{% endif %}">{{ cluster.change_status }}</span>
+          <h3>{{ cluster.title }}</h3>
+        </div>
+        <strong>{{ cluster.baseline_count }} → {{ cluster.current_count }}</strong>
+      </div>
+      <p class="risk-followup-summary">当前 {{ (cluster.baseline_share * 100) | round(1) }}% · 后续 {{ (cluster.current_share * 100) | round(1) }}% · {{ cluster.summary }}</p>
+      <div class="risk-followup-evidence">
+        {% for evidence in cluster.members %}
+        <div class="risk-followup-evidence-item">
+          <strong>{{ evidence.feedback_id }}</strong>
+          <span>原文：{{ evidence.review_text }}</span>
+          <span>来源：{{ evidence.source }} · 产品版本：{{ evidence.version }}</span>
+          <span>窗口起止（{{ evidence.window_label }}）：{{ evidence.window_start }} → {{ evidence.window_end }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="risk-inline-empty"><strong>后续窗口暂无可比较问题</strong><p>当前与后续快照都已独立保存，但没有形成可展示的问题簇。</p></div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="risk-section risk-form-section" id="import-feedback" aria-labelledby="import-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Import feedback</p>
+      <h2 id="import-title">导入观察窗口反馈</h2>
+      <p>累计快照是默认方式：每次上传所选窗口截至该时点的完整数据。基线、当前和后续分别保存；若只能导出新增反馈，可选择增量导入。</p>
+    </div>
+    <span class="risk-step-badge">数据输入</span>
+  </div>
+
+  <form class="risk-form risk-import-form" action="/tasks/{{ task.task_id | default(task.id) }}/imports" method="post" enctype="multipart/form-data">
+    <div class="risk-field-grid risk-field-grid-5">
+      <label class="risk-field">
+        <span>数据窗口 <em>*</em></span>
+        <select name="window_kind" required>
+          <option value="baseline">基线版本</option>
+          <option value="current" selected>当前版本</option>
+          <option value="followup">后续版本窗口</option>
+        </select>
+      </label>
+      <label class="risk-field">
+        <span>导入方式 <em>*</em></span>
+        <select name="import_mode" required data-import-mode>
+          <option value="cumulative" selected>累计快照（推荐）</option>
+          <option value="incremental">增量数据</option>
+        </select>
+      </label>
+      <label class="risk-field">
+        <span>观察窗口 <em>*</em></span>
+        <select name="observation_hours" required>
+          <option value="24" {% if selected_window | int == 24 %}selected{% endif %}>发版后 24h</option>
+          <option value="48" {% if selected_window | int == 48 %}selected{% endif %}>发版后 48h</option>
+          <option value="72" {% if selected_window | int == 72 %}selected{% endif %}>发版后 72h</option>
+        </select>
+      </label>
+      <label class="risk-field">
+        <span>反馈来源 <em>*</em></span>
+        <input name="source" type="text" required maxlength="120" placeholder="例如：App Store">
+      </label>
+      <div class="risk-field risk-file-field">
+        <span id="risk-file-label">CSV 文件 <em>*</em></span>
+        <input id="risk-feedback-file" class="risk-file-input" name="file" type="file" accept=".csv,text/csv" required data-risk-file aria-labelledby="risk-file-label">
+        <label class="risk-file-picker" for="risk-feedback-file">
+          <span class="risk-file-button">选择文件</span>
+          <small data-file-name>未选择文件</small>
+        </label>
+      </div>
+    </div>
+    <div class="risk-import-guidance">
+      <p data-import-guidance><strong>累计快照：</strong>上传所选窗口截至当前观察时点的完整反馈集合；完全相同的既有记录会明确计为跳过，不重复计数。</p>
+      <button class="risk-button risk-button-primary" type="submit">校验并导入</button>
+    </div>
+  </form>
+
+  <div class="risk-table-wrap">
+    <table class="risk-table">
+      <caption>最近导入记录</caption>
+      <thead>
+        <tr>
+          <th scope="col">时间</th>
+          <th scope="col">窗口</th>
+          <th scope="col">方式</th>
+          <th scope="col">观察窗口</th>
+          <th scope="col">来源</th>
+          <th scope="col">文件</th>
+          <th scope="col">新写入 / 跳过 / 文件内重复 / 异常</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if imports %}
+        {% for item in imports %}
+        <tr>
+          <td>{{ item.imported_at | default(item.created_at | default("时间未记录")) }}</td>
+          <td>{{ item.window_kind | default("未标记") }}</td>
+          <td>{{ item.import_mode | default(item.mode | default("未标记")) }}</td>
+          <td>{{ item.observation_hours | default("未标记") }}h</td>
+          <td>{{ item.source | default("来源未知") }}</td>
+          <td>{{ item.filename | default("文件名未记录") }}</td>
+          <td>
+            {{ item.accepted_count | default(item.valid_count | default(0)) }}
+            / {{ item.skipped_count | default(0) }}
+            / {{ item.within_file_duplicate_count | default(item.duplicate_count | default(0)) }}
+            / {{ item.error_count | default(item.invalid_count | default(0)) }}
+            {% if item.skip_reasons %}<small class="risk-table-note">{{ item.skip_reasons | join("；") }}</small>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="7" class="risk-table-empty">尚无导入记录。导入前不会显示虚构的反馈数量或风险状态。</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="risk-two-column">
+  <section class="risk-section" id="owner-summary" aria-labelledby="owner-summary-title">
+    <div class="risk-section-heading">
+      <div>
+        <p class="risk-eyebrow">Owner summary</p>
+        <h2 id="owner-summary-title">负责人摘要</h2>
+        <p>只汇总有证据且经过人工确认的重点问题；待复核内容不会伪装成已确认结论。</p>
+      </div>
+    </div>
+    {% if workspace.owner_summary %}
+    <pre class="risk-summary-copy">{{ workspace.owner_summary }}</pre>
+    {% else %}
+    <div class="risk-inline-empty">
+      <strong>暂无可发布摘要</strong>
+      <p>完成问题簇复核并记录负责人后，这里才会形成真实摘要。</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="risk-section" id="audit-log" aria-labelledby="audit-title">
+    <div class="risk-section-heading">
+      <div>
+        <p class="risk-eyebrow">Run & audit trail</p>
+        <h2 id="audit-title">运行与人工留痕</h2>
+        <p>输入校验、fallback、异常、系统判断和人工修改按时间追加，不另造孤立审计页。</p>
+      </div>
+    </div>
+    {% if audit_events %}
+    <ol class="risk-timeline">
+      {% for event in audit_events %}
+      <li>
+        <span class="risk-timeline-dot" aria-hidden="true"></span>
+        <div>
+          <time>{{ event.timestamp | default(event.created_at | default("时间未记录")) }}</time>
+          <strong>{{ event.action | default(event.event_type | default("运行记录")) }}</strong>
+          <p>{{ event.message | default(event.detail | default("没有补充说明")) }}</p>
+          {% if event.actor %}<small>操作者：{{ event.actor }}</small>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="risk-inline-empty">
+      <strong>暂无运行记录</strong>
+      <p>首次导入、fallback、异常与人工操作会出现在这里。</p>
+    </div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

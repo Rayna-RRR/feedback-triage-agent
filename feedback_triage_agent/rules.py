@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from feedback_triage_agent.models import ClassifiedFeedback, FeedbackRecord
 
@@ -675,8 +675,8 @@ def score_categories(text: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
     return scores, matched_keywords
 
 
-def detect_positive_feedback(text: str, rating: int) -> List[str]:
-    if rating < 4:
+def detect_positive_feedback(text: str, rating: Optional[int]) -> List[str]:
+    if rating is not None and rating < 4:
         return []
     normalized = normalize_for_matching(text)
     if any(marker in normalized for marker in POSITIVE_CONTRAST_MARKERS):
@@ -713,7 +713,7 @@ def calculate_confidence(scores: Dict[str, int], matched_categories: List[str]) 
     return round(max(0.35, min(confidence, 0.95)), 2)
 
 
-def determine_priority(text: str, rating: int) -> str:
+def determine_priority(text: str, rating: Optional[int]) -> str:
     normalized = normalize_for_matching(text)
     if any(
         contains_actionable_keyword(
@@ -724,7 +724,7 @@ def determine_priority(text: str, rating: int) -> str:
         for keyword in P0_KEYWORDS
     ):
         return "P0"
-    if rating <= 2:
+    if rating is not None and rating <= 2:
         return "P1"
     if any(
         contains_actionable_keyword(

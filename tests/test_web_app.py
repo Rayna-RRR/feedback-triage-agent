@@ -10,6 +10,11 @@ from feedback_triage_agent.models import LLMTaskIntent
 
 def client_with_tmp_runs(tmp_path: Path, monkeypatch) -> TestClient:
     monkeypatch.setattr(web_app, "WEB_RUNS_DIR", tmp_path / "web_runs")
+    monkeypatch.setattr(
+        web_app,
+        "OBSERVATION_TASKS_DIR",
+        tmp_path / "observation_tasks",
+    )
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.delenv("FEEDBACK_TRIAGE_WEB_LLM_ENABLED", raising=False)
     return TestClient(web_app.app)
@@ -33,41 +38,24 @@ def test_web_homepage_is_accessible(tmp_path: Path, monkeypatch) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "反馈分诊后台" in response.text
+    assert "发版反馈风险工作台" in response.text
     assert "v0.9.1" in response.text
-    assert "AI 辅助反馈分诊与问题闭环" in response.text
-    assert "正在准备本地分诊工作台" in response.text
-    assert "自然语言 Ask 入口" in response.text
-    assert "三层质控链" in response.text
-    assert "本地规则模式" in response.text
-    assert "质量验证 / Validation" in response.text
-    assert "106 tests passed" in response.text
-    assert "Validation Layer" in response.text
-    assert "GitHub Actions CI passed" in response.text
-    assert "公开演示数据边界" in response.text
-    assert "使用 LLM 初稿（本地规则模式）" in response.text
-    assert "当前 Web App 进程没有读取到非空 DEEPSEEK_API_KEY" in response.text
-    assert "产品周报" in response.text
-    assert "已复核结果" in response.text
-    assert "Agent workflow" not in response.text
+    assert "创建版本观察任务" in response.text
+    assert "还没有观察任务" in response.text
+    assert "同等窗口" in response.text
+    assert "累计快照" in response.text
+    assert "相关不等于因果" in response.text
+    assert "规则引擎 + 人工复核" in response.text
+    assert "106 tests passed" not in response.text
+    assert "GitHub Actions CI passed" not in response.text
     assert "v0.9.0" not in response.text
-    assert "app.css?v=" in response.text
-    assert "开始分诊" in response.text
-    section_ids = [
-        'id="overview"',
-        'id="run-agent"',
-        'id="ask-entry"',
-        'id="data-source"',
-        'id="run-options"',
-        'id="reports"',
-        'id="validation"',
-    ]
+    assert "risk_workspace.css" in response.text
+    section_ids = ['id="create-task"', 'id="method"']
     section_positions = [response.text.index(section_id) for section_id in section_ids]
     assert section_positions == sorted(section_positions)
-    assert response.text.count('id="reports"') == 1
 
 
-def test_web_homepage_reports_deepseek_key_status_without_exposing_key(
+def test_healthz_reports_deepseek_key_status_without_exposing_key(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -77,8 +65,6 @@ def test_web_homepage_reports_deepseek_key_status_without_exposing_key(
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "API key 已读取，Web LLM 未启用" in response.text
-    assert "还需要设置 FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true" in response.text
     assert "test-key" not in response.text
 
     health_response = client.get("/healthz")
@@ -108,6 +94,8 @@ def test_healthz_reports_web_runtime_state(tmp_path: Path, monkeypatch) -> None:
     assert payload["sample_feedback_available"] is True
     assert payload["ai_reviews_available"] is True
     assert payload["web_runs_dir"] == str(web_app.WEB_RUNS_DIR)
+    assert payload["observation_tasks_dir"] == str(web_app.OBSERVATION_TASKS_DIR)
+    assert payload["observation_storage"] == "local_files"
     assert payload["web_llm_enabled"] is False
     assert payload["deepseek_api_key_present"] is False
     assert payload["web_llm_flag_enabled"] is False
@@ -127,6 +115,28 @@ def test_resolve_web_runs_dir_prefers_env_and_uses_tmp_on_vercel(
 
     monkeypatch.delenv("VERCEL")
     assert web_app.resolve_web_runs_dir() == web_app.LOCAL_WEB_RUNS_DIR
+
+
+def test_resolve_observation_tasks_dir_prefers_env_and_uses_tmp_on_vercel(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    custom_dir = tmp_path / "custom-observations"
+    monkeypatch.setenv("FEEDBACK_RISK_TASKS_DIR", str(custom_dir))
+    monkeypatch.setenv("VERCEL", "1")
+    assert web_app.resolve_observation_tasks_dir() == custom_dir
+
+    monkeypatch.delenv("FEEDBACK_RISK_TASKS_DIR")
+    assert (
+        web_app.resolve_observation_tasks_dir()
+        == web_app.DEPLOY_OBSERVATION_TASKS_DIR
+    )
+
+    monkeypatch.delenv("VERCEL")
+    assert (
+        web_app.resolve_observation_tasks_dir()
+        == web_app.LOCAL_OBSERVATION_TASKS_DIR
+    )
 
 
 def test_cleanup_web_runs_removes_expired_runs_and_limits_retention(
@@ -173,7 +183,9 @@ def test_web_run_sample_feedback_success(tmp_path: Path, monkeypatch) -> None:
     assert "运行总览" in result_response.text
     assert "问题卡片摘要" in result_response.text
     assert "质量验证 / Validation" in result_response.text
-    assert "106 tests passed" in result_response.text
+    assert "自动化回归测试" in result_response.text
+    assert "通过数以实际 pytest 运行结果为准" in result_response.text
+    assert "106 tests passed" not in result_response.text
     run_id = result_url.rsplit("/", 1)[-1]
     run_dir = web_app.WEB_RUNS_DIR / run_id
     assert (run_dir / "triage_results.csv").exists()

@@ -1,10 +1,17 @@
+from typing import Optional
+
 import pytest
+from pydantic import ValidationError
 
 from feedback_triage_agent.models import FeedbackRecord
-from feedback_triage_agent.rules import classify_feedback_record, detect_human_review_reasons
+from feedback_triage_agent.rules import (
+    REQUIRED_FIELDS,
+    classify_feedback_record,
+    detect_human_review_reasons,
+)
 
 
-def make_record(text: str, rating: int = 3) -> FeedbackRecord:
+def make_record(text: str, rating: Optional[int] = 3) -> FeedbackRecord:
     return FeedbackRecord(
         id="t001",
         source="test",
@@ -12,6 +19,38 @@ def make_record(text: str, rating: int = 3) -> FeedbackRecord:
         review_text=text,
         rating=rating,
     )
+
+
+def test_rating_can_be_omitted_without_changing_legacy_csv_contract() -> None:
+    record = FeedbackRecord(
+        id="t001",
+        source="test",
+        app_name="ChatMate",
+        review_text="页面经常卡住。",
+    )
+
+    assert record.rating is None
+    assert "rating" in REQUIRED_FIELDS
+
+
+@pytest.mark.parametrize("rating", [0, 6, 2.5])
+def test_non_empty_rating_still_requires_an_integer_from_one_to_five(
+    rating: float,
+) -> None:
+    with pytest.raises(ValidationError):
+        make_record("页面经常卡住。", rating)  # type: ignore[arg-type]
+
+
+def test_missing_rating_uses_text_only_for_priority_and_positive_feedback() -> None:
+    p0_result = classify_feedback_record(make_record("生成到一半闪退，草稿内容丢失。", None))
+    p1_result = classify_feedback_record(make_record("回答不准确，结果完全不可用。", None))
+    positive_result = classify_feedback_record(make_record("很好用，真的很喜欢。", None))
+
+    assert p0_result.priority == "P0"
+    assert p1_result.priority == "P1"
+    assert positive_result.priority == "P2"
+    assert positive_result.issue_category == "正向反馈/无明确问题"
+    assert p0_result.rating is None
 
 
 def test_classifies_model_capability_issue() -> None:

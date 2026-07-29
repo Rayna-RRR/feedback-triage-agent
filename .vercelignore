@@ -6,6 +6,7 @@ __pycache__
 *.pyc
 
 data/web_runs
+data/observation_tasks
 data/output
 data/output_*
 data/evaluation_output

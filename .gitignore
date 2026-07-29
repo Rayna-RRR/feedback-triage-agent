@@ -20,6 +20,7 @@ data/source_ai_app_feedback/
 
 # generated Web App runs
 data/web_runs/
+data/observation_tasks/
 
 # generated CLI/Ask outputs
 data/evaluation_output/

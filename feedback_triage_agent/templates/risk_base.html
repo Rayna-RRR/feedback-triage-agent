@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="比较发版前后反馈、聚合问题证据并支持人工复核的反馈风险工作台。">
+  <title>{% block title %}发版反馈风险工作台{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230f172a'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%235eead4' stroke-width='4' opacity='.72'/%3E%3Ccircle cx='32' cy='32' r='10' fill='none' stroke='%2386a5ff' stroke-width='4' opacity='.82'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ffffff'/%3E%3Cpath d='M32 32 L50 22' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', path='risk_workspace.css') }}?v={{ static_asset_version }}">
+</head>
+<body>
+  <a class="risk-skip-link" href="#main-content">跳到主内容</a>
+
+  <div class="risk-shell">
+    <aside class="risk-sidebar" id="risk-sidebar" aria-label="工作台导航">
+      <div class="risk-brand">
+        <span class="risk-brand-mark" aria-hidden="true"></span>
+        <span>
+          <strong>Feedback Risk</strong>
+          <small>发版后反馈风险工作台</small>
+        </span>
+      </div>
+
+      <nav class="risk-nav">
+        {% block navigation %}
+        <a class="is-active" href="/">
+          <span class="risk-nav-icon" aria-hidden="true">⌂</span>
+          观察任务
+        </a>
+        {% endblock %}
+      </nav>
+
+      <div class="risk-sidebar-spacer"></div>
+
+      <section class="risk-boundary" aria-label="结论边界">
+        <p class="risk-eyebrow">结论边界</p>
+        <strong>相关不等于因果</strong>
+        <p>工作台只能说明问题在发版后新增、加重、稳定或缓解，不能据此断言由本次版本导致。</p>
+      </section>
+
+      <div class="risk-runtime">
+        <span class="risk-live-dot" aria-hidden="true"></span>
+        <span>{{ deployment_label | default("本地运行") }}</span>
+        <small>v{{ version }}</small>
+      </div>
+    </aside>
+
+    <header class="risk-mobile-header">
+      <a href="/" class="risk-mobile-brand">
+        <span class="risk-brand-mark" aria-hidden="true"></span>
+        <span>Feedback Risk</span>
+      </a>
+      <button class="risk-icon-button" type="button" data-sidebar-toggle aria-controls="risk-sidebar" aria-expanded="false">
+        <span class="sr-only">打开导航</span>
+        <span aria-hidden="true">☰</span>
+      </button>
+    </header>
+
+    <main class="risk-main" id="main-content">
+      {% if storage_notice %}
+      <div class="risk-storage-notice" role="note">
+        <strong>数据保存说明</strong>
+        <span>{{ storage_notice }}</span>
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+      <footer class="risk-footer">
+        <span>Feedback Triage Agent × Version Feedback Risk Radar</span>
+        <span>结论需回到原始反馈证据复核</span>
+      </footer>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', path='risk_workspace.js') }}?v={{ static_asset_version }}"></script>
+</body>
+</html>

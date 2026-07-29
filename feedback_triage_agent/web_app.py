@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 import re
 import shutil
 import os
+import tempfile
 import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import pandas as pd
 import uvicorn
@@ -18,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from feedback_triage_agent import __version__
+from feedback_triage_agent import observation
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.html_report import (
     ReportInputError,
@@ -38,9 +41,18 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
 LOCAL_WEB_RUNS_DIR = DATA_DIR / "web_runs"
 DEPLOY_WEB_RUNS_DIR = Path("/tmp/feedback-triage-runs")
+LOCAL_OBSERVATION_TASKS_DIR = DATA_DIR / "observation_tasks"
+DEPLOY_OBSERVATION_TASKS_DIR = Path("/tmp/feedback-risk-tasks")
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
-STATIC_ASSET_VERSION = str(int((STATIC_DIR / "app.css").stat().st_mtime))
+STATIC_ASSET_VERSION = str(
+    int(
+        max(
+            (STATIC_DIR / filename).stat().st_mtime
+            for filename in ("app.css", "risk_workspace.css", "risk_workspace.js")
+        )
+    )
+)
 
 SAMPLE_FEEDBACK_PATH = DATA_DIR / "sample_feedback.csv"
 AI_REVIEWS_PATH = DATA_DIR / "ai_app_reviews.csv"
@@ -98,7 +110,17 @@ def resolve_web_runs_dir() -> Path:
     return LOCAL_WEB_RUNS_DIR
 
 
+def resolve_observation_tasks_dir() -> Path:
+    configured = os.getenv("FEEDBACK_RISK_TASKS_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    if os.getenv("VERCEL"):
+        return DEPLOY_OBSERVATION_TASKS_DIR
+    return LOCAL_OBSERVATION_TASKS_DIR
+
+
 WEB_RUNS_DIR = resolve_web_runs_dir()
+OBSERVATION_TASKS_DIR = resolve_observation_tasks_dir()
 RUN_RETENTION_HOURS = env_int(
     "FEEDBACK_TRIAGE_RUN_RETENTION_HOURS",
     DEFAULT_RUN_RETENTION_HOURS,
@@ -142,6 +164,12 @@ def web_llm_status() -> Dict[str, object]:
 
 def deployment_label() -> str:
     return "线上 Demo" if os.getenv("VERCEL") else "本地运行"
+
+
+def storage_notice() -> str:
+    if os.getenv("VERCEL"):
+        return "线上 Demo 使用临时文件存储；平台重启或实例回收后任务可能丢失，请勿上传敏感或生产数据。"
+    return f"任务保存在本机 {OBSERVATION_TASKS_DIR}；当前版本不接数据库、账号或付费存储。"
 
 
 def yes_no_label(value: object) -> str:
@@ -266,6 +294,7 @@ def cleanup_web_runs(now: Optional[float] = None) -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     cleanup_web_runs()
+    OBSERVATION_TASKS_DIR.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -298,6 +327,149 @@ def render_index(request: Request, error: Optional[str] = None, status_code: int
             "max_llm_rows": MAX_LLM_ROWS,
         },
         status_code=status_code,
+    )
+
+
+def render_task_index(
+    request: Request,
+    *,
+    message: Optional[str] = None,
+    error: Optional[str] = None,
+    status_code: int = 200,
+):
+    try:
+        tasks = observation.list_tasks(OBSERVATION_TASKS_DIR)
+    except (OSError, ValueError) as exc:
+        tasks = []
+        error = error or f"观察任务目录无法读取：{exc}"
+        status_code = max(status_code, 500)
+    return templates.TemplateResponse(
+        request,
+        "task_index.html",
+        {
+            "tasks": tasks,
+            "message": message,
+            "error": error,
+            "version": __version__,
+            "deployment_label": deployment_label(),
+            "storage_notice": storage_notice(),
+        },
+        status_code=status_code,
+    )
+
+
+def parse_observation_window(value: object, *, default: int = 72) -> int:
+    raw_value = str(value).strip()
+    if not raw_value:
+        return default
+    try:
+        window = int(raw_value)
+    except ValueError as exc:
+        raise ValueError("观察窗口必须是 24、48 或 72 小时。") from exc
+    if window not in observation.SUPPORTED_WINDOWS:
+        raise ValueError("观察窗口必须是 24、48 或 72 小时。")
+    return window
+
+
+def render_task_workspace(
+    request: Request,
+    task_id: str,
+    *,
+    selected_window: int = 72,
+    selected_source: str = "all",
+    message: Optional[str] = None,
+    error: Optional[str] = None,
+    status_code: int = 200,
+):
+    task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+    workspace = observation.build_workspace(
+        task,
+        selected_window=selected_window,
+        selected_source=selected_source,
+    )
+    return templates.TemplateResponse(
+        request,
+        "workspace.html",
+        {
+            "task": workspace["task"],
+            "workspace": workspace,
+            "selected_window": workspace["selected_window"],
+            "selected_source": workspace["selected_source"],
+            "sources": workspace["sources"],
+            "message": message,
+            "error": error,
+            "version": __version__,
+            "deployment_label": deployment_label(),
+            "storage_notice": storage_notice(),
+        },
+        status_code=status_code,
+    )
+
+
+def clean_form_value(
+    value: object,
+    label: str,
+    *,
+    maximum: int,
+    required: bool = False,
+) -> str:
+    cleaned = str(value or "").strip()
+    if required and not cleaned:
+        raise ValueError(f"{label}不能为空。")
+    if len(cleaned) > maximum:
+        raise ValueError(f"{label}不能超过 {maximum} 个字符。")
+    return cleaned
+
+
+def task_workspace_url(
+    task_id: str,
+    *,
+    selected_window: int = 72,
+    selected_source: str = "all",
+    message: Optional[str] = None,
+    error: Optional[str] = None,
+    fragment: str = "",
+) -> str:
+    parameters = {
+        "window": str(selected_window),
+        "source": selected_source or "all",
+    }
+    if message:
+        parameters["message"] = message
+    if error:
+        parameters["error"] = error
+    suffix = f"#{fragment}" if fragment else ""
+    return f"/tasks/{task_id}?{urlencode(parameters)}{suffix}"
+
+
+def selection_from_request(
+    request: Request,
+    selected_window: Optional[str],
+    selected_source: Optional[str],
+) -> Tuple[int, str]:
+    window_value = selected_window or ""
+    source_value = selected_source or ""
+    if not window_value or not source_value:
+        referer = request.headers.get("referer", "")
+        if referer:
+            query = parse_qs(urlparse(referer).query)
+            window_value = window_value or query.get("window", [""])[0]
+            source_value = source_value or query.get("source", [""])[0]
+    return parse_observation_window(window_value), source_value.strip() or "all"
+
+
+def append_observation_failure(
+    task: Dict[str, object],
+    *,
+    action: str,
+    message: str,
+    details: Optional[Dict[str, object]] = None,
+) -> None:
+    observation.append_audit_event(
+        task,
+        action,
+        message,
+        details=details or {},
     )
 
 
@@ -547,8 +719,424 @@ def risk_class(priority: object, reasons: object) -> str:
 
 
 @app.get("/")
-def index(request: Request):
-    return render_index(request)
+def index(
+    request: Request,
+    message: str = "",
+    error: str = "",
+):
+    return render_task_index(
+        request,
+        message=message or None,
+        error=error or None,
+    )
+
+
+@app.post("/tasks")
+def create_observation_task(
+    request: Request,
+    name: str = Form(""),
+    product_name: str = Form(""),
+    baseline_version: str = Form(""),
+    current_version: str = Form(""),
+    baseline_window_start: str = Form(""),
+    baseline_window_end: str = Form(""),
+    current_window_start: str = Form(""),
+    current_window_end: str = Form(""),
+    followup_window_start: str = Form(""),
+    followup_window_end: str = Form(""),
+    comparison_basis: str = Form("equivalent_window"),
+    comparison_note: str = Form(""),
+    change_summary: str = Form(""),
+):
+    try:
+        task = observation.create_task(
+            OBSERVATION_TASKS_DIR,
+            name=clean_form_value(name, "任务名称", maximum=120, required=True),
+            product_name=clean_form_value(
+                product_name,
+                "产品名称",
+                maximum=120,
+                required=True,
+            ),
+            baseline_version=clean_form_value(
+                baseline_version,
+                "基线版本",
+                maximum=80,
+                required=True,
+            ),
+            current_version=clean_form_value(
+                current_version,
+                "当前版本",
+                maximum=80,
+                required=True,
+            ),
+            baseline_window_start=clean_form_value(
+                baseline_window_start,
+                "基线窗口开始时间",
+                maximum=64,
+                required=True,
+            ),
+            baseline_window_end=clean_form_value(
+                baseline_window_end,
+                "基线窗口结束时间",
+                maximum=64,
+                required=True,
+            ),
+            current_window_start=clean_form_value(
+                current_window_start,
+                "当前窗口开始时间",
+                maximum=64,
+                required=True,
+            ),
+            current_window_end=clean_form_value(
+                current_window_end,
+                "当前窗口结束时间",
+                maximum=64,
+                required=True,
+            ),
+            followup_window_start=clean_form_value(
+                followup_window_start,
+                "后续窗口开始时间",
+                maximum=64,
+            ),
+            followup_window_end=clean_form_value(
+                followup_window_end,
+                "后续窗口结束时间",
+                maximum=64,
+            ),
+            comparison_basis=clean_form_value(
+                comparison_basis,
+                "比较口径",
+                maximum=32,
+                required=True,
+            ),
+            comparison_note=clean_form_value(
+                comparison_note,
+                "其他口径说明",
+                maximum=500,
+            ),
+            change_summary=clean_form_value(
+                change_summary,
+                "版本变化摘要",
+                maximum=1200,
+            ),
+        )
+    except ValueError as exc:
+        return render_task_index(request, error=str(exc), status_code=400)
+    except OSError:
+        return render_task_index(
+            request,
+            error="观察任务无法保存，请检查当前存储目录后重试。",
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=task_workspace_url(
+            task["task_id"],
+            message="观察任务已创建，请继续导入基线和当前反馈。",
+        ),
+        status_code=303,
+    )
+
+
+@app.get("/tasks/{task_id}")
+def observation_workspace(
+    request: Request,
+    task_id: str,
+    window: str = "72",
+    source: str = "all",
+    message: str = "",
+    error: str = "",
+):
+    status_code = 200
+    try:
+        selected_window = parse_observation_window(window)
+    except ValueError as exc:
+        selected_window = 72
+        error = error or str(exc)
+        status_code = 400
+    try:
+        selected_source = clean_form_value(
+            source or "all",
+            "反馈来源",
+            maximum=120,
+            required=True,
+        )
+        return render_task_workspace(
+            request,
+            task_id,
+            selected_window=selected_window,
+            selected_source=selected_source,
+            message=message or None,
+            error=error or None,
+            status_code=status_code,
+        )
+    except FileNotFoundError as exc:
+        return render_task_index(request, error=str(exc), status_code=404)
+    except ValueError as exc:
+        return render_task_index(request, error=str(exc), status_code=400)
+
+
+@app.post("/tasks/{task_id}/imports")
+def import_observation_feedback(
+    request: Request,
+    task_id: str,
+    window_kind: str = Form(""),
+    observation_hours: str = Form(""),
+    source: str = Form(""),
+    import_mode: str = Form("cumulative"),
+    file: Optional[UploadFile] = File(None),
+):
+    try:
+        task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+    except FileNotFoundError as exc:
+        return render_task_index(request, error=str(exc), status_code=404)
+    except ValueError as exc:
+        return render_task_index(request, error=str(exc), status_code=400)
+
+    selected_window = 72
+    selected_source = "all"
+    temporary_path: Optional[Path] = None
+    core_import_started = False
+    try:
+        selected_window = parse_observation_window(observation_hours)
+        clean_window_kind = clean_form_value(
+            window_kind,
+            "数据窗口",
+            maximum=16,
+            required=True,
+        )
+        clean_source = clean_form_value(
+            source,
+            "反馈来源",
+            maximum=120,
+            required=True,
+        )
+        selected_source = clean_source
+        clean_mode = clean_form_value(
+            import_mode or "cumulative",
+            "导入方式",
+            maximum=24,
+            required=True,
+        )
+        if file is None or not file.filename:
+            raise ValueError("请选择要上传的 CSV 文件。")
+        if not file.filename.lower().endswith(".csv"):
+            raise ValueError("上传文件必须是 CSV 格式。")
+
+        with tempfile.NamedTemporaryFile(
+            prefix="feedback-risk-",
+            suffix=".csv",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+        save_upload(file, temporary_path)
+        core_import_started = True
+        result = observation.add_import(
+            task,
+            source_path=temporary_path,
+            window_kind=clean_window_kind,
+            observation_hours=selected_window,
+            source=clean_source,
+            import_mode=clean_mode,
+            filename=file.filename,
+        )
+    except (OSError, ValueError) as exc:
+        error_message = (
+            str(exc)
+            if isinstance(exc, ValueError)
+            else "上传文件无法保存，请稍后重试。"
+        )
+        if not core_import_started:
+            try:
+                append_observation_failure(
+                    task,
+                    action="导入失败",
+                    message=error_message,
+                    details={
+                        "window_kind": window_kind,
+                        "observation_hours": observation_hours,
+                        "source": source,
+                        "import_mode": import_mode or "cumulative",
+                        "filename": file.filename if file else "",
+                    },
+                )
+            except (OSError, ValueError):
+                pass
+        return RedirectResponse(
+            url=task_workspace_url(
+                task_id,
+                selected_window=selected_window,
+                selected_source=selected_source,
+                error=error_message,
+                fragment="import-feedback",
+            ),
+            status_code=303,
+        )
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+    message_text = (
+        f"已导入 {result['accepted_count']} 条新反馈，"
+        f"跳过 {result.get('skipped_count', 0)} 条完全相同的既有记录，"
+        f"文件内重复 {result.get('within_file_duplicate_count', result['duplicate_count'])} 条，"
+        f"异常 {result['error_count']} 条。"
+    )
+    if result.get("skip_reasons"):
+        message_text += " 跳过原因：" + "；".join(result["skip_reasons"])
+    return RedirectResponse(
+        url=task_workspace_url(
+            task_id,
+            selected_window=selected_window,
+            selected_source="all",
+            message=message_text,
+            fragment="import-feedback",
+        ),
+        status_code=303,
+    )
+
+
+@app.post("/tasks/{task_id}/clusters/{cluster_id}/actions")
+def apply_observation_cluster_action(
+    request: Request,
+    task_id: str,
+    cluster_id: str,
+    action: str = Form(""),
+    risk_level: str = Form(""),
+    owner: str = Form(""),
+    work_status: str = Form(""),
+    next_action: str = Form(""),
+    result: str = Form(""),
+    target_cluster_id: str = Form(""),
+    feedback_ids: str = Form(""),
+    note: str = Form(""),
+    selected_window: Optional[str] = Form(None),
+    selected_source: Optional[str] = Form(None),
+):
+    try:
+        task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+    except FileNotFoundError as exc:
+        return render_task_index(request, error=str(exc), status_code=404)
+    except ValueError as exc:
+        return render_task_index(request, error=str(exc), status_code=400)
+
+    window = 72
+    source = "all"
+    clean_action = action.strip()
+    try:
+        window, source = selection_from_request(
+            request,
+            selected_window,
+            selected_source,
+        )
+        source = clean_form_value(
+            source,
+            "反馈来源",
+            maximum=120,
+            required=True,
+        )
+        clean_action = clean_form_value(
+            action,
+            "人工操作",
+            maximum=32,
+            required=True,
+        )
+        clean_cluster_id = clean_form_value(
+            cluster_id,
+            "问题簇 ID",
+            maximum=160,
+            required=True,
+        )
+        changes = {
+            "risk_level": clean_form_value(
+                risk_level,
+                "风险等级",
+                maximum=8,
+            ),
+            "owner": clean_form_value(owner, "负责人", maximum=120),
+            "work_status": clean_form_value(
+                work_status,
+                "处理状态",
+                maximum=40,
+            ),
+            "next_action": clean_form_value(
+                next_action,
+                "下一步动作",
+                maximum=300,
+            ),
+            "result": clean_form_value(result, "处理结果", maximum=500),
+            "target_cluster_id": clean_form_value(
+                target_cluster_id,
+                "目标问题簇 ID",
+                maximum=160,
+            ),
+            "feedback_ids": clean_form_value(
+                feedback_ids,
+                "反馈 ID",
+                maximum=1200,
+            ),
+        }
+        clean_note = clean_form_value(note, "操作说明", maximum=800)
+        observation.apply_cluster_action(
+            task,
+            clean_cluster_id,
+            clean_action,
+            changes=changes,
+            reason=clean_note,
+            actor="human",
+            selected_window=window,
+            selected_source=source,
+        )
+    except (OSError, ValueError) as exc:
+        error_message = (
+            str(exc)
+            if isinstance(exc, ValueError)
+            else "人工操作无法保存，请稍后重试。"
+        )
+        try:
+            append_observation_failure(
+                task,
+                action="人工操作失败",
+                message=error_message,
+                details={
+                    "cluster_id": cluster_id,
+                    "action": clean_action,
+                    "selected_window": window,
+                    "selected_source": source,
+                },
+            )
+        except (OSError, ValueError):
+            pass
+        return RedirectResponse(
+            url=task_workspace_url(
+                task_id,
+                selected_window=window,
+                selected_source=source,
+                error=error_message,
+                fragment=f"cluster-{cluster_id}",
+            ),
+            status_code=303,
+        )
+
+    action_labels = {
+        "confirm": "风险结论已确认。",
+        "reject": "风险结论已驳回。",
+        "keep_open": "问题簇已设为保持观察。",
+        "update": "负责人和处理记录已更新。",
+        "merge": "问题簇已合并。",
+        "split": "问题簇成员已拆分。",
+    }
+    return RedirectResponse(
+        url=task_workspace_url(
+            task_id,
+            selected_window=window,
+            selected_source=source,
+            message=action_labels.get(clean_action, "人工操作已记录。"),
+            fragment=f"cluster-{cluster_id}",
+        ),
+        status_code=303,
+    )
 
 
 @app.get("/healthz")
@@ -559,6 +1147,8 @@ def healthz():
         "sample_feedback_available": SAMPLE_FEEDBACK_PATH.exists(),
         "ai_reviews_available": AI_REVIEWS_PATH.exists(),
         "web_runs_dir": str(WEB_RUNS_DIR),
+        "observation_tasks_dir": str(OBSERVATION_TASKS_DIR),
+        "observation_storage": "temporary" if os.getenv("VERCEL") else "local_files",
         "run_retention_hours": RUN_RETENTION_HOURS,
         "max_web_runs": MAX_WEB_RUNS,
         "web_llm_enabled": web_llm_enabled(),

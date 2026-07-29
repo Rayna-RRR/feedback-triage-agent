@@ -1,0 +1,251 @@
+{% extends "risk_base.html" %}
+
+{% block title %}观察任务 · 发版反馈风险工作台{% endblock %}
+
+{% block navigation %}
+<a class="is-active" href="/">
+  <span class="risk-nav-icon" aria-hidden="true">⌂</span>
+  观察任务
+</a>
+<a href="#create-task">
+  <span class="risk-nav-icon" aria-hidden="true">＋</span>
+  创建任务
+</a>
+<a href="#method">
+  <span class="risk-nav-icon" aria-hidden="true">◎</span>
+  判断口径
+</a>
+{% endblock %}
+
+{% block content %}
+<section class="risk-hero">
+  <div>
+    <p class="risk-eyebrow">Post-release feedback operations</p>
+    <h1>看清发版后哪些用户问题正在变糟</h1>
+    <p class="risk-lede">导入上一版本与当前版本的反馈，把重复描述聚合成问题簇，再用原话证据完成风险判断、人工复核和后续验证。</p>
+  </div>
+  <a class="risk-button risk-button-primary" href="#create-task">创建版本观察任务</a>
+</section>
+
+{% if message %}
+<div class="risk-alert risk-alert-success" role="status">
+  <strong>操作已完成</strong>
+  <p>{{ message }}</p>
+</div>
+{% endif %}
+{% if error %}
+<div class="risk-alert risk-alert-error" role="alert">
+  <strong>无法创建观察任务</strong>
+  <p>{{ error }}</p>
+</div>
+{% endif %}
+
+<section class="risk-metric-grid" aria-label="工作台状态">
+  <article class="risk-metric-card">
+    <span>观察任务</span>
+    <strong>{{ tasks | length }}</strong>
+    <small>来自当前可用存储</small>
+  </article>
+  <article class="risk-metric-card">
+    <span>默认比较口径</span>
+    <strong>同等窗口</strong>
+    <small>其他口径必须填写并展示说明</small>
+  </article>
+  <article class="risk-metric-card">
+    <span>默认导入方式</span>
+    <strong>累计快照</strong>
+    <small>同时支持增量导入与去重</small>
+  </article>
+  <article class="risk-metric-card">
+    <span>分析引擎</span>
+    <strong>规则引擎 + 人工复核</strong>
+    <small>本工作台使用可追踪规则；不把模型配置状态当作本轮已调用。</small>
+  </article>
+</section>
+
+<section class="risk-section" aria-labelledby="task-list-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Observation tasks</p>
+      <h2 id="task-list-title">版本观察任务</h2>
+      <p>每个任务绑定基线、当前和后续三个独立窗口；每轮比较都保留自己的反馈、证据和结论。</p>
+    </div>
+  </div>
+
+  {% if tasks %}
+  <div class="risk-task-grid">
+    {% for item in tasks %}
+    <article class="risk-task-card">
+      <div class="risk-task-card-top">
+        <span class="risk-version-pair">{{ item.baseline_version | default("基线版本") }} → {{ item.current_version | default("当前版本") }}</span>
+        <span class="risk-pill risk-pill-neutral">{{ item.status | default("观察中") }}</span>
+      </div>
+      <h3>{{ item.name | default(item.product_name | default("未命名观察任务")) }}</h3>
+      <p>{{ item.product_name | default("未填写产品名") }}</p>
+      <dl class="risk-compact-facts">
+        <div>
+          <dt>比较口径</dt>
+          <dd>
+            {% if item.comparison_basis | default("equal_window") in ["equal_window", "equivalent_window"] %}
+            同等窗口
+            {% else %}
+            其他口径（已标注）
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt>最近窗口</dt>
+          <dd>{{ item.latest_window | default("尚未导入") }}</dd>
+        </div>
+        <div>
+          <dt>问题簇</dt>
+          <dd>{{ item.cluster_count | default(0) }}</dd>
+        </div>
+      </dl>
+      {% if item.comparison_basis | default("equal_window") not in ["equal_window", "equivalent_window"] and item.comparison_note %}
+      <p class="risk-comparison-note"><strong>非同等口径：</strong>{{ item.comparison_note }}</p>
+      {% endif %}
+      <a class="risk-button risk-button-secondary risk-button-block" href="/tasks/{{ item.task_id | default(item.id) }}">进入工作台</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="risk-empty-state">
+    <span class="risk-empty-mark" aria-hidden="true">◎</span>
+    <h3>还没有观察任务</h3>
+    <p>先定义要比较的两个版本和时间窗口。创建任务不会自动生成分析结论，需继续导入真实反馈。</p>
+    <a class="risk-button risk-button-primary" href="#create-task">创建第一个任务</a>
+  </div>
+  {% endif %}
+</section>
+
+<section class="risk-section risk-form-section" id="create-task" aria-labelledby="create-task-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Create observation</p>
+      <h2 id="create-task-title">创建版本观察任务</h2>
+      <p>默认使用同等长度窗口。若业务上必须使用其他口径，请填写原因，页面会持续显式标注。</p>
+    </div>
+    <span class="risk-step-badge">第 1 步 / 创建任务</span>
+  </div>
+
+  <form class="risk-form" action="/tasks" method="post" data-task-form>
+    <fieldset>
+      <legend>任务与版本</legend>
+      <div class="risk-field-grid risk-field-grid-2">
+        <label class="risk-field">
+          <span>任务名称 <em>*</em></span>
+          <input name="name" type="text" required maxlength="120" placeholder="例如：智能回复 v2.4 发版观察">
+        </label>
+        <label class="risk-field">
+          <span>产品名称 <em>*</em></span>
+          <input name="product_name" type="text" required maxlength="120" placeholder="例如：Acme Copilot">
+        </label>
+        <label class="risk-field">
+          <span>基线版本 <em>*</em></span>
+          <input name="baseline_version" type="text" required maxlength="80" placeholder="例如：v2.3">
+        </label>
+        <label class="risk-field">
+          <span>当前版本 <em>*</em></span>
+          <input name="current_version" type="text" required maxlength="80" placeholder="例如：v2.4">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>比较窗口</legend>
+      <div class="risk-window-grid">
+        <div class="risk-window-card">
+          <div>
+            <span class="risk-window-index">A</span>
+            <strong>基线反馈窗口</strong>
+          </div>
+          <label class="risk-field">
+            <span>开始时间 <em>*</em></span>
+            <input name="baseline_window_start" type="datetime-local" required>
+          </label>
+          <label class="risk-field">
+            <span>结束时间 <em>*</em></span>
+            <input name="baseline_window_end" type="datetime-local" required>
+          </label>
+        </div>
+        <div class="risk-window-arrow" aria-hidden="true">→</div>
+        <div class="risk-window-card">
+          <div>
+            <span class="risk-window-index">B</span>
+            <strong>当前反馈窗口</strong>
+          </div>
+          <label class="risk-field">
+            <span>开始时间 <em>*</em></span>
+            <input name="current_window_start" type="datetime-local" required>
+          </label>
+          <label class="risk-field">
+            <span>结束时间 <em>*</em></span>
+            <input name="current_window_end" type="datetime-local" required>
+          </label>
+        </div>
+        <div class="risk-window-arrow" aria-hidden="true">→</div>
+        <div class="risk-window-card">
+          <div>
+            <span class="risk-window-index">C</span>
+            <strong>后续反馈窗口</strong>
+          </div>
+          <label class="risk-field">
+            <span>开始时间</span>
+            <input name="followup_window_start" type="datetime-local">
+          </label>
+          <label class="risk-field">
+            <span>结束时间</span>
+            <input name="followup_window_end" type="datetime-local">
+          </label>
+          <small class="risk-window-help">留空时按当前窗口结束时间顺延同等时长；修复前任务也采用此兼容边界。</small>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>分析口径与发版说明</legend>
+      <div class="risk-field-grid risk-field-grid-2">
+        <label class="risk-field">
+          <span>比较口径 <em>*</em></span>
+          <select name="comparison_basis" data-comparison-basis required>
+            <option value="equivalent_window" selected>同等长度窗口（默认）</option>
+            <option value="other">其他口径（需要说明）</option>
+          </select>
+          <small>同等窗口减少因观察时长不同造成的数量偏差。</small>
+        </label>
+        <label class="risk-field" data-comparison-note hidden>
+          <span>其他口径说明 <em>*</em></span>
+          <textarea name="comparison_note" rows="3" maxlength="500" placeholder="说明两个窗口为何不等长，以及阅读结论时需要注意什么。"></textarea>
+          <small>这段文字会和风险结论一起展示，不能留空。</small>
+        </label>
+        <label class="risk-field risk-field-wide">
+          <span>本次版本变化摘要</span>
+          <textarea name="change_summary" rows="4" maxlength="1200" placeholder="填写实际上线范围、灰度节奏或主要改动。仅用于辅助复核，不作为因果证据。"></textarea>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="risk-form-actions">
+      <p><strong>创建后下一步：</strong>分别导入基线和当前反馈。没有原始反馈时，系统不会生成问题簇或风险结论。</p>
+      <button class="risk-button risk-button-primary" type="submit">创建并进入工作台</button>
+    </div>
+  </form>
+</section>
+
+<section class="risk-section" id="method" aria-labelledby="method-title">
+  <div class="risk-section-heading">
+    <div>
+      <p class="risk-eyebrow">Decision rules</p>
+      <h2 id="method-title">工作台如何形成结论</h2>
+    </div>
+  </div>
+  <ol class="risk-method-grid">
+    <li><span>01</span><strong>校验输入</strong><p>保留来源、时间、原文和字段缺失记录，不静默补造数据。</p></li>
+    <li><span>02</span><strong>聚合问题</strong><p>多条相似反馈进入一个问题簇，一条多意图反馈可以保留多个判断。</p></li>
+    <li><span>03</span><strong>比较变化</strong><p>同时查看数量和反馈占比，区分新增、加重、稳定、缓解与证据不足。</p></li>
+    <li><span>04</span><strong>人工复核</strong><p>高风险、低置信度和规则冲突问题先由人确认，再进入负责人摘要。</p></li>
+    <li><span>05</span><strong>跟踪结果</strong><p>记录负责人、动作和结果，下个窗口继续验证问题是否改善。</p></li>
+  </ol>
+</section>
+{% endblock %}

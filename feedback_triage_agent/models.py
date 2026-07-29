@@ -32,7 +32,7 @@ class FeedbackRecord(BaseModel):
     source: str = Field(min_length=1)
     app_name: str = Field(min_length=1)
     review_text: str = Field(min_length=1)
-    rating: int = Field(ge=1, le=5)
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
 
     @field_validator("id", "source", "app_name", "review_text", mode="before")
     @classmethod
@@ -41,10 +41,13 @@ class FeedbackRecord(BaseModel):
 
     @field_validator("rating", mode="before")
     @classmethod
-    def normalize_rating(cls, value: Any) -> int:
+    def normalize_rating(cls, value: Any) -> Optional[int]:
         if value is None or str(value).strip() == "":
-            raise ValueError("rating is required")
-        return int(float(value))
+            return None
+        numeric_rating = float(value)
+        if not numeric_rating.is_integer():
+            raise ValueError("rating must be an integer between 1 and 5")
+        return int(numeric_rating)
 
 
 class ClassifiedFeedback(BaseModel):
@@ -55,7 +58,7 @@ class ClassifiedFeedback(BaseModel):
     source: str
     app_name: str
     review_text: str
-    rating: int
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
     issue_category: IssueCategory
     rule_issue_category: IssueCategory
     priority: Priority

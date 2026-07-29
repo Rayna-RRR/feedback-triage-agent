@@ -1,247 +1,243 @@
-# Feedback Triage Agent v0.9.1
+# 发版后反馈风险工作台
 
-Feedback Triage Agent 是一个本地 CLI + FastAPI Web App Agent Demo，用于把零散用户反馈分诊成可复核的问题卡片、人工复核队列和报告输出。
+这是一个面向中小型 AI / SaaS 团队产品经理和产品运营的发版后反馈风险工作台。它帮助团队把上一版本和当前版本的真实用户反馈放进同一个观察任务，聚合重复问题、比较前后变化、回看原始证据，并把高风险或证据不足的问题交给人工复核和持续跟踪。
 
-## Online Demo / GitHub / Docs
+Feedback Triage Agent 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；Version Feedback Risk Radar 的 24 / 48 / 72 小时观察、问题卡片、复核队列和负责人摘要已经合并为主操作界面。两者现在是一条共享数据和状态的工作流，不是两个 Demo 的跳转或页面拼接。
 
-- **Online Demo**: [https://feedback-triage-agent.vercel.app/](https://feedback-triage-agent.vercel.app/)
-- **GitHub**: [https://github.com/Rayna-RRR/feedback-triage-agent](https://github.com/Rayna-RRR/feedback-triage-agent)
-- **Docs 展示页**: [`docs/index.html`](docs/index.html)
-- **样例 HTML 报告**: [`docs/demo-report.html`](docs/demo-report.html)
-- **30 秒项目说明**: [`docs/portfolio_overview.md`](docs/portfolio_overview.md)
+## 产品解决什么问题
 
-## 30 秒项目概览
+产品发布新版本后，团队通常能看到很多零散反馈，却很难回答：
 
-这个项目模拟 AI 产品或产品助理工作中的用户反馈分诊流程：从 CSV 读取一批反馈，通过固定工具计划完成字段检查、问题分类、优先级判断、badcase 识别、问题卡片生成、QA 检查、产品周报摘要和报告导出。
+- 哪些问题是发版后新增、加重、稳定或缓解？
+- 多条说法不同的反馈是否在描述同一个问题？
+- 风险结论能否回到具体用户原话和数据口径？
+- 哪些判断需要人工确认，谁负责处理，下一窗口是否真的改善？
 
-v0.9.1 支持 Vercel Demo、本地 FastAPI Web App、CLI/Web Ask 入口、DeepSeek V4 Pro Ask 任务解析、规则解析 fallback、可选 DeepSeek 反馈初稿、外部 CSV 格式标准化、中英文规则分类、API token 用量记录、人工复核队列、问题卡片、静态 HTML 报告、QA 报告、run log、产品周报摘要、规则质量评测和 GitHub Actions CI。
-
-项目重点不是展示“模型替人做决定”，而是展示一个可审计的 Agent 工作流：工具调用、状态记录、LLM 初稿、规则 fallback、人工复核边界和最终交付物都能被追踪。
-
-## 它解决的问题
-
-AI 产品团队经常面对来自应用商店、社区、客服工单、访谈记录的非结构化反馈。普通汇总容易停留在“用户说了什么”，而产品工作更需要把反馈转成可复核的问题类型、优先级、用户需求和产品建议。
-
-这个项目展示一条最小闭环：
-
-用户反馈 CSV -> Agent 固定计划 -> 工具调用 -> 状态记录 -> 人工复核队列 -> 问题卡片 -> QA 报告
-
-当前项目不是开放式聊天机器人，而是一个反馈分诊工作流 Agent：DeepSeek 或本地规则把自然语言任务解析成受约束参数，实际分诊仍由固定工具计划执行，确保结果可复现、可审计。
-
-## 核心工作流
-
-load_feedback -> validate_schema -> classify_feedback -> detect_badcases -> generate_issue_cards -> qa_check -> export_report
-
-每一步都是独立 tool，返回结构化 `ToolResult`。Agent runner 按固定计划依次调用工具，并维护 run state、run log 和人工复核队列。`classify_feedback` 会在可用时调用 DeepSeek 生成初稿，否则 fallback 到 `rules.py`。
-
-## 截图 / 样例输出
-
-如果只是想了解项目，不需要先运行 CLI 或启动服务。可以直接看：
-
-- [`docs/index.html`](docs/index.html): 项目展示首页，说明输入、Agent 步骤、人工复核原因、输出和复现命令。
-- [`docs/demo-report.html`](docs/demo-report.html): 基于一次 `data/output_ask` 导出快照生成的样例 HTML 报告。
-- [`docs/portfolio_overview.md`](docs/portfolio_overview.md): 给非工程评审看的 30 秒项目说明。
-
-作品集截图位于 `docs/assets/screenshots/`：
-
-- `feedback_agent_01_home.png`: 项目首页与能力总览。
-- `feedback_agent_02_ask.png`: 自然语言 Ask 上传入口。
-- `feedback_agent_03_run_config.png`: 结构化运行配置。
-- `feedback_agent_04_summary.png`: 运行总览与分布。
-- `feedback_agent_05_review_queue.png`: 人工复核队列。
-- `feedback_agent_06_issue_cards.png`: 问题卡片摘要。
-- `feedback_agent_07_downloads.png`: 下载文件区。
-
-## 为什么适合 AI 产品 / 产品助理作品集
-
-这个项目面向 AI 产品、产品助理和 AI 应用运营岗位，重点展示：
-
-- 能把模糊反馈转成结构化产品问题。
-- 理解 Agent 不只是脚本，而是目标、工具、状态、日志和复核边界的组合。
-- 能区分 AI 自动化适合做什么，以及哪些高风险判断必须交给人。
-- 能用最小工程闭环表达产品思考，而不是只写概念方案。
-
-## 最短运行方式
-
-想实际操作分诊流程，可以启动本地 Web App：
-
-```bash
-python -m feedback_triage_agent.web_app
-```
-
-然后打开：
+工作台提供的最小闭环是：
 
 ```text
-http://127.0.0.1:8000
+创建版本观察任务
+→ 定义基线与当前窗口
+→ 导入反馈
+→ 校验并标准化
+→ 聚合问题簇
+→ 比较数量与占比
+→ 回看原始证据
+→ 人工确认 / 驳回 / 合并 / 拆分
+→ 记录负责人、动作和结果
+→ 下一观察窗口继续验证
 ```
 
-Web App 当前是本地原型：不接数据库、不做登录、不接生产系统。它支持自然语言 Ask、选择内置样例、上传 CSV、运行 Agent、查看结果页并下载输出文件。
+系统只能说明某个问题在发版后新增或加重。版本变化和反馈变化同时发生不等于存在因果关系；版本改动摘要只用于辅助复核，不能替代证据。
 
-## 本地安装
+## 适用范围与边界
 
-项目已在 Python 3.9.6 下验证通过，推荐 Python 3.9+。
+适合：
+
+- 中小型 AI / SaaS 团队的产品经理、产品运营和用户反馈负责人。
+- 发版后的 24 / 48 / 72 小时观察，以及后续重复观察。
+- 应用商店评论、客服工单、社区反馈和访谈摘录等 CSV 数据。
+- 需要保留原始证据、人工判断和处理过程的轻量工作流。
+
+不适合：
+
+- 证明某个版本改动一定导致某个问题。
+- 替代埋点、崩溃平台、实验平台或正式工单系统。
+- 直接给出未经人工确认的生产事故结论。
+- 多租户、权限、合规归档或长期在线存储场景。
+- 依赖 RAG、向量数据库、爬虫或 Jira / Slack 真实写入的流程。
+
+## 核心产品逻辑
+
+### 1. 版本与比较口径
+
+每个观察任务绑定产品、基线版本、当前版本和两个时间窗口。
+
+- 默认使用同等长度窗口，减少因观察时长不同造成的数量偏差。
+- 如果业务上必须使用其他口径，创建任务时必须填写说明，任务列表和工作台都会持续标注“非同等口径”。
+- 24 / 48 / 72 小时代表发版后的累计观察时长，不是三组预置演示结果。
+
+### 2. 累计快照与增量导入
+
+导入同时支持两种方式：
+
+- `cumulative`：默认方式。上传某个版本截至当前观察窗口的完整反馈快照。
+- `incremental`：只上传上次导入后新增的反馈。
+
+两种方式都会按反馈标识去重，并保留导入方式、来源、文件名、有效数、重复数和异常数。累计快照优先用于版本前后比较；增量模式用于数据源只能导出新增记录的情况。
+
+### 3. 从单条反馈到问题簇
+
+工作台不再把“一条反馈”直接当成“一张问题卡”。分析引擎先对反馈做确定性标准化和分类，再把描述同类问题的多条反馈聚合成问题簇。
+
+每个问题簇同时保留：
+
+- 基线与当前版本的反馈数量。
+- 该问题占各自窗口全部反馈的比例。
+- 数量和占比的变化。
+- 新增、加重、稳定、缓解或证据不足状态。
+- 风险等级、判断依据、置信度和证据缺口。
+- 组成问题簇的原始反馈、来源、反馈 ID、窗口和可选评分。
+
+反馈级优先级和问题簇级风险是两层不同判断，不会用一个标签替代另一层含义。
+
+### 4. 人工复核与处理
+
+高风险、低置信度、多意图、规则与模型冲突或证据不足的问题进入人工复核。用户可以：
+
+- 确认或驳回系统结论。
+- 保持观察。
+- 合并重复问题簇。
+- 拆分被错误聚合的成员反馈。
+- 更新风险等级、负责人、处理状态、下一步动作和处理结果。
+
+人工操作不会覆盖原始反馈和系统初始判断，而是作为新的审计记录追加。负责人摘要只收录有原始证据且经过人工确认的问题。
+
+### 5. 下一观察窗口
+
+同一任务可以继续导入 48 小时、72 小时或后续窗口。工作台根据新的真实反馈重新计算问题数量与占比，并展示问题是缓解、持续还是恶化。人工填写“已处理”不等于数据已经改善，下一窗口仍需用反馈验证。
+
+## 审计如何嵌入工作流
+
+审计不是单独的装饰页面，而是问题簇卡片和运行过程的一部分：
+
+- 导入记录说明输入是否完整、哪些行被接受、去重或拒绝。
+- 问题簇展示结论对应的原始反馈证据。
+- 风险依据和证据缺口与风险等级一起展示。
+- 低置信度、规则冲突和 fallback 会进入复核或运行留痕。
+- 人工确认、驳回、合并、拆分和字段更新按时间追加。
+- 前后窗口的数量、占比、状态和当前筛选口径可以互相核对。
+- 页面指标来自任务底层数据，不使用硬编码演示通过数或业务结果。
+
+## 输入数据
+
+### 发版风险工作台
+
+新版观察任务导入允许 `rating` 缺失，不会为了满足格式伪造评分。建议 CSV 至少提供：
+
+- `id`：反馈在来源内的稳定标识。
+- `source`：反馈来源；也可以在导入表单中明确填写来源。
+- `review_text`：用户原始反馈正文。
+- `rating`：可选，存在时必须是 1–5。
+
+常见列名可以通过现有标准化规则映射，例如 `reviewId`、`content`、`score`、`platform`。无法识别正文、正文为空或字段非法时会记录为输入问题，不会猜测语义值。
+
+### 旧 CLI / 七步接口
+
+为保持已有调用兼容，旧 `run` 和结构化 Web 运行入口仍要求五个字段：
+
+- `id`
+- `source`
+- `app_name`
+- `review_text`
+- `rating`
+
+如果第三方 CSV 列名不同，可以通过旧 `ask` 入口明确要求标准化。旧流程仍按以下七步执行：
+
+```text
+load_feedback
+→ validate_schema
+→ classify_feedback
+→ detect_badcases
+→ generate_issue_cards
+→ qa_check
+→ export_report
+```
+
+旧流程继续输出 `triage_results.csv`、`issue_cards.md`、`qa_report.md`、`run_log.md`、`weekly_summary.md` 和人工复核文件。它保留为兼容和单批次诊断能力，不再是合并后产品的主页面。
+
+## 本地运行
+
+项目要求 Python 3.9+。
 
 ```bash
 cd feedback-triage-agent
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
-```
-
-如果系统默认 `python` 低于 3.9，请显式使用 Python 3.9+ 创建虚拟环境。
-
-## CLI 命令参考
-
-启动本地 Web App：
-
-```bash
 python -m feedback_triage_agent.web_app
 ```
 
-运行内置 demo：
+然后访问：
+
+```text
+http://127.0.0.1:8000
+```
+
+本地观察任务默认写入 `data/observation_tasks/`。这是免费的 JSON / 文件持久化：服务重启后任务仍在，但没有账号隔离、并发数据库能力或云端备份。可以用 `FEEDBACK_RISK_TASKS_DIR` 指定其他可写目录。
+
+## 旧 CLI 命令
+
+运行内置样例：
 
 ```bash
 python -m feedback_triage_agent.cli demo
 ```
 
-读取指定 CSV 并导出报告：
+运行五字段 CSV：
 
 ```bash
-python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output
+python -m feedback_triage_agent.cli run \
+  --input data/sample_feedback.csv \
+  --output data/output \
+  --no-llm
 ```
 
-明确启用 LLM：
+使用旧自然语言入口并先标准化外部 CSV：
 
 ```bash
-python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output --llm
+python -m feedback_triage_agent.cli ask \
+  "分析 /path/to/reviews.csv，转换为符合格式，输出到 data/output_ask，只用规则"
 ```
 
-显式关闭 LLM，仅使用规则：
-
-```bash
-python -m feedback_triage_agent.cli run --input data/sample_feedback.csv --output data/output --no-llm
-```
-
-查看最近一次结构化分诊结果：
+查看已有输出或生成静态报告：
 
 ```bash
 python -m feedback_triage_agent.cli inspect --output data/output
+python -m feedback_triage_agent.cli report --output data/output
 ```
 
-使用自然语言入口运行分诊：
+## LLM 与 fallback
+
+发版风险工作台的核心比较、聚合、审计和人工状态不依赖付费模型。旧 Ask 解析和单条反馈初稿仍可选用 DeepSeek；没有 API key、Web 开关未启用或调用失败时回退到本地规则。
+
+不要把 API key 写入代码或提交到 Git。需要时在本地环境设置：
 
 ```bash
-python -m feedback_triage_agent.cli ask "分析 data/ai_app_reviews.csv，输出问题卡片、人工复核队列和 HTML 报告"
+export DEEPSEEK_API_KEY="your_deepseek_api_key"
+export FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
 ```
 
-配置 `DEEPSEEK_API_KEY` 后，Ask 默认先由 DeepSeek 理解自然语言。需要完全使用原有本地拆解方式时：
+可选配置见 `.env.example`。公开 Demo 不应上传真实用户隐私、商业秘密或生产数据。
+
+## 存储与部署
+
+当前版本不接数据库、登录、权限、多租户或付费存储。
+
+- 本地：观察任务保存在 `data/observation_tasks/`，旧单批次运行保存在 `data/web_runs/`。
+- Vercel：观察任务默认写入 `/tmp/feedback-risk-tasks/`，旧运行写入 `/tmp/feedback-triage-runs/`。
+- Vercel 的 `/tmp` 是临时存储，平台重启或实例回收后任务可能丢失，因此线上 Demo 只适合展示流程。
+
+可以指定可写目录：
 
 ```bash
-python -m feedback_triage_agent.cli ask \
-  "分析 data/ai_app_reviews.csv，只用规则，生成 HTML 报告" \
-  --rule-parser
+export FEEDBACK_RISK_TASKS_DIR="/path/to/observation_tasks"
+export FEEDBACK_TRIAGE_WEB_RUNS_DIR="/path/to/web_runs"
 ```
 
-当外部 CSV 列名不符合 Agent 的五个标准字段时，可以明确要求格式转换：
-
-```bash
-python -m feedback_triage_agent.cli ask \
-  "分析 /path/to/chatgpt_reviews_latest_5000.csv，转换为符合格式，输出到 data/output_ask，只用规则"
-```
-
-`ask` 会把任务解析为结构化执行参数。DeepSeek 解析成功时使用模型结果，同时保留明确否定词和已知路径规则作为约束；失败时使用原有关键词与正则结果。未指定输出目录时默认写入 `data/output_ask`。要求转换格式时会先生成 `normalized_feedback.csv`，再执行原有七步分诊；要求 HTML 报告时额外生成 `report.html`。
-
-标准化使用本地确定性规则，不调用 LLM：
-
-- `reviewId`、`review_id`、`feedback_id` 等映射到 `id`。
-- `content`、`review`、`text`、`comment`、`feedback` 等映射到 `review_text`。
-- `score`、`stars`、`rate` 等映射到 `rating`。
-- `platform`、`channel`、`store` 等映射到 `source`。
-- `app`、`product_name` 等映射到 `app_name`。
-- Google Play 常见导出结构会补 `source=google_play`；缺少 `app_name` 时从原文件名推断。
-- 缺少 ID 时生成稳定的行 ID；无法识别评论正文或评分字段时拒绝转换，不会猜测语义值。
-- 未参与映射的原始元数据列会保留在 `normalized_feedback.csv` 中。
-
-Web 首页提供相同入口，并可勾选“仅用本地规则解析 Ask”。普通“配置运行”上传仍要求五个标准字段，不会静默转换。上传限制为 5 MB / 5000 行；启用反馈初稿 LLM 时单次最多处理 100 条。每次 Web 运行写入独立的 `run_YYYYMMDD_HHMMSS_ask/` 目录；本地默认在 `data/web_runs/`，Vercel 默认在 `/tmp/feedback-triage-runs/`。
-
-从已有输出目录生成静态 HTML 报告：
-
-```bash
-python -m feedback_triage_agent.cli report --output data/output_ask
-```
-
-## Vercel / DeepSeek / 环境变量
-
-当前仓库包含 Vercel 入口：
-
-- `app.py`: 导出 FastAPI `app`，供 Vercel FastAPI 预设识别。
-- `.vercelignore`: 排除 `.venv`、缓存、本地输出和历史 Web run。
-
-生产部署命令：
+Vercel 入口为 `app.py`。部署命令：
 
 ```bash
 vercel --prod
 ```
 
-Vercel 环境变量建议：
+## 测试与代表性 badcase 回归
 
-```bash
-FEEDBACK_TRIAGE_RUN_RETENTION_HOURS=24
-FEEDBACK_TRIAGE_MAX_WEB_RUNS=50
-```
-
-Web 运行输出默认写入本地 `data/web_runs/`。部署到 Vercel 时会自动改用 `/tmp/feedback-triage-runs`，也可以用 `FEEDBACK_TRIAGE_WEB_RUNS_DIR` 指定可写目录。公开 Demo 的上传 CSV 和输出文件只适合临时保存，默认约 24 小时后清理，平台重启或实例回收后也可能丢失。
-
-不要把 API key 写入代码或提交到 Git。需要使用 DeepSeek Ask 解析或反馈初稿时，在本地 shell 设置环境变量：
-
-```bash
-export DEEPSEEK_API_KEY="your_deepseek_api_key"
-```
-
-可选环境变量：
-
-```bash
-export DEEPSEEK_MODEL="deepseek-v4-pro"
-export DEEPSEEK_API_BASE="https://api.deepseek.com"
-export DEEPSEEK_TIMEOUT_SECONDS="20"
-```
-
-如果要在线上开放 DeepSeek，必须同时设置：
-
-```bash
-DEEPSEEK_API_KEY=your_deepseek_api_key
-FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
-```
-
-可以在 Vercel Dashboard 的 Project Settings -> Environment Variables 中添加，也可以用 CLI 分别添加到 Production：
-
-```bash
-vercel env add DEEPSEEK_API_KEY production
-vercel env add FEEDBACK_TRIAGE_WEB_LLM_ENABLED production
-```
-
-`FEEDBACK_TRIAGE_WEB_LLM_ENABLED` 的值填写 `true`。环境变量变更后需要重新生产部署一次，新的 Serverless Function 才会读取到配置。本地变量模板见 `.env.example`，不要把真实 key 写入这个文件。
-
-DeepSeek 在项目中有两个独立用途：
-
-1. **Ask 任务解析**：配置 API key 后默认启用，只发送任务文本和上传文件名，不发送 CSV 内容。模型返回受 Pydantic 校验的输入路径、输出目录、格式转换、HTML 报告和反馈分诊方式参数。不可用或响应无效时回退到原有关键词与正则解析。
-2. **反馈初稿**：只有用户明确要求“使用 LLM / 使用 DeepSeek”时，才会发送反馈文本并生成分类、摘要、用户需求和产品建议初稿。“只用规则”会关闭这一层。
-
-默认模型为 `deepseek-v4-pro`。结构化 JSON 任务使用非思考模式，减少额外推理文本对解析的干扰。两个用途的来源、模型、API 返回的输入/输出/总 token 数和 fallback 都会记录在 `qa_report.md`；模型与 fallback 也会进入 `run_log.md`。不设置 `DEEPSEEK_API_KEY` 时，Ask 使用本地规则解析，反馈分诊也使用 `rules.py`。
-
-不设置 `FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true` 时，Web 端不会调用 DeepSeek：Ask 使用本地规则解析，反馈分诊也只用 `rules.py`。CLI 的 `--llm` 行为不受这个 Web 开关影响。
-
-公开 Demo 请不要上传真实用户隐私、商业保密或生产反馈原文。Vercel 可以先用于快速上线和分享链接；如果后续需要更稳定的中国大陆访问，应迁移到大陆云服务器并按要求完成 ICP 备案。
-
-## 测试与评测
-
-运行测试：
+运行自动化测试：
 
 ```bash
 python -m pytest
 ```
-
-Output Contract Test 会验证 Agent 完整运行后的输出结构，包括必需导出文件、`triage_results.csv` 列顺序与合法值、`review_decisions.csv` 的 `record_key` 关联，以及 Markdown 输出非空。这个测试用于避免后续规则或 LLM 改动破坏下游交付物结构。
 
 运行本地规则评测：
 
@@ -251,114 +247,9 @@ python -m feedback_triage_agent.cli evaluate \
   --output data/evaluation_output
 ```
 
-评测输入包含人工维护的 `expected_issue_category`、`expected_priority` 和 `expected_human_review`。命令输出逐样本结果与 Markdown 报告，并对分类准确率执行最低 80%、对优先级、人工复核判断、P0 precision 和 P0 recall 执行最低 90% 的默认回归门槛。当前 24 条 golden set 全部通过；这只是小规模回归集，不代表生产数据准确率。
+`data/evaluation_feedback.csv` 是人工维护的小样本 golden set，用于发现分类、优先级和人工复核规则是否退化；`data/adversarial_feedback.csv` 用于观察否定语义、多意图和关键词误伤等 badcase。它们不代表生产准确率，也不能用来声称真实业务效果。
 
-探索性对抗评测集位于 `data/adversarial_feedback.csv`，用于暴露 `rules.py` 在否定语义、多意图反馈、正向评价夹杂问题、关键词误伤和高风险混合场景下的边界和失败模式。它不作为默认回归门槛；运行时可以把 min gate 设为 0，只用于观察错误分布。
+## 项目链接
 
-如果评测 CSV 包含可选的 `scenario` 字段，`evaluation_results.csv` 会保留该字段，`evaluation_report.md` 会输出 `Scenario Breakdown`，按 scenario 展示分类、优先级、人工复核和 P0 指标。Scenario metrics 用于观察不同失败类型下的表现，例如否定语义、多意图反馈和高风险混合场景；scenario breakdown 只用于分析，不作为默认质量门槛。
-
-```bash
-python -m feedback_triage_agent.cli evaluate \
-  --input data/adversarial_feedback.csv \
-  --output data/adversarial_output \
-  --min-category-accuracy 0 \
-  --min-priority-accuracy 0 \
-  --min-human-review-accuracy 0 \
-  --min-p0-precision 0 \
-  --min-p0-recall 0
-```
-
-Evaluation Harness Lite 可以用一个命令串起 pytest、golden set evaluation 和 adversarial evaluation，并生成统一的 `harness_report.md` 与 `harness_summary.json`。其中 golden set 用作回归 gate，adversarial set 用作探索性失败模式分析，scenario breakdown 用于观察不同场景表现。
-
-```bash
-./.venv/bin/python -m feedback_triage_agent.cli harness --output data/harness_output
-```
-
-GitHub Actions CI 会在 push 和 pull request 时自动运行：
-
-```bash
-python -m pytest
-python -m feedback_triage_agent.cli harness --output data/harness_output_ci --skip-pytest
-```
-
-CI 中 golden set 仍作为回归 gate；adversarial set 继续用于探索性失败模式分析，不作为失败 gate。Harness 输出会尽量作为 `harness-output` artifact 上传，便于查看 scenario breakdown 和评测报告。
-
-应用人工复核决策：
-
-```bash
-python -m feedback_triage_agent.cli review-apply --output data/output
-```
-
-每次 Agent 运行都会生成 `review_decisions.csv`。人工可将 `decision` 填为：
-
-- `confirm`: 确认原分类和优先级并关闭复核。
-- `adjust`: 填写 `final_issue_category` 和 `final_priority` 后关闭复核。
-- `keep_open`: 保持人工复核状态。
-- `pending`: 尚未处理。
-
-命令生成 `triage_results_reviewed.csv` 和 `review_summary.md`，不会覆盖原始 `triage_results.csv`。Web 结果页也支持下载、编辑并重新上传该 CSV。
-
-## 输出文件说明
-
-- `<output-dir>/normalized_feedback.csv`: 仅在 Ask 明确要求格式标准化时生成；标准字段排在前五列，未消费的原始元数据继续保留。
-- `<output-dir>/issue_cards.md`: 每条反馈对应的问题卡片，包含标题、样本 ID、摘要、类型、优先级、用户需求、产品建议和人工复核原因。
-- `<output-dir>/qa_report.md`: 总样本数、LLM 使用情况、fallback 原因、字段缺失、分类分布、优先级分布、人工复核列表和本轮判断边界。
-- `<output-dir>/run_log.md`: 记录 Agent 每一步工具调用的输入摘要、输出摘要、warnings、fallback 情况和下一步动作。
-- `<output-dir>/triage_results.csv`: 结构化分诊结果，分别记录最终分类、规则分类、规则置信度、规则关键词、LLM/规则分歧、`classification_source` 和 `llm_error`。
-- `<output-dir>/weekly_summary.md`: 从 `triage_results.csv` 生成的轻量产品周报，汇总优先级问题、用户证据、建议跟进动作和复核状态。
-- `<output-dir>/review_decisions.csv`: 待人工填写的复核决策模板，使用唯一 `record_key` 区分重复 ID。
-- `<output-dir>/triage_results_reviewed.csv`: 应用人工决策后的独立结果文件。
-- `<output-dir>/review_summary.md`: 人工复核关闭、开放和待处理数量。
-- `<output-dir>/report.html`: 可通过 `report` 命令额外生成的本地静态 HTML 报告，汇总运行总览、分布、人工复核样本、用户需求、问题卡片摘要、run log 和判断边界。
-
-## v0.9.1 范围
-
-- 使用 pandas 读取 CSV。
-- 使用 pydantic 定义输入、输出、工具结果和 Agent 状态模型。
-- 使用 FastAPI + Jinja2 提供本地 Web App 原型。
-- Web App 首页加入 v0.9.1 启动动画、轻毛玻璃层次、微量赛博状态感、固定七步流程预览、输出文件预览和 Validation 展示。
-- Validation 模块只说明测试、golden set、adversarial samples、scenario metrics、output contract 和 CI 等验证层；不在前端运行 harness，也不改变核心分诊流程。
-- Web App 支持自然语言 Ask、内置样例、AI 应用评论数据和用户上传 CSV。
-- Web 上传入口使用自定义文件选择控件，避免系统默认文案显示为繁体。
-- Ask 默认使用 DeepSeek 解析受约束任务参数，失败时自动 fallback 到本地关键词和正则解析。
-- DeepSeek 默认使用 `deepseek-v4-pro`，并记录 API 返回的 token 用量。
-- 本地规则同时覆盖常见中英文反馈关键词和否定语义；明确正向且没有问题信号的高评分样本归为“正向反馈/无明确问题”，未命中或低置信度样本仍进入人工复核。
-- CLI `--rule-parser` 和 Web 复选框可强制使用原有本地 Ask 解析。
-- Ask 可把常见第三方评论导出列映射到标准字段并输出 `normalized_feedback.csv`。
-- 格式转换、字段补值和输出路径会记录在 `run_log.md` 与 `qa_report.md`，保持可追踪。
-- Web App 每次运行写入 `data/web_runs/run_YYYYMMDD_HHMMSS/`，不覆盖已有 CLI 输出。
-- 使用关键词、否定语义和启发式规则完成优先级判断、fallback 和人工复核识别。
-- 可选调用 DeepSeek API 生成分类、摘要、用户需求和产品建议初稿。
-- 规则已有明确高置信结论但 LLM 给出不同分类时保留两套证据并进入人工复核；规则不明确时允许 LLM 补强分类。
-- 所有 LLM 输出都必须经过 QA 检查和人工复核队列判断。
-- 使用 Typer + Rich 提供本地 CLI 体验。
-- 使用 `ask` 命令提供模型增强的自然语言任务入口，但不改变固定 Agent 计划。
-- 使用 `report` 命令生成不依赖 CDN 和远程资源的静态 HTML 报告。
-- 自动导出 `weekly_summary.md`，把分诊结果转成面向产品周会和作品集讲解的轻量摘要。
-- 使用 `evaluate` 命令对人工标注 golden set 生成逐样本误差和质量指标。
-- 评测覆盖分类准确率、优先级准确率、人工复核判断准确率、P0 precision 和 P0 recall。
-- 自动导出 `review_decisions.csv`，支持确认、调整和保持开放三种人工动作。
-- CLI/Web 可应用复核决策，生成 reviewed 结果和复核摘要，保留原始分诊证据。
-- 使用 pytest 覆盖规则、工具和完整 Agent 流程。
-- 增加 Output Contract Test，验证 Agent 导出的 CSV、Markdown 和人工复核文件结构稳定，避免后续规则或 LLM 改动破坏下游交付物。
-- 增加 adversarial evaluation set，覆盖否定语义、多意图反馈、正向评价夹杂问题、关键词误伤和高风险混合场景。
-- 增加 scenario metrics，在评测报告中按可选 `scenario` 字段拆分指标，用于分析不同失败类型下的规则表现。
-- 增加 Evaluation Harness Lite，用统一命令生成 pytest、golden set 和 adversarial set 的汇总报告。
-- 增加 GitHub Actions CI，在 push / PR 时自动运行 pytest 与 Evaluation Harness Lite。
-- 保留 external review assisted maintainability findings 作为历史审查材料，当前版本聚焦作品集说明和输出物可读性。
-
-## 后续可扩展方向
-
-- 增加多人复核冲突处理和决策版本历史，但仍保持本地轻量边界。
-- 支持多文件输入、去重、聚类和趋势分析。
-- 扩充真实业务标签体系和盲测数据，避免只针对当前 golden set 调整规则。
-- 将 P0 样本推送到工单系统或告警渠道。
-- 后续再考虑 RAG、向量数据库和文档检索，用于引入产品文档、FAQ 或历史工单上下文。
-
-## 项目边界
-
-本项目不接数据库、不做 Streamlit、不做复杂 Web UI、不做爬虫、不做复杂 RAG。RAG、向量数据库和文档检索暂不实现。
-
-暂不做 Streamlit 的原因是当前阶段优先保证本地可运行、可复现、可离线展示。静态 HTML 报告已经能满足作品集展示、截图和离线查看，不引入额外服务进程和前端框架。
-
-P0、低置信度、多问题命中、文本过短等样本不会被视为可自动闭环；它们必须进入人工复核队列。
+- [Online Demo](https://feedback-triage-agent.vercel.app/)
+- [GitHub](https://github.com/Rayna-RRR/feedback-triage-agent)
