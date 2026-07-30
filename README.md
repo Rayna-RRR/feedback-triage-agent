@@ -6,7 +6,7 @@
 
 `feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
 
-当前交付状态：v1.0 已完成本地独立验收，线上 Demo 待本次部署同步。仓库名、GitHub 地址和 Vercel 项目绑定保持不变。
+当前交付状态：v1.0 已完成本地独立验收并上线线上 Demo：[feedback-triage-agent.vercel.app](https://feedback-triage-agent.vercel.app/)。仓库名、GitHub 地址和 Vercel 项目绑定保持不变。
 
 ## 界面预览
 
