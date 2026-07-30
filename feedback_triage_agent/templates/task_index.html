@@ -1,6 +1,6 @@
 {% extends "risk_base.html" %}
 
-{% block title %}观察任务 · 发版反馈风险工作台{% endblock %}
+{% block title %}观察任务 · AI 发版反馈风险工作台{% endblock %}
 
 {% block navigation %}
 <a class="is-active" href="/">
@@ -9,7 +9,7 @@
 </a>
 <a href="#create-task">
   <span class="risk-nav-icon" aria-hidden="true">＋</span>
-  创建任务
+  创建观察任务
 </a>
 <a href="#method">
   <span class="risk-nav-icon" aria-hidden="true">◎</span>
@@ -20,11 +20,11 @@
 {% block content %}
 <section class="risk-hero">
   <div>
-    <p class="risk-eyebrow">Post-release feedback operations</p>
-    <h1>看清发版后哪些用户问题正在变糟</h1>
-    <p class="risk-lede">导入上一版本与当前版本的反馈，把重复描述聚合成问题簇，再用原话证据完成风险判断、人工复核和后续验证。</p>
+    <p class="risk-eyebrow">Release feedback operations</p>
+    <h1>把发版后的反馈变化放在同一张工作台上</h1>
+    <p class="risk-lede">跨 24 / 48 / 72 小时观察窗口汇总用户反馈，聚合问题簇、识别风险变化，再回到原始证据完成人工复核与后续验证。</p>
   </div>
-  <a class="risk-button risk-button-primary" href="#create-task">创建版本观察任务</a>
+  <a class="risk-button risk-button-primary" href="#create-task">创建观察任务</a>
 </section>
 
 {% if message %}
@@ -57,9 +57,9 @@
     <small>同时支持增量导入与去重</small>
   </article>
   <article class="risk-metric-card">
-    <span>分析引擎</span>
+    <span>判断方式</span>
     <strong>规则引擎 + 人工复核</strong>
-    <small>本工作台使用可追踪规则；不把模型配置状态当作本轮已调用。</small>
+    <small>结论保留依据、证据缺口和后续处理留痕。</small>
   </article>
 </section>
 

@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AI 发版反馈风险工作台：比较窗口反馈变化、聚合问题证据并支持人工复核留痕。">
-  <title>{% block title %}发版反馈风险工作台{% endblock %}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230f172a'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%235eead4' stroke-width='4' opacity='.72'/%3E%3Ccircle cx='32' cy='32' r='10' fill='none' stroke='%2386a5ff' stroke-width='4' opacity='.82'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ffffff'/%3E%3Cpath d='M32 32 L50 22' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <meta name="description" content="AI 发版反馈风险工作台：在多个时间窗口汇总反馈、识别风险变化，并支持人工复核与证据审计。">
+  <title>{% block title %}AI 发版反馈风险工作台{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23dfeaf1'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%236a9c9c' stroke-width='4' opacity='.72'/%3E%3Ccircle cx='32' cy='32' r='10' fill='none' stroke='%23758eae' stroke-width='4' opacity='.82'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ffffff'/%3E%3Cpath d='M32 32 L50 22' stroke='%2346667d' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="{{ url_for('static', path='risk_workspace.css') }}?v={{ static_asset_version }}">
 </head>
 <body>
@@ -16,7 +16,7 @@
       <div class="risk-brand">
         <span class="risk-brand-mark" aria-hidden="true"></span>
         <span>
-          <strong>Release Feedback</strong>
+          <strong>Release Feedback Risk Workbench</strong>
           <small>AI 发版反馈风险工作台</small>
         </span>
       </div>
@@ -35,7 +35,7 @@
       <section class="risk-boundary" aria-label="结论边界">
         <p class="risk-eyebrow">结论边界</p>
         <strong>相关不等于因果</strong>
-        <p>工作台只能说明问题在发版后新增、加重、稳定或缓解，不能据此断言由本次版本导致。</p>
+        <p>作为发版后反馈风险工作台，这里只能说明问题新增、加重、稳定或缓解，不能据此断言由本次版本导致。</p>
       </section>
 
       <div class="risk-runtime">
@@ -48,7 +48,7 @@
     <header class="risk-mobile-header">
       <a href="/" class="risk-mobile-brand">
         <span class="risk-brand-mark" aria-hidden="true"></span>
-        <span>Release Feedback</span>
+        <span>Release Feedback Risk Workbench</span>
       </a>
       <button class="risk-icon-button" type="button" data-sidebar-toggle aria-controls="risk-sidebar" aria-expanded="false">
         <span class="sr-only">打开导航</span>
@@ -65,8 +65,8 @@
       {% endif %}
       {% block content %}{% endblock %}
       <footer class="risk-footer">
-        <span>AI 发版反馈风险工作台</span>
-        <span>趋势判断需回到原始反馈证据复核</span>
+        <span>Release Feedback Risk Workbench</span>
+        <span>结论需回到原始反馈证据复核</span>
       </footer>
     </main>
   </div>

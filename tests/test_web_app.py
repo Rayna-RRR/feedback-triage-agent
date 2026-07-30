@@ -39,7 +39,7 @@ def test_web_homepage_is_accessible(tmp_path: Path, monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "发版反馈风险工作台" in response.text
-    assert "v0.9.1" in response.text
+    assert "v1.0.0" in response.text
     assert "创建版本观察任务" in response.text
     assert "还没有观察任务" in response.text
     assert "同等窗口" in response.text

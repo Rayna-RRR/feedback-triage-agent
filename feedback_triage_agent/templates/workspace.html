@@ -1,6 +1,6 @@
 {% extends "risk_base.html" %}
 
-{% block title %}{{ task.name | default("观察任务") }} · 发版反馈风险工作台{% endblock %}
+{% block title %}{{ task.name | default("观察任务") }} · AI 发版反馈风险工作台{% endblock %}
 
 {% block navigation %}
 <a href="/">
@@ -11,21 +11,25 @@
   <span class="risk-nav-icon" aria-hidden="true">⌁</span>
   风险总览
 </a>
+<a href="#round-summary">
+  <span class="risk-nav-icon" aria-hidden="true">↗</span>
+  趋势变化
+</a>
 <a href="#clusters">
   <span class="risk-nav-icon" aria-hidden="true">◎</span>
   问题簇
+</a>
+<a href="#clusters">
+  <span class="risk-nav-icon" aria-hidden="true">✓</span>
+  人工复核
 </a>
 <a href="#import-feedback">
   <span class="risk-nav-icon" aria-hidden="true">⇧</span>
   导入反馈
 </a>
-<a href="#owner-summary">
-  <span class="risk-nav-icon" aria-hidden="true">≡</span>
-  负责人摘要
-</a>
 <a href="#audit-log">
   <span class="risk-nav-icon" aria-hidden="true">⌕</span>
-  运行留痕
+  审计记录
 </a>
 {% endblock %}
 
@@ -141,11 +145,11 @@
   {% endif %}
 </section>
 
-<section class="risk-section risk-round-summary" aria-labelledby="round-summary-title">
+<section class="risk-section risk-round-summary" id="round-summary" aria-labelledby="round-summary-title">
   <div class="risk-section-heading">
     <div>
-      <p class="risk-eyebrow">Independent windows</p>
-      <h2 id="round-summary-title">两轮窗口变化</h2>
+      <p class="risk-eyebrow">Window trend</p>
+      <h2 id="round-summary-title">观察窗口趋势</h2>
       <p>当前相对基线与后续相对当前分别计算；后一轮不会覆盖前一轮的数量、状态或原始证据。</p>
     </div>
   </div>

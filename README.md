@@ -1,8 +1,22 @@
-# 发版后反馈风险工作台
+# Release Feedback Risk Workbench
 
-这是一个面向中小型 AI / SaaS 团队产品经理和产品运营的发版后反馈风险工作台。它帮助团队把上一版本和当前版本的真实用户反馈放进同一个观察任务，聚合重复问题、比较前后变化、回看原始证据，并把高风险或证据不足的问题交给人工复核和持续跟踪。
+## AI 发版反馈风险工作台
 
-Feedback Triage Agent 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；Version Feedback Risk Radar 的 24 / 48 / 72 小时观察、问题卡片、复核队列和负责人摘要已经合并为主操作界面。两者现在是一条共享数据和状态的工作流，不是两个 Demo 的跳转或页面拼接。
+这是一个用于产品发版后的反馈风险工作台：在 24 / 48 / 72 小时等多个时间窗口汇总真实用户反馈，识别问题簇与风险变化，支持人工复核，并把每个结论回到原始证据和审计记录。陌生用户可以从“创建观察任务 → 导入基线与当前反馈 → 比较窗口变化 → 复核问题 → 下一窗口验证”的完整工作流理解它的用途。
+
+`feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
+
+当前交付状态：v1.0 已完成本地独立验收，线上 Demo 待本次部署同步。仓库名、GitHub 地址和 Vercel 项目绑定保持不变。
+
+## 界面预览
+
+README 中的原始验收截图继续保存在 `artifacts/acceptance_v1.0/screenshots/`，不覆盖、不替换。本次视觉收口后的截图将单独放在 `artifacts/v1.0_visual_closure/screenshots/`，用于区分“原始验收材料”和“当前界面预览”。
+
+![工作台首页（桌面端）](artifacts/v1.0_visual_closure/screenshots/01-workbench-home-desktop.png)
+
+![统一工作台（桌面端）](artifacts/v1.0_visual_closure/screenshots/02-workspace-desktop.png)
+
+![工作台首页（390px）](artifacts/v1.0_visual_closure/screenshots/03-workbench-home-mobile-390.png)
 
 ## 产品解决什么问题
 
