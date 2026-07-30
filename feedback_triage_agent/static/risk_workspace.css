@@ -2047,3 +2047,270 @@ textarea:disabled {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* Visual system v1.1 — restrained editorial + airy spatial depth */
+:root {
+  --risk-bg: #f6fafb;
+  --risk-bg-deep: #e8f2f3;
+  --risk-panel: rgba(255, 255, 255, 0.70);
+  --risk-panel-strong: rgba(255, 255, 255, 0.94);
+  --risk-deep: #17323b;
+  --risk-deep-soft: #274852;
+  --risk-text: #17323b;
+  --risk-muted: #627781;
+  --risk-faint: #899aa1;
+  --risk-line: rgba(47, 90, 101, 0.13);
+  --risk-line-strong: rgba(47, 90, 101, 0.22);
+  --risk-accent: #237f92;
+  --risk-accent-dark: #17687a;
+  --risk-accent-soft: rgba(35, 127, 146, 0.09);
+  --risk-teal: #248778;
+  --risk-teal-soft: rgba(36, 135, 120, 0.10);
+  --risk-shadow: 0 24px 70px rgba(38, 82, 91, 0.10);
+  --risk-shadow-soft: 0 12px 36px rgba(38, 82, 91, 0.055);
+  --risk-sidebar-width: 250px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 3%, rgba(156, 223, 227, 0.28), transparent 26rem),
+    radial-gradient(circle at 91% 8%, rgba(197, 236, 221, 0.31), transparent 24rem),
+    linear-gradient(145deg, #f9fcfc 0%, var(--risk-bg) 45%, #edf7f5 100%);
+}
+
+body::before {
+  opacity: 0;
+}
+
+.risk-shell {
+  padding-left: var(--risk-sidebar-width);
+}
+
+.risk-sidebar {
+  inset: 24px auto 24px 22px;
+  width: calc(var(--risk-sidebar-width) - 38px);
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 24px;
+  color: var(--risk-text);
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow: 0 20px 60px rgba(49, 91, 98, 0.10);
+  backdrop-filter: blur(24px) saturate(116%);
+  -webkit-backdrop-filter: blur(24px) saturate(116%);
+}
+
+.risk-brand {
+  grid-template-columns: 39px minmax(0, 1fr);
+  gap: 10px;
+  padding: 5px 3px 16px;
+  border-bottom-color: rgba(47, 90, 101, 0.10);
+}
+
+.risk-brand strong {
+  color: var(--risk-deep);
+  font-size: 13px;
+  letter-spacing: 0.015em;
+}
+
+.risk-brand small {
+  color: var(--risk-muted);
+  font-size: 10px;
+}
+
+.risk-brand-mark {
+  width: 39px;
+  height: 39px;
+  border-radius: 13px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.94) 0 2px, transparent 3px),
+    radial-gradient(circle at 50% 50%, transparent 0 8px, rgba(109, 205, 194, 0.62) 9px 10px, transparent 11px),
+    linear-gradient(145deg, #73b8d8, #80cbb8);
+  box-shadow: 0 10px 23px rgba(48, 135, 146, 0.18);
+}
+
+.risk-brand-mark::after {
+  top: 18px;
+  left: 19px;
+  width: 14px;
+  background: #fff;
+}
+
+.risk-nav {
+  gap: 5px;
+  margin-top: 16px;
+}
+
+.risk-nav a {
+  min-height: 40px;
+  padding: 8px 9px;
+  border-radius: 11px;
+  color: #5c707a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.risk-nav a:hover,
+.risk-nav a.is-active {
+  border-color: rgba(35, 127, 146, 0.11);
+  color: var(--risk-deep);
+  background: rgba(219, 244, 239, 0.68);
+  transform: translateX(1px);
+}
+
+.risk-nav a.is-active {
+  box-shadow: inset 2px 0 0 #57ad9f;
+}
+
+.risk-nav-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  color: #387f85;
+  background: rgba(84, 171, 159, 0.10);
+}
+
+.risk-boundary {
+  padding: 13px;
+  border-color: rgba(68, 154, 141, 0.14);
+  border-radius: 15px;
+  background: rgba(224, 246, 239, 0.62);
+}
+
+.risk-boundary .risk-eyebrow {
+  color: #398478;
+}
+
+.risk-boundary strong {
+  color: var(--risk-deep);
+  font-size: 12px;
+}
+
+.risk-boundary p:last-child,
+.risk-runtime {
+  color: var(--risk-muted);
+}
+
+.risk-live-dot {
+  background: #5eaa9e;
+  box-shadow: 0 0 0 4px rgba(94, 170, 158, 0.10);
+}
+
+.risk-main {
+  width: min(1440px, 100%);
+  padding: 42px clamp(24px, 4vw, 72px) 30px;
+}
+
+.risk-storage-notice {
+  border-color: rgba(35, 127, 146, 0.11);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.risk-hero,
+.risk-workspace-header {
+  position: relative;
+  padding: clamp(28px, 4vw, 50px);
+  border-color: rgba(255, 255, 255, 0.88);
+  color: var(--risk-deep);
+  background:
+    radial-gradient(circle at 86% 20%, rgba(125, 211, 204, 0.30), transparent 20rem),
+    radial-gradient(circle at 48% 112%, rgba(152, 209, 225, 0.26), transparent 26rem),
+    rgba(255, 255, 255, 0.62);
+  box-shadow: 0 26px 80px rgba(38, 82, 91, 0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.risk-hero .risk-eyebrow,
+.risk-workspace-header .risk-eyebrow {
+  color: #3d8d87;
+}
+
+.risk-lede,
+.risk-version-line,
+.risk-breadcrumb {
+  color: var(--risk-muted);
+}
+
+.risk-version-line strong,
+.risk-breadcrumb a:hover {
+  color: var(--risk-deep);
+}
+
+.risk-button-primary {
+  border-color: rgba(23, 104, 122, 0.08);
+  background: #237f92;
+  box-shadow: 0 10px 24px rgba(35, 127, 146, 0.18);
+}
+
+.risk-hero .risk-button-primary,
+.risk-workspace-header .risk-button-primary {
+  color: #114e56;
+  background: #bce9db;
+  box-shadow: 0 12px 30px rgba(72, 159, 146, 0.14);
+}
+
+.risk-button-secondary {
+  border-color: rgba(35, 127, 146, 0.13);
+  color: var(--risk-accent-dark);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.risk-metric-grid {
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.risk-metric-card,
+.risk-section {
+  border-color: rgba(255, 255, 255, 0.82);
+  background: var(--risk-panel);
+  box-shadow: var(--risk-shadow-soft);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.risk-metric-card {
+  padding: 19px;
+}
+
+.risk-metric-card::before {
+  width: 2px;
+  background: #6eb6b4;
+}
+
+.risk-section {
+  margin-top: 26px;
+  padding: clamp(22px, 3vw, 32px);
+}
+
+.risk-task-card,
+.risk-form fieldset,
+.risk-method-grid li {
+  border-color: var(--risk-line);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.risk-task-card:hover {
+  border-color: rgba(35, 127, 146, 0.20);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 34px rgba(38, 82, 91, 0.07);
+}
+
+.risk-step-badge {
+  color: #3d857e;
+  background: rgba(194, 235, 223, 0.62);
+}
+
+.risk-field input,
+.risk-field select,
+.risk-field textarea,
+.risk-source-filter select {
+  border-color: rgba(47, 90, 101, 0.17);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.risk-footer {
+  color: var(--risk-muted);
+}
