@@ -9,6 +9,7 @@ import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -43,6 +44,14 @@ LOCAL_WEB_RUNS_DIR = DATA_DIR / "web_runs"
 DEPLOY_WEB_RUNS_DIR = Path("/tmp/feedback-triage-runs")
 LOCAL_OBSERVATION_TASKS_DIR = DATA_DIR / "observation_tasks"
 DEPLOY_OBSERVATION_TASKS_DIR = Path("/tmp/feedback-risk-tasks")
+ACCEPTANCE_FIXTURES_DIR = PROJECT_ROOT / "artifacts" / "acceptance_v1.0" / "data"
+DEMO_TASK_ID = "task_demo_release_feedback"
+DEMO_FIXTURES = {
+    "baseline": ACCEPTANCE_FIXTURES_DIR / "baseline_48h.csv",
+    "current": ACCEPTANCE_FIXTURES_DIR / "current_48h.csv",
+    "followup": ACCEPTANCE_FIXTURES_DIR / "followup_48h.csv",
+}
+DEMO_TASK_LOCK = Lock()
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 STATIC_ASSET_VERSION = str(
@@ -401,9 +410,105 @@ def render_task_workspace(
             "version": __version__,
             "deployment_label": deployment_label(),
             "storage_notice": storage_notice(),
+            "is_demo": task_id == DEMO_TASK_ID,
         },
         status_code=status_code,
     )
+
+
+def demo_task_is_complete(task: Dict[str, object]) -> bool:
+    imports = task.get("imports", [])
+    successful_windows = {
+        str(item.get("window_kind", ""))
+        for item in imports
+        if item.get("status") == "success"
+    }
+    if successful_windows != set(DEMO_FIXTURES):
+        return False
+    workspace = observation.build_workspace(task, selected_window=48)
+    return bool(
+        workspace["metrics"]["baseline_feedback_count"]
+        and workspace["metrics"]["current_feedback_count"]
+        and workspace["metrics"]["followup_feedback_count"]
+        and workspace["metrics"]["confirmed_count"]
+    )
+
+
+def ensure_demo_task() -> Dict[str, object]:
+    """Materialize a complete demo from immutable repository fixtures."""
+    missing = [path.name for path in DEMO_FIXTURES.values() if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("演示数据 fixture 缺失：" + "、".join(missing))
+
+    with DEMO_TASK_LOCK:
+        try:
+            existing = observation.load_task(OBSERVATION_TASKS_DIR, DEMO_TASK_ID)
+            if demo_task_is_complete(existing):
+                return existing
+        except (FileNotFoundError, ValueError):
+            pass
+
+        demo_dir = OBSERVATION_TASKS_DIR / DEMO_TASK_ID
+        if demo_dir.exists():
+            shutil.rmtree(demo_dir)
+
+        try:
+            task = observation.create_task(
+                OBSERVATION_TASKS_DIR,
+                name="【演示数据】Acme Copilot v2.4 发版观察",
+                product_name="Acme Copilot（演示）",
+                baseline_version="v2.3",
+                current_version="v2.4",
+                baseline_window_start="2026-07-01T00:00:00+08:00",
+                baseline_window_end="2026-07-03T00:00:00+08:00",
+                current_window_start="2026-07-03T00:00:00+08:00",
+                current_window_end="2026-07-05T00:00:00+08:00",
+                followup_window_start="2026-07-05T00:00:00+08:00",
+                followup_window_end="2026-07-07T00:00:00+08:00",
+                comparison_basis="equivalent_window",
+                change_summary=(
+                    "演示任务：使用仓库 acceptance fixture 展示发版前、发版后和"
+                    "后续窗口的完整闭环，不代表真实用户或生产结果。"
+                ),
+                task_id=DEMO_TASK_ID,
+            )
+            for window_kind, fixture_path in DEMO_FIXTURES.items():
+                observation.add_import(
+                    task,
+                    source_path=fixture_path,
+                    window_kind=window_kind,
+                    observation_hours=48,
+                    source="App Store",
+                    import_mode="cumulative",
+                    filename=fixture_path.name,
+                )
+
+            workspace = observation.build_workspace(task, selected_window=48)
+            reviewed_cluster = next(
+                cluster
+                for cluster in workspace["clusters"]
+                if cluster["title"] == "导出文件失败"
+            )
+            observation.apply_cluster_action(
+                task,
+                reviewed_cluster["cluster_id"],
+                "confirm",
+                changes={
+                    "risk_level": "P1",
+                    "owner": "导出体验团队（演示）",
+                    "work_status": "处理中",
+                    "next_action": "复核导出任务队列，并在下个 48h 窗口继续验证",
+                    "result": "后续窗口仍有相关反馈，保留观察并继续跟进",
+                },
+                reason="演示复核：已核对基线、当前与后续窗口的原文证据。",
+                actor="demo_seed",
+                selected_window=48,
+                selected_source="all",
+            )
+            return observation.load_task(OBSERVATION_TASKS_DIR, DEMO_TASK_ID)
+        except Exception:
+            shutil.rmtree(demo_dir, ignore_errors=True)
+            raise
 
 
 def clean_form_value(
@@ -731,6 +836,24 @@ def index(
     )
 
 
+@app.get("/demo")
+def demo_workspace(request: Request):
+    try:
+        ensure_demo_task()
+        return render_task_workspace(
+            request,
+            DEMO_TASK_ID,
+            selected_window=48,
+            selected_source="all",
+        )
+    except (FileNotFoundError, OSError, StopIteration, ValueError):
+        return render_task_index(
+            request,
+            error="演示任务暂时无法生成，请稍后重试。",
+            status_code=500,
+        )
+
+
 @app.post("/tasks")
 def create_observation_task(
     request: Request,
@@ -849,6 +972,15 @@ def observation_workspace(
     error: str = "",
 ):
     status_code = 200
+    if task_id == DEMO_TASK_ID:
+        try:
+            ensure_demo_task()
+        except (FileNotFoundError, OSError, StopIteration, ValueError):
+            return render_task_index(
+                request,
+                error="演示任务暂时无法生成，请稍后重试。",
+                status_code=500,
+            )
     try:
         selected_window = parse_observation_window(window)
     except ValueError as exc:
@@ -888,11 +1020,19 @@ def import_observation_feedback(
     file: Optional[UploadFile] = File(None),
 ):
     try:
+        if task_id == DEMO_TASK_ID:
+            ensure_demo_task()
         task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
     except FileNotFoundError as exc:
         return render_task_index(request, error=str(exc), status_code=404)
     except ValueError as exc:
         return render_task_index(request, error=str(exc), status_code=400)
+    except OSError:
+        return render_task_index(
+            request,
+            error="观察任务目录无法读取，请稍后重试。",
+            status_code=500,
+        )
 
     selected_window = 72
     selected_source = "all"
@@ -1015,11 +1155,19 @@ def apply_observation_cluster_action(
     selected_source: Optional[str] = Form(None),
 ):
     try:
+        if task_id == DEMO_TASK_ID:
+            ensure_demo_task()
         task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
     except FileNotFoundError as exc:
         return render_task_index(request, error=str(exc), status_code=404)
     except ValueError as exc:
         return render_task_index(request, error=str(exc), status_code=400)
+    except OSError:
+        return render_task_index(
+            request,
+            error="观察任务目录无法读取，请稍后重试。",
+            status_code=500,
+        )
 
     window = 72
     source = "all"

@@ -40,6 +40,16 @@
 {% set audit_events = workspace.audit_events | default(workspace.audit | default([])) %}
 {% set followup_comparison = workspace.followup_comparison | default(None) %}
 
+{% if is_demo %}
+<div class="risk-demo-notice" role="note">
+  <span class="risk-demo-label">演示数据</span>
+  <div>
+    <strong>这是可重复生成的示例任务</strong>
+    <p>内容来自仓库 acceptance fixture，用于展示完整工作流；不代表真实用户、线上流量或生产分析结果。实例重启后可从首页演示入口重新生成。</p>
+  </div>
+</div>
+{% endif %}
+
 <section class="risk-workspace-header" id="overview">
   <div>
     <div class="risk-breadcrumb"><a href="/">观察任务</a><span>/</span><span>{{ task.name | default("未命名任务") }}</span></div>

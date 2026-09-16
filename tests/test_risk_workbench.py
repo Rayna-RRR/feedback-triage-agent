@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -96,6 +97,69 @@ def test_workbench_homepage_and_storage_boundary(
     assert "实例回收后任务可能丢失" in online_response.text
     assert "请勿上传敏感或生产数据" in online_response.text
     assert client.get("/healthz").json()["observation_storage"] == "temporary"
+
+
+def test_home_demo_entry_builds_complete_repeatable_fixture_task(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    client = client_with_tmp_storage(tmp_path, monkeypatch)
+    fixture_hashes = {
+        name: hashlib.sha256(path.read_bytes()).hexdigest()
+        for name, path in web_app.DEMO_FIXTURES.items()
+    }
+
+    homepage = client.get("/")
+    assert homepage.status_code == 200
+    assert 'href="/demo"' in homepage.text
+    assert "演示数据" in homepage.text
+    assert "不代表真实用户或生产结果" in homepage.text
+
+    demo = client.get("/demo")
+    assert demo.status_code == 200
+    assert "这是可重复生成的示例任务" in demo.text
+    assert "【演示数据】Acme Copilot v2.4 发版观察" in demo.text
+    assert "当前相对基线" in demo.text
+    assert "后续相对当前" in demo.text
+    assert "导出文件失败" in demo.text
+    assert "点击导出按钮后完全没有生成文件" in demo.text
+    assert "演示复核：已核对基线、当前与后续窗口的原文证据" in demo.text
+    assert "导出体验团队（演示）" in demo.text
+    assert "下个 48h 窗口继续验证" in demo.text
+
+    direct_task = client.get(f"/tasks/{web_app.DEMO_TASK_ID}?window=48")
+    assert direct_task.status_code == 200
+    assert "演示数据" in direct_task.text
+
+    assert fixture_hashes == {
+        name: hashlib.sha256(path.read_bytes()).hexdigest()
+        for name, path in web_app.DEMO_FIXTURES.items()
+    }
+
+    monkeypatch.setattr(web_app, "OBSERVATION_TASKS_DIR", tmp_path / "fresh-instance")
+    regenerated = TestClient(web_app.app).get(
+        f"/tasks/{web_app.DEMO_TASK_ID}?window=48"
+    )
+    assert regenerated.status_code == 200
+    assert "导出体验团队（演示）" in regenerated.text
+
+
+def test_demo_pages_keep_390px_responsive_contract(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    client = client_with_tmp_storage(tmp_path, monkeypatch)
+    homepage = client.get("/")
+    demo = client.get("/demo")
+    css = (web_app.STATIC_DIR / "risk_workspace.css").read_text(encoding="utf-8")
+
+    assert 'name="viewport" content="width=device-width, initial-scale=1"' in homepage.text
+    assert demo.status_code == 200
+    assert "@media (max-width: 680px)" in css
+    assert ".risk-demo-callout," in css
+    assert "grid-template-columns: minmax(0, 1fr);" in css
+    assert ".risk-demo-callout .risk-button" in css
+    assert "width: 100%;" in css
 
 
 def test_task_creation_enforces_and_labels_comparison_basis(
