@@ -1,0 +1,6 @@
+id,source,app_name,review_date,rating,review_text,exclude_reason,notes
+QW_001,App Store,Qwen,2026-05-07,5,我让千问给我订购五张电影票要在中午11点观看，千问会根据需求并且距离为我筛选好这个时间段的电影，列举这个时间段的电影有哪些，再让我去选择，觉得这个特别好，一下子很清晰明郎的去做选择去根据电影类型观看,评论内容与 AI 应用产品体验无关，疑似应用名称或评论来源混淆，不纳入主分析样本。,App Store 评论页手动采样；iOS 端样本；已从 clean_reviews.csv 移除对应标注行；已从 raw_reviews.csv 移出
+QW_002,App Store,Qwen,2026-05-08,1,记忆很差，回答问题左右脑互搏，害得我直接误事了。和其他AI比真的差多了，第一次给差评。,评论内容与 AI 应用产品体验无关，疑似应用名称或评论来源混淆，不纳入主分析样本。,App Store 评论页手动采样；iOS 端样本；已从 clean_reviews.csv 移除对应标注行；已从 raw_reviews.csv 移出
+QW_003,App Store,Qwen,2026-05-07,1,App太大，太占用手机空间了,评论内容与 AI 应用产品体验无关，疑似应用名称或评论来源混淆，不纳入主分析样本。,App Store 评论页手动采样；iOS 端样本；已从 raw_reviews.csv 移出
+QW_004,App Store,Qwen,2026-05-06,1,屏幕点击交互设计非常蹩脚，在浏览过程中点击屏幕，不会像常规软件一样暂停滚动，而是会直接触发文字选中状态。这个细节严重打断了正常的阅读与沟通体验，希望开发团队能尽快排查并优化相关交互逻辑。,评论内容与 AI 应用产品体验无关，疑似应用名称或评论来源混淆，不纳入主分析样本。,App Store 评论页手动采样；iOS 端样本；已从 clean_reviews.csv 移除对应标注行；已从 raw_reviews.csv 移出
+QW_005,App Store,Qwen,2026-04-29,3,本来用粤语可以直接下单，改着改着连粤语都听不懂，越改越退化。,评论内容与 AI 应用产品体验无关，疑似应用名称或评论来源混淆，不纳入主分析样本。,App Store 评论页手动采样；iOS 端样本；已从 clean_reviews.csv 移除对应标注行；已从 raw_reviews.csv 移出

@@ -1,0 +1,3 @@
+# Preserve public CSV source bytes and reproducible csv.writer CRLF output.
+data/ai_app_feedback/**/*.csv -text whitespace=cr-at-eol
+data/ai_app_reviews.csv -text whitespace=cr-at-eol

@@ -1,0 +1,68 @@
+{
+  "repository": "https://github.com/Rayna-RRR/ai-app-feedback-analysis",
+  "commit": "b537f7aa1a9080eeda8d1aaedd47f2e484b6613d",
+  "local_source_head": "c62759546fc2e8568c882915d4fb17324fb40d99",
+  "note": "Imported committed public files; local README edits excluded. Remote b537f7a changes README only. Source files are immutable reference copies; run adapted scripts instead.",
+  "files": [
+    {
+      "source_path": "data/raw_reviews.csv",
+      "path": "data/ai_app_feedback/raw_reviews.csv",
+      "sha256": "30f21aa550246389b75785d30ea5dc0c67857b300cdd0ffd56fffde2c6a987df"
+    },
+    {
+      "source_path": "data/clean_reviews.csv",
+      "path": "data/ai_app_feedback/clean_reviews.csv",
+      "sha256": "718165f38e0fc5ff2fdd070cf47f2bb1b1375c473c7bb1e773a52bd90bc3348f"
+    },
+    {
+      "source_path": "data/excluded_reviews.csv",
+      "path": "data/ai_app_feedback/excluded_reviews.csv",
+      "sha256": "417e9e6458c09252aaf20fd8e0ddfa51ac04e20d0bdd279cee4ed42ff3a3a549"
+    },
+    {
+      "source_path": "docs/coding_guide.md",
+      "path": "docs/ai_app_feedback/source/coding_guide.md",
+      "sha256": "b8161b2f560ebb65f6423738de3de5da491efff5782da3b20e5223cd368be2ca"
+    },
+    {
+      "source_path": "docs/analysis_report.md",
+      "path": "docs/ai_app_feedback/source/analysis_report.md",
+      "sha256": "8225386faac755848b146d703df30ad78c728c6480a3dc501bfaf4345d5c1bcc"
+    },
+    {
+      "source_path": "docs/qa_report.md",
+      "path": "docs/ai_app_feedback/source/qa_report.md",
+      "sha256": "847f98e3fe3205d0f96775f70cfa0748914dff96f2ffb3394dbe521668cfc3b2"
+    },
+    {
+      "source_path": "docs/project_summary.md",
+      "path": "docs/ai_app_feedback/source/project_summary.md",
+      "sha256": "5228ece547286a0bb6574e878c50dfb4058ad65c233057eb7187e28b74762991"
+    },
+    {
+      "source_path": "README.md",
+      "path": "docs/ai_app_feedback/source/README.md",
+      "sha256": "ff6eb4983b172a2e5a286c720ae7422cc1e450ce4c8fc578bc89e5ba62ea7d7d"
+    },
+    {
+      "source_path": "scripts/append_raw_reviews.py",
+      "path": "scripts/ai_app_feedback_source/append_raw_reviews.py",
+      "sha256": "058de67de5de7e6ec6c76442187b0f5f41ba0000606f7627ac015b8fadf90616"
+    },
+    {
+      "source_path": "scripts/append_clean_reviews.py",
+      "path": "scripts/ai_app_feedback_source/append_clean_reviews.py",
+      "sha256": "7eaab843d1758e2db130d5f4626bd444ea676c89774f0aa944c55ab9d3bb84fd"
+    },
+    {
+      "source_path": "scripts/label_quality_check.py",
+      "path": "scripts/ai_app_feedback_source/label_quality_check.py",
+      "sha256": "4f7985213c9f79616bf53f3ec9456d9af5e41e19abd64fd0d090bcf9188024af"
+    },
+    {
+      "source_path": "scripts/summarize_reviews.py",
+      "path": "scripts/ai_app_feedback_source/summarize_reviews.py",
+      "sha256": "ad13363c413bde4aa3642afacb6af31b31ef9a62bff7d795c5946dd5e694070f"
+    }
+  ]
+}

@@ -25,6 +25,19 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
+      - name: Reproduce public review preparation and source QA
+        run: |
+          python scripts/prepare_ai_app_reviews.py
+          python scripts/label_quality_check.py
+          python scripts/summarize_reviews.py
+          git diff --exit-code -- data/ai_app_reviews.csv data/ai_app_feedback docs/ai_app_feedback/source
+
+      - name: Trace public reviews through the existing rules engine
+        run: |
+          python -m feedback_triage_agent.cli run --input data/ai_app_reviews.csv --output data/ai_app_feedback/generated/triage --no-llm
+          python scripts/compare_ai_app_labels.py
+          git diff --exit-code -- data/ai_app_feedback/generated/label_comparison.csv
+
       - name: Run pytest
         run: python -m pytest
 
