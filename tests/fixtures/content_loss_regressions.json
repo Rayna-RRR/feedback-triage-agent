@@ -100,6 +100,24 @@
         "账号、隐私与数据问题"
       ],
       "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R10",
+      "text": "我保存的笔记并非丢失，只是改了名字，内容还在。",
+      "rating": 4,
+      "origin": "Synthetic direct negation; renamed persisted object still present",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "R11",
+      "text": "担心已保存的草稿将来可能会消失，希望提供备份。",
+      "rating": 5,
+      "origin": "Synthetic future concern, not an observed disappearance",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
     }
   ]
 }
