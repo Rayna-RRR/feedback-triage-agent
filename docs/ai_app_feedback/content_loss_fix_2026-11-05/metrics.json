@@ -1,7 +1,7 @@
 {
   "baseline_product_commit": "10b92b25305ee884addf2220e48862873af0e429",
-  "verified_product_commit": "d6fa4cefd46b8e892e6ee854a815d0b2bea3325d",
-  "rules_sha256": "ea2be2b735aa5f8b63c83756c60e98b9f8e2fed160ce35174f3878322e3b63ed",
+  "verified_product_commit": "1c136f6ba564ae297e60b8c5444074eb402493ed",
+  "rules_sha256": "d6b308d898bd4965f8b757836eff219ddfdd3f8551f463e809004f9ccdd8a779",
   "observation_sha256": "e7ae5c0c24e56108f021eea61dfcb40d4e914aeb5805aedf879f298f50671687",
   "frozen_contract_sha256": "2a3e5af5800cda098241117708ea8bc919e8a1a01e308eab8c3af6ef00fa2dd4",
   "additional_regressions_sha256": "a87976a46df3b916a912ae47dffd2ef28dffc55a6fc0ff960964ba403cdde40a",
