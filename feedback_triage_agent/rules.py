@@ -697,7 +697,9 @@ def content_loss_events(text: str) -> List[ContentLossEvent]:
             ) or bool(re.search(r"(?:会|可能).{0,3}$", prefix) and re.search(r"吗|么|怎么办", clause))
             future_concern = bool(re.search(r"(?:将来|未来|以后).{0,8}(?:可能)?会|担心.{0,12}(?:可能)?会", prefix))
             hypothetical = hypothetical or (future_concern and not repeated_report)
-            negated = keyword_is_negated(clause, match.start())
+            negated = keyword_is_negated(clause, match.start()) or prefix.rstrip().endswith(
+                ("并非", "不是", "不曾", "未曾")
+            )
             if kind == "recovery":
                 if not foreign and not negated and not hypothetical and not re.search(r"希望|能否|想", prefix):
                     events = [
@@ -739,8 +741,6 @@ def keyword_is_negated(text: str, start: int) -> bool:
     boundaries = list(CLAUSE_BREAK.finditer(text, 0, start))
     left = boundaries[-1].end() if boundaries else 0
     prefix = text[max(left, start - 24) : start].rstrip()
-    if prefix.endswith(("并非", "不是", "不曾", "未曾")):
-        return True
     if any(phrase in prefix for phrase in ("没有", "未发生", "并未", "从未", "从来没有")):
         return True
     return any(prefix.endswith(negation) for negation in NEGATION_PREFIXES)
