@@ -1,0 +1,304 @@
+{
+  "contract": "approved-content-loss-triage-2026-11-05",
+  "baseline": "10b92b25305ee884addf2220e48862873af0e429",
+  "analysis_input_sha256": "164cccf7c127652e88a72cfbb2468269fa22a44955deed62cb5b42ae5e7c645f",
+  "note": "Only this event contract is approved; other adjudication proposals and historical labels remain unchanged. P0 means investigate, not confirmed permanent loss.",
+  "cases": [
+    {
+      "id": "A01",
+      "text": "这几天晚上写的东西，DS AI在第二天一早就不见了。 希望能修复好这个问题",
+      "rating": 3,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "A02",
+      "text": "昨晚保存的草稿今天找不到了，希望能恢复。",
+      "rating": 3,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "A03",
+      "text": "写了一晚的内容隔天消失了，历史记录里也没有。",
+      "rating": 3,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "A04",
+      "text": "我的草稿没有丢失，保存和读取一直正常。",
+      "rating": 5,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "not_P0",
+      "no_data_cluster": true,
+      "no_active_data_reason": true
+    },
+    {
+      "id": "A05",
+      "text": "如果草稿丢失了怎么办？目前没有发生，想先了解恢复办法。",
+      "rating": 4,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "not_P0",
+      "no_data_cluster": true,
+      "no_active_data_reason": true
+    },
+    {
+      "id": "A06",
+      "text": "写作能力很好，但昨晚写的草稿今早消失了。",
+      "rating": 5,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "A07",
+      "text": "以前草稿丢失过，现在已经找回，连续一周正常。",
+      "rating": 5,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "not_P0",
+      "review": true,
+      "review_reason": "历史内容丢失已恢复、恢复状态待确认"
+    },
+    {
+      "id": "A21",
+      "text": "没有广告。更新后闪退，写了一小时的内容丢失了。",
+      "rating": 1,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题",
+        "性能与稳定性问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "A22",
+      "text": "昨天没有闪退，已经连续稳定运行了很长时间。今天刚打开就闪退了，任务无法完成。",
+      "rating": 1,
+      "origin": "uncommitted adjudication acceptance_proposals.csv DS_009; approved scope in user instruction 2026-11-05",
+      "priority": "P0",
+      "review": true,
+      "category": "性能与稳定性问题",
+      "members": [
+        "性能与稳定性问题"
+      ]
+    },
+    {
+      "id": "O01",
+      "text": "今天升级后，工具栏里的导出按钮不见了。",
+      "rating": 3,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "O02",
+      "text": "模型老是忘记上一轮说过的话，上下文记忆像消失了一样。",
+      "rating": 2,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "O03",
+      "text": "希望把旧模型的推理能力找回来，现在的风格不适合我。",
+      "rating": 3,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "O04",
+      "text": "这段文字我还没点保存就关了页面，所以没有记录。",
+      "rating": 3,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "O05",
+      "text": "我主动删除了那份文档，现在列表里当然找不到了。",
+      "rating": 3,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "O06",
+      "text": "另一款软件昨晚保存的草稿不见了，这款一直正常。",
+      "rating": 5,
+      "origin": "synthetic object/ownership/action control; user-approved scope",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "G01",
+      "text": "草稿没有丢失，但今天打开应用就闪退。",
+      "rating": 3,
+      "origin": "synthetic independent-risk control; negatives/recovery do not cancel other risks",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "性能与稳定性问题"
+      ],
+      "no_active_data_reason": true
+    },
+    {
+      "id": "G02",
+      "text": "如果文档消失该怎么办？另外订阅未经同意扣费了。",
+      "rating": 3,
+      "origin": "synthetic independent-risk control; negatives/recovery do not cancel other risks",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "会员与商业化问题"
+      ],
+      "no_active_data_reason": true
+    },
+    {
+      "id": "G03",
+      "text": "上周记录丢失后已经恢复，但今天支付失败还重复扣费。",
+      "rating": 3,
+      "origin": "synthetic independent-risk control; negatives/recovery do not cancel other risks",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "会员与商业化问题"
+      ],
+      "no_active_data_reason": true,
+      "review_reason": "历史内容丢失已恢复、恢复状态待确认"
+    },
+    {
+      "id": "N01",
+      "text": "我存在应用里的几篇笔记昨天还在，今天打开列表全没了。",
+      "rating": 5,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "N02",
+      "text": "保存好的报告重新打开后是一片空白，文件内容都没了。",
+      "rating": 4,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "N03",
+      "text": "聊天历史突然被清空，我没有手动删过，目前也找不回来。",
+      "rating": 3,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "N04",
+      "text": "我没有主动删除，但昨晚存下的文档今天消失了。",
+      "rating": 4,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "N05",
+      "text": "我的文档明明没有丢失，只是工具栏按钮不见了。",
+      "rating": 4,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "N06",
+      "text": "如果点击这里会丢失草稿吗？还没有发生。",
+      "rating": 4,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "N07",
+      "text": "昨天的笔记已经恢复，但刚保存的文档又不见了。",
+      "rating": 5,
+      "origin": "new synthetic natural-language generalization, not an independent public sample",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "KIMI_010",
+      "text": "以前挺好的，但现在经常闪退，有些代码也编写不好，很让人失望。",
+      "rating": 3,
+      "origin": "data/ai_app_reviews.csv at 10b92b25305ee884addf2220e48862873af0e429",
+      "priority": "P0",
+      "review": true
+    },
+    {
+      "id": "ev005",
+      "text": "打开后经常崩溃，刚写的内容也丢失了。",
+      "rating": 1,
+      "origin": "data/evaluation_feedback.csv at 10b92b25305ee884addf2220e48862873af0e429",
+      "priority": "P0",
+      "review": true
+    },
+    {
+      "id": "ev011",
+      "text": "聊天记录和客户资料全部丢失。",
+      "rating": 1,
+      "origin": "data/evaluation_feedback.csv at 10b92b25305ee884addf2220e48862873af0e429",
+      "priority": "P0",
+      "review": true
+    }
+  ]
+}
