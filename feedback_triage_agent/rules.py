@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass, replace
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from feedback_triage_agent.models import ClassifiedFeedback, FeedbackRecord
 
@@ -611,8 +612,131 @@ def summarize_text(text: str, max_length: int = 42) -> str:
     return f"{cleaned[:max_length]}..."
 
 
+DATA_CATEGORY = "账号、隐私与数据问题"
+CONTENT_LOSS_REASON = "疑似内容丢失、可恢复性待核查"
+RECOVERED_LOSS_REASON = "历史内容丢失已恢复、恢复状态待确认"
+CLAUSE_BREAK = re.compile(r"[，,。.!！？?；;\n]+|但是|不过|然而|可是|但|却")
+DATA_OBJECT = re.compile(
+    r"(?:聊天|对话|历史)(?:记录|历史)|草稿|文档|文件|笔记|日记|稿件|报告|记录|客户资料|资料|数据|内容"
+    r"|(?:写|保存|存下).{0,10}?(?:东西|文字|稿子)"
+    r"|\b(?:drafts?|documents?|notes?|files?|chat history|conversation history|data)\b"
+)
+LOSS_PREDICATE = re.compile(
+    r"丢失(?:了|过)?|丢了|不见(?:了)?|消失(?:了)?|找不到(?:了)?|(?:全|都|全部)?没(?:有)?了"
+    r"|(?:被)?清空(?:了)?|一片空白|不可见|看不到"
+    r"|\b(?:disappeared|disappear|gone|lost|loss)\b"
+)
+RECOVERY = re.compile(
+    r"(?:已经|已|后来)(?:成功)?(?:恢复|找回)|(?:找回|恢复)(?:了|成功|正常)"
+    r"|\b(?:restored|recovered)\b"
+)
+LOSS_WORDS = {"内容丢失", "数据丢失", "丢失", "丢了", "lost data", "data loss"}
+NON_DATA_OBJECT = re.compile(r"图片|按钮|入口|图标|上文|上下文|(?:模型|推理|分析|记忆)能力")
+
+
+@dataclass(frozen=True)
+class ContentLossEvent:
+    start: int
+    end: int
+    object_name: str
+    status: str  # reported, recovered, or excluded; never a confirmed incident
+
+
+def _clauses(text: str) -> Iterator[Tuple[int, int, str]]:
+    start = 0
+    for boundary in CLAUSE_BREAK.finditer(text):
+        if boundary.start() > start:
+            yield start, boundary.start(), text[start:boundary.start()]
+        start = boundary.end()
+    if start < len(text):
+        yield start, len(text), text[start:]
+
+
+def content_loss_events(text: str) -> List[ContentLossEvent]:
+    """Resolve object, local polarity/owner and subsequent recovery in report order.
+
+    A missing button or a model's memory is not a persisted object. Object and
+    ownership carry into adjacent clauses (e.g. 'my drafts, gone this morning'),
+    while a newly named object or explicit target resets that context.
+    """
+    text = normalize_for_matching(text)
+    events: List[ContentLossEvent] = []
+    previous_object = ""
+    foreign = False
+    unsaved = False
+    intentional = False
+    for start, end, clause in _clauses(text):
+        owners = list(re.finditer(
+            r"(?P<foreign>竞品|别家|另一款|其他(?:软件|应用|产品)|\bcompetitor\b|\bother app\b)"
+            r"|(?P<target>这款|本(?:产品|应用|软件)|\bthis app\b)", clause,
+        ))
+        if owners:
+            foreign = owners[-1].lastgroup == "foreign"
+        objects = list(DATA_OBJECT.finditer(clause))
+        if objects and objects[0].group() != previous_object:
+            unsaved = intentional = False
+        if objects and re.search(r"(?:昨天|昨晚|刚|已|自动).{0,3}(?:保存|存下|写完|写好)", clause):
+            unsaved = intentional = False
+        unsaved = unsaved or bool(re.search(r"未保存|没(?:有)?(?:点)?保存|尚未保存|忘记保存|还没存", clause))
+        deletion = re.search(r"(?:主动|手动)(?:删除|删掉|删过|清空)|(?:我|自己|本人).{0,8}(?:删除|删掉|清空)", clause)
+        if deletion and not keyword_is_negated(clause, deletion.start()):
+            intentional = True
+        actions = [(m.start(), "loss", m) for m in LOSS_PREDICATE.finditer(clause)]
+        actions += [(m.start(), "recovery", m) for m in RECOVERY.finditer(clause)]
+        for _, kind, match in sorted(actions, key=lambda action: action[0]):
+            preceding = [obj for obj in objects if obj.start() <= match.start()]
+            obj = preceding[-1].group() if preceding else (objects[0].group() if objects else previous_object)
+            if not obj:
+                continue
+            prefix = clause[:match.start()]
+            # Generic content in a model-memory request is not stored user data.
+            abstract = obj in {"内容", "数据"} and bool(re.search(r"上下文|上文|模型能力|记忆能力", clause))
+            repeated_report = bool(re.search(r"每次|总是|经常|已经遇到|\bevery time\b", clause))
+            hypothetical = (
+                bool(re.search(r"如果|假如|万一|要是|\bif\b", prefix)) and not repeated_report
+            ) or bool(re.search(r"(?:会|可能).{0,3}$", prefix) and re.search(r"吗|么|怎么办", clause))
+            negated = keyword_is_negated(clause, match.start())
+            if kind == "recovery":
+                if not foreign and not negated and not hypothetical and not re.search(r"希望|能否|想", prefix):
+                    events = [
+                        replace(event, status="recovered")
+                        if event.object_name == obj and event.status == "reported" else event
+                        for event in events
+                    ]
+                continue
+            # A visible UI/image failure does not inherit a prior data noun.
+            nearer_ui = [item for item in NON_DATA_OBJECT.finditer(prefix)]
+            other_object = (
+                bool(re.match(r"(?:的)?(?:图片|按钮|入口|图标|上文|上下文)", clause[match.end():]))
+                or bool(nearer_ui and (not preceding or nearer_ui[-1].start() > preceding[-1].start()))
+            )
+            # A first lookup on an unsynced new device does not establish that
+            # previously present records disappeared. Keep the existing sync
+            # fault classification/review, rather than inventing storage loss.
+            sync_lookup = (
+                match.group().startswith(("找不到", "看不到", "不可见"))
+                and obj in {"聊天记录", "历史记录", "对话记录"}
+                and bool(re.search(r"换设备|新手机|新设备|另一台", text))
+                and bool(re.search(r"同步失败|尚未同步|还没同步|未同步", text))
+                and not re.search(r"刚|保存|写完|原来还在", clause)
+            )
+            excluded = (
+                foreign or unsaved or intentional or abstract or hypothetical
+                or negated or other_object or sync_lookup
+            )
+            events.append(ContentLossEvent(start, end, obj, "excluded" if excluded else "reported"))
+        if objects:
+            previous_object = objects[-1].group()
+        elif NON_DATA_OBJECT.search(clause):
+            previous_object = ""
+    return events
+
+
 def keyword_is_negated(text: str, start: int) -> bool:
-    prefix = text[max(0, start - 24) : start].rstrip()
+    # A negated earlier clause does not negate the next independent event.
+    boundaries = list(CLAUSE_BREAK.finditer(text, 0, start))
+    left = boundaries[-1].end() if boundaries else 0
+    prefix = text[max(left, start - 24) : start].rstrip()
     if any(phrase in prefix for phrase in ("没有", "未发生", "并未", "从未", "从来没有")):
         return True
     return any(prefix.endswith(negation) for negation in NEGATION_PREFIXES)
@@ -638,9 +762,20 @@ def contains_actionable_keyword(
         keyword_pattern = rf"(?<![a-z0-9]){keyword_pattern}(?![a-z0-9])"
     for match in re.finditer(keyword_pattern, text):
         start = match.start()
+        if category_check and keyword in {"聊天记录", "chat history", "conversation history"} and any(
+            event.status == "excluded" and event.start <= start < event.end
+            for event in content_loss_events(text)
+        ):
+            continue
+        if keyword in LOSS_WORDS and not any(
+            event.status == "reported" and event.start <= start < event.end
+            for event in content_loss_events(text)
+        ):
+            continue
         if not keyword_is_negated(text, start):
-            positive_category = category_check and keyword_has_positive_category_context(text, keyword)
-            positive_risk = priority_check and keyword_has_positive_risk_context(text, keyword)
+            local = next((clause for left, right, clause in _clauses(text) if left <= start < right), text)
+            positive_category = category_check and keyword_has_positive_category_context(local, keyword)
+            positive_risk = priority_check and keyword_has_positive_risk_context(local, keyword)
             if not positive_category and not positive_risk:
                 return True
     return False
@@ -715,6 +850,8 @@ def calculate_confidence(scores: Dict[str, int], matched_categories: List[str]) 
 
 def determine_priority(text: str, rating: Optional[int]) -> str:
     normalized = normalize_for_matching(text)
+    if any(event.status == "reported" for event in content_loss_events(normalized)):
+        return "P0"
     if any(
         contains_actionable_keyword(
             normalized,
@@ -771,6 +908,11 @@ def build_product_suggestion(text: str, category: str, matched_categories: List[
 
 def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
     reasons: List[str] = []
+    events = content_loss_events(feedback.review_text)
+    if any(event.status == "reported" for event in events):
+        reasons.append(CONTENT_LOSS_REASON)
+    if any(event.status == "recovered" for event in events):
+        reasons.append(RECOVERED_LOSS_REASON)
     is_positive_feedback = feedback.issue_category == "正向反馈/无明确问题"
     if compact_text_length(feedback.review_text) < 8 and not is_positive_feedback:
         reasons.append("文本过短")
@@ -790,7 +932,34 @@ def detect_human_review_reasons(feedback: ClassifiedFeedback) -> List[str]:
 
 
 def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
+    normalized = normalize_for_matching(record.review_text)
     scores, matched_keywords = score_categories(record.review_text)
+    previous_category = pick_category(scores)
+    events = content_loss_events(record.review_text)
+    data_loss = any(event.status == "reported" for event in events)
+    if data_loss:
+        # Saving/finding a lost document is part of the data event, not a second
+        # UI defect or a product-positioning issue merely because it says 'hope'.
+        for category in ("交互体验问题", "用户预期与产品定位问题"):
+            independent = []
+            for word in matched_keywords.get(category, []):
+                for left, _, clause in _clauses(normalized):
+                    related = any(event.status == "reported" and event.start == left for event in events)
+                    repair_wish = (
+                        re.search(r"希望|请|能不能", clause)
+                        and re.search(r"修复|恢复|找回", clause)
+                        and not NON_DATA_OBJECT.search(clause)
+                    )
+                    if word in clause and not related and not repair_wish:
+                        independent.append(word)
+                        break
+            if independent:
+                matched_keywords[category] = independent
+            else:
+                matched_keywords.pop(category, None)
+            scores[category] = len(independent)
+        matched_keywords[DATA_CATEGORY] = [CONTENT_LOSS_REASON]
+        scores[DATA_CATEGORY] = 1
     matched_categories = [category for category, score in scores.items() if score > 0]
     positive_hits = []
     if not matched_categories:
@@ -802,6 +971,16 @@ def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
         matched_keywords[category] = positive_hits
     else:
         category = pick_category(scores)
+    if data_loss:
+        # Retain existing crash+loss primary labels and both category members.
+        crash = any(
+            contains_actionable_keyword(normalized, word, priority_check=True)
+            for word in ("崩溃", "闪退", "crash", "crashes", "crashing", "crashed")
+        )
+        category = (
+            previous_category if crash and previous_category in {"性能与稳定性问题", DATA_CATEGORY}
+            else DATA_CATEGORY
+        )
     priority = determine_priority(record.review_text, record.rating)
     confidence = calculate_confidence(scores, matched_categories)
     summary = summarize_text(record.review_text)

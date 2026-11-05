@@ -15,6 +15,7 @@ from feedback_triage_agent.rules import classify_feedback_record, detect_human_r
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = json.loads((ROOT / 'tests/fixtures/content_loss_cases.json').read_text())["cases"]
+CASES += json.loads((ROOT / 'tests/fixtures/content_loss_regressions.json').read_text())["cases"]
 LOSS_CATEGORY = "账号、隐私与数据问题"
 LOSS_REASON = "疑似内容丢失、可恢复性待核查"
 
