@@ -17,6 +17,7 @@ from feedback_triage_agent.rules import classify_feedback_record, detect_human_r
 ROOT = Path(__file__).resolve().parents[1]
 CASES = json.loads((ROOT / 'tests/fixtures/content_loss_cases.json').read_text())["cases"]
 CASES += json.loads((ROOT / 'tests/fixtures/content_loss_regressions.json').read_text())["cases"]
+CASES += json.loads((ROOT / 'tests/fixtures/content_loss_event_updates.json').read_text())["cases"]
 LOSS_CATEGORY = "账号、隐私与数据问题"
 LOSS_REASON = "疑似内容丢失、可恢复性待核查"
 
@@ -32,10 +33,14 @@ def check_case(case, category, priority, reasons, members=None):
         assert reasons
     if case.get("review_reason"):
         assert case["review_reason"] in reasons
+    if case.get("forbidden_review_reason"):
+        assert case["forbidden_review_reason"] not in reasons
     if case.get("no_active_data_reason"):
         assert LOSS_REASON not in reasons
     if members is not None:
         assert set(case.get("members", [])) <= set(members)
+        if case.get("only_members"):
+            assert set(members) == set(case["only_members"])
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c['id'])
@@ -98,6 +103,8 @@ def test_content_loss_contract_through_import_workspace_and_html(case, tmp_path,
         clusters = workspace['clusters']
         categories = {c['issue_category'] for c in clusters}
         assert set(case.get('members', [])) <= categories
+        if case.get('only_members'):
+            assert categories == set(case['only_members'])
         if case.get('no_data_cluster'):
             assert LOSS_CATEGORY not in categories
         if case['priority'] == 'not_P0':
@@ -109,10 +116,15 @@ def test_content_loss_contract_through_import_workspace_and_html(case, tmp_path,
                     assert (cluster['risk_level'], cluster['review_status']) == ('P0', '待复核')
         if case.get('review_reason'):
             assert any(case['review_reason'] in m['review_reasons'] for c in clusters for m in c['current_evidence'])
+        if case.get('forbidden_review_reason'):
+            assert all(case['forbidden_review_reason'] not in m['review_reasons']
+                       for c in clusters for m in c['current_evidence'])
         assert workspace['metrics']['confirmed_count'] == 0
         assert not workspace['owner_summary']
         page = client.get(f'/tasks/{task_id}?window=48')
         assert page.status_code == 200
+        if case.get('forbidden_review_reason'):
+            assert case['forbidden_review_reason'] not in page.text
         assert page.context['workspace']['clusters'] == clusters
         for cluster in clusters:
             card = re.search(

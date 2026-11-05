@@ -1,0 +1,160 @@
+{
+  "baseline": "b897b7c2375d0775c8ddc4739194bb6285f9b891",
+  "scope": "recovery questions, object-scoped negation, ordered save state; no other pending policies approved",
+  "cases": [
+    {
+      "id": "F01",
+      "text": "草稿不见了，现在能恢复了吗？",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认",
+      "only_members": [
+        "账号、隐私与数据问题"
+      ]
+    },
+    {
+      "id": "F02",
+      "text": "没有广告而且昨晚保存的草稿消失了。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认",
+      "only_members": [
+        "账号、隐私与数据问题"
+      ]
+    },
+    {
+      "id": "F03",
+      "text": "草稿原来没保存，后来保存的草稿今天不见了。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认",
+      "only_members": [
+        "账号、隐私与数据问题"
+      ]
+    },
+    {
+      "id": "C01",
+      "text": "草稿丢失后已经恢复了，现在内容完整。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "not_P0",
+      "review": true,
+      "review_reason": "历史内容丢失已恢复、恢复状态待确认",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "C02",
+      "text": "已经保存的草稿没有丢失，读取一直正常。",
+      "rating": 5,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "C03",
+      "text": "草稿始终未保存，关闭页面后就不见了。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "C04",
+      "text": "如果以后保存的草稿消失了，应该怎么恢复？现在没有发生。",
+      "rating": 4,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "V01",
+      "text": "笔记不见了，请问已经找回了吗？",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认"
+    },
+    {
+      "id": "V02",
+      "text": "没推送通知而且刚存下的文档消失了。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认"
+    },
+    {
+      "id": "V03",
+      "text": "笔记起初没有保存，接着保存好的笔记在重新打开时消失了。",
+      "rating": 4,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "category": "账号、隐私与数据问题",
+      "review": true,
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查",
+      "forbidden_review_reason": "历史内容丢失已恢复、恢复状态待确认"
+    },
+    {
+      "id": "I01",
+      "text": "如果草稿丢失该怎么办？但现在应用一直闪退。",
+      "rating": 5,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "性能与稳定性问题"
+      ],
+      "no_active_data_reason": true
+    },
+    {
+      "id": "I02",
+      "text": "草稿还没有保存，当前订阅却自动扣费了。",
+      "rating": 3,
+      "origin": "2026-11-06 approved event-update regression; synthetic unless verbatim user repro",
+      "priority": "P0",
+      "review": true,
+      "members": [
+        "会员与商业化问题"
+      ],
+      "no_active_data_reason": true
+    }
+  ]
+}

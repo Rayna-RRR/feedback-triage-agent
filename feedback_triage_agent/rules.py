@@ -632,6 +632,36 @@ RECOVERY = re.compile(
 )
 LOSS_WORDS = {"内容丢失", "数据丢失", "丢失", "丢了", "lost data", "data loss"}
 NON_DATA_OBJECT = re.compile(r"图片|按钮|入口|图标|上文|上下文|(?:模型|推理|分析|记忆)能力")
+EVENT_NEGATION = re.compile(
+    r"(?:没有|没|并未|从未|从来没有|并非|不是|不曾|未曾|未|不|无"
+    r"|\b(?:no|not|never|without|isn't|doesn't|didn't|can't)\b)"
+    r"(?:\s*(?:发生|出现|遇到|任何|过|曾|再|实际|真正|已经|点|been|ever))*\s*$"
+)
+
+
+def _content_event_is_negated(clause: str, start: int, object_match: Optional[re.Match[str]]) -> bool:
+    """Bind negation to the event's object/predicate, not an earlier noun.
+
+    Both '没有草稿丢失' and '草稿没有丢失' negate the event. In
+    '没有广告而且草稿消失', the earlier ad object does not govern the draft.
+    No character-window cutoff is used for this data-event decision.
+    """
+    if object_match is not None and object_match.end() <= start:
+        return any(EVENT_NEGATION.search(part) for part in (
+            clause[:object_match.start()], clause[object_match.end():start],
+        ))
+    return bool(EVENT_NEGATION.search(clause[:start]))
+
+
+def _change_is_asserted(clause: str, match: re.Match[str]) -> bool:
+    """A capability/request/question does not assert that a change occurred."""
+    prefix = clause[:match.start()].rstrip()
+    suffix = clause[match.end():].lstrip()
+    modal = re.search(
+        r"(?:能(?:够)?|可以|可否|能否|是否|想|希望|请问|会|可能|应该|似乎|好像)"
+        r"(?:已经|成功|再|重新|尽快|马上|现在)*$", prefix,
+    )
+    return not modal and not re.match(r"(?:了)?(?:吗|么|没|没有|否|吧)", suffix)
 
 
 @dataclass(frozen=True)
@@ -675,14 +705,13 @@ def content_loss_events(text: str) -> List[ContentLossEvent]:
         objects = list(DATA_OBJECT.finditer(clause))
         if objects and objects[0].group() != previous_object:
             unsaved = intentional = False
-        if objects and re.search(r"(?:昨天|昨晚|刚|已|自动).{0,3}(?:保存|存下|写完|写好)", clause):
-            unsaved = intentional = False
         unsaved = unsaved or bool(re.search(r"未保存|没(?:有)?(?:点)?保存|尚未保存|忘记保存|还没存", clause))
         deletion = re.search(r"(?:主动|手动)(?:删除|删掉|删过|清空)|(?:我|自己|本人).{0,8}(?:删除|删掉|清空)", clause)
         if deletion and not keyword_is_negated(clause, deletion.start()):
             intentional = True
         actions = [(m.start(), "loss", m) for m in LOSS_PREDICATE.finditer(clause)]
         actions += [(m.start(), "recovery", m) for m in RECOVERY.finditer(clause)]
+        actions += [(m.start(), "save", m) for m in re.finditer(r"保存|存下|写完|写好", clause)]
         for _, kind, match in sorted(actions, key=lambda action: action[0]):
             preceding = [obj for obj in objects if obj.start() <= match.start()]
             obj = preceding[-1].group() if preceding else (objects[0].group() if objects else previous_object)
@@ -697,11 +726,15 @@ def content_loss_events(text: str) -> List[ContentLossEvent]:
             ) or bool(re.search(r"(?:会|可能).{0,3}$", prefix) and re.search(r"吗|么|怎么办", clause))
             future_concern = bool(re.search(r"(?:将来|未来|以后).{0,8}(?:可能)?会|担心.{0,12}(?:可能)?会", prefix))
             hypothetical = hypothetical or (future_concern and not repeated_report)
-            negated = keyword_is_negated(clause, match.start()) or prefix.rstrip().endswith(
-                ("并非", "不是", "不曾", "未曾")
-            )
+            negated = _content_event_is_negated(clause, match.start(), preceding[-1] if preceding else None)
+            if kind == "save":
+                if not foreign and not hypothetical and _change_is_asserted(clause, match):
+                    unsaved = negated or bool(re.search(r"忘记\s*$", prefix))
+                continue
             if kind == "recovery":
-                if not foreign and not negated and not hypothetical and not re.search(r"希望|能否|想", prefix):
+                if (not foreign and not negated and not hypothetical
+                        and _change_is_asserted(clause, match)
+                        and not re.search(r"希望|能否|想", prefix)):
                     events = [
                         replace(event, status="recovered")
                         if event.object_name == obj and event.status == "reported" else event
@@ -949,12 +982,18 @@ def classify_feedback_record(record: FeedbackRecord) -> ClassifiedFeedback:
             for word in matched_keywords.get(category, []):
                 for left, _, clause in _clauses(normalized):
                     related = any(event.status == "reported" and event.start == left for event in events)
+                    storage_background = (
+                        word in {"保存", "save"} and not NON_DATA_OBJECT.search(clause)
+                        and any(obj.group() == event.object_name
+                                for obj in DATA_OBJECT.finditer(clause)
+                                for event in events if event.status == "reported")
+                    )
                     repair_wish = (
                         re.search(r"希望|请|能不能", clause)
                         and re.search(r"修复|恢复|找回", clause)
                         and not NON_DATA_OBJECT.search(clause)
                     )
-                    if word in clause and not related and not repair_wish:
+                    if word in clause and not related and not storage_background and not repair_wish:
                         independent.append(word)
                         break
             if independent:
