@@ -3,6 +3,7 @@ import csv
 import io
 import json
 from pathlib import Path
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -103,6 +104,9 @@ def test_content_loss_contract_through_import_workspace_and_html(case, tmp_path,
             assert all(c['risk_level'] != 'P0' for c in clusters)
         if case['priority'] == 'P0':
             assert any(c['risk_level'] == 'P0' and c['review_status'] == '待复核' for c in clusters)
+            for cluster in clusters:
+                if cluster['issue_category'] in case.get('members', []):
+                    assert (cluster['risk_level'], cluster['review_status']) == ('P0', '待复核')
         if case.get('review_reason'):
             assert any(case['review_reason'] in m['review_reasons'] for c in clusters for m in c['current_evidence'])
         assert workspace['metrics']['confirmed_count'] == 0
@@ -111,6 +115,15 @@ def test_content_loss_contract_through_import_workspace_and_html(case, tmp_path,
         assert page.status_code == 200
         assert page.context['workspace']['clusters'] == clusters
         for cluster in clusters:
-            assert f'id="cluster-{cluster["cluster_id"]}"' in page.text
+            card = re.search(
+                r'<article class="risk-cluster-card" id="cluster-'
+                + re.escape(cluster['cluster_id']) + r'">(.*?)</article>', page.text, re.S,
+            )
+            assert card
+            assert re.search(
+                r'class="risk-priority[^\"]*">\s*' + cluster['risk_level'] + r'\s*</span>',
+                card.group(1),
+            )
+            assert cluster['review_status'] in card.group(1)
         if case['priority'] == 'P0':
             assert '>P0</span>' in page.text and '待复核' in page.text

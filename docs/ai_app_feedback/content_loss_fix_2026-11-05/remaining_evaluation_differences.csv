@@ -1,0 +1,8 @@
+dataset,id,text,expected_category,expected_priority,expected_review,before_category,before_priority,before_review,after_category,after_priority,after_review,category_correct,priority_correct,review_correct,new_category_mismatch,new_priority_mismatch,new_review_mismatch
+adversarial,adv002,没有扣费，也没有支付失败，但是会员权益一直打不开。,会员与商业化问题,P1,False,不明确/其他,P1,True,会员与商业化问题,P1,True,True,True,False,False,False,False
+adversarial,adv004,回答不准确，页面还一直卡住，复制按钮也找不到。,模型能力问题,P1,True,交互体验问题,P1,True,交互体验问题,P1,True,False,True,True,False,False,False
+adversarial,adv005,"Refund was quick and I was not charged again, but the premium page still says my plan is inactive.",会员与商业化问题,P1,False,会员与商业化问题,P2,False,会员与商业化问题,P2,False,True,False,True,False,False,False
+adversarial,adv006,"No violent content was generated, but the safety filter blocks normal study notes.",内容安全与合规问题,P1,True,不明确/其他,P2,True,不明确/其他,P2,True,False,False,True,False,False,False
+adversarial,adv009,"I love the app, however it keeps forgetting my instructions and gives made up facts.",模型能力问题,P1,False,模型能力问题,P2,False,模型能力问题,P2,False,True,False,True,False,False,False
+adversarial,adv011,没有崩溃，没有卡顿，就是找不到导出按钮。,交互体验问题,P2,False,不明确/其他,P2,True,交互体验问题,P1,False,True,False,True,False,True,False
+adversarial,adv013,"The image generator is amazing, but it ignores my prompt and creates the wrong object every time.",模型能力问题,P1,False,模型能力问题,P2,False,模型能力问题,P2,False,True,False,True,False,False,False

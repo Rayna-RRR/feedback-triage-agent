@@ -1,0 +1,6 @@
+dataset,id,text,expected_category,expected_priority,expected_review,before_category,before_priority,before_review,after_category,after_priority,after_review,category_correct,priority_correct,review_correct,new_category_mismatch,new_priority_mismatch,new_review_mismatch
+adversarial,adv001,"The app never crashes, but sync is broken and my chat history disappeared after login.",账号、隐私与数据问题,P0,True,账号、隐私与数据问题,P1,False,账号、隐私与数据问题,P0,True,True,True,True,False,False,False
+adversarial,adv002,没有扣费，也没有支付失败，但是会员权益一直打不开。,会员与商业化问题,P1,False,不明确/其他,P1,True,会员与商业化问题,P1,True,True,True,False,False,False,False
+adversarial,adv007,五星支持，但登录后聊天记录全没了，希望快点修。,账号、隐私与数据问题,P0,True,账号、隐私与数据问题,P2,True,账号、隐私与数据问题,P0,True,True,True,True,False,False,False
+adversarial,adv011,没有崩溃，没有卡顿，就是找不到导出按钮。,交互体验问题,P2,False,不明确/其他,P2,True,交互体验问题,P1,False,True,False,True,False,True,False
+adversarial,adv015,产品应该支持办公审批流，不过目前核心问题是同步失败导致团队资料丢失。,账号、隐私与数据问题,P0,True,用户预期与产品定位问题,P0,True,账号、隐私与数据问题,P0,True,True,True,True,False,False,False
