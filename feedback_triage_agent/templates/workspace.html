@@ -359,6 +359,7 @@
         <details class="risk-action-panel">
           <summary>人工复核与处理</summary>
           <form action="/tasks/{{ task.task_id | default(task.id) }}/clusters/{{ cluster.cluster_id }}/actions" method="post" data-cluster-action-form>
+            {% if task.storage_revision is defined %}<input type="hidden" name="state_revision" value="{{ task.storage_revision }}">{% endif %}
             <input type="hidden" name="selected_window" value="{{ selected_window }}">
             <input type="hidden" name="selected_source" value="{{ selected_source }}">
             <div class="risk-action-grid">
@@ -505,6 +506,7 @@
   </div>
 
   <form class="risk-form risk-import-form" action="/tasks/{{ task.task_id | default(task.id) }}/imports" method="post" enctype="multipart/form-data">
+    {% if task.storage_revision is defined %}<input type="hidden" name="state_revision" value="{{ task.storage_revision }}">{% endif %}
     <div class="risk-field-grid risk-field-grid-5">
       <label class="risk-field">
         <span>数据窗口 <em>*</em></span>

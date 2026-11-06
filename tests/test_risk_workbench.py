@@ -88,15 +88,17 @@ def test_workbench_homepage_and_storage_boundary(
     assert "还没有观察任务" in response.text
     assert "相关不等于因果" in response.text
     assert str(web_app.OBSERVATION_TASKS_DIR) in response.text
-    assert "当前版本不接数据库、账号或付费存储" in response.text
+    assert "本地默认使用 JSON 文件" in response.text
 
     monkeypatch.setenv("VERCEL", "1")
     online_response = client.get("/")
-    assert online_response.status_code == 200
-    assert "线上 Demo 使用临时文件存储" in online_response.text
-    assert "实例回收后任务可能丢失" in online_response.text
-    assert "请勿上传敏感或生产数据" in online_response.text
-    assert client.get("/healthz").json()["observation_storage"] == "temporary"
+    assert online_response.status_code == 503
+    assert "存储尚未正确配置" in online_response.text
+    assert "观察任务已创建" not in online_response.text
+    health = client.get("/healthz")
+    assert health.status_code == 503
+    assert health.json()["observation_storage"] == "postgresql"
+    assert health.json()["storage_available"] is False
 
 
 def test_home_demo_entry_builds_complete_repeatable_fixture_task(

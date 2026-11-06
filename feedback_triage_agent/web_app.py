@@ -7,6 +7,7 @@ import os
 import tempfile
 import time
 import zipfile
+from uuid import uuid4
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
@@ -16,12 +17,17 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import pandas as pd
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from feedback_triage_agent import __version__
 from feedback_triage_agent import observation
+from feedback_triage_agent.task_storage import (
+    PostgresTaskStore, StorageError, StorageConflict,
+    configured_backend, configured_storage,
+)
+from feedback_triage_agent.storage_runtime import request_id, runtime_identity, storage_event
 from feedback_triage_agent.agent import FeedbackTriageAgent
 from feedback_triage_agent.html_report import (
     ReportInputError,
@@ -137,6 +143,22 @@ RUN_RETENTION_HOURS = env_int(
 MAX_WEB_RUNS = env_int("FEEDBACK_TRIAGE_MAX_WEB_RUNS", DEFAULT_MAX_WEB_RUNS)
 
 
+def get_observation_storage():
+    try:
+        return configured_storage(OBSERVATION_TASKS_DIR)
+    except StorageError:
+        storage_event("configure", configured_backend(), "unconfigured")
+        raise
+
+
+def submitted_revision(value, task):
+    if task.get("storage_revision") is None:
+        return None
+    if value is None or not str(value).isdigit() or int(value) < 1:
+        raise StorageConflict()
+    return int(value)
+
+
 def web_llm_enabled() -> bool:
     return bool(web_llm_status()["enabled"])
 
@@ -177,8 +199,10 @@ def deployment_label() -> str:
 
 def storage_notice() -> str:
     if os.getenv("VERCEL"):
-        return "线上 Demo 使用临时文件存储；平台重启或实例回收后任务可能丢失，请勿上传敏感或生产数据。"
-    return f"任务保存在本机 {OBSERVATION_TASKS_DIR}；当前版本不接数据库、账号或付费存储。"
+        return "线上观察任务需要共享持久化存储；存储未就绪时无法创建或保存。请勿上传敏感或生产数据。"
+    if configured_backend() == "postgresql":
+        return "观察任务使用 PostgreSQL 共享持久化存储；人工处理和审计随任务一并保存。"
+    return f"任务保存在本机 {OBSERVATION_TASKS_DIR}；本地默认使用 JSON 文件，共享存储仅在显式配置后启用。"
 
 
 def yes_no_label(value: object) -> str:
@@ -303,7 +327,8 @@ def cleanup_web_runs(now: Optional[float] = None) -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     cleanup_web_runs()
-    OBSERVATION_TASKS_DIR.mkdir(parents=True, exist_ok=True)
+    if configured_backend() == "json" and not os.getenv("VERCEL"):
+        OBSERVATION_TASKS_DIR.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -315,6 +340,33 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.globals["static_asset_version"] = STATIC_ASSET_VERSION
+
+
+@app.middleware("http")
+async def observation_request_context(request: Request, call_next):
+    supplied = request.headers.get("x-request-id", "")
+    selected = supplied if re.fullmatch(r"[A-Za-z0-9_-]{1,100}", supplied) else uuid4().hex
+    token = request_id.set(selected)
+    try:
+        response = await call_next(request)
+        if request.url.path.startswith(("/tasks", "/demo", "/healthz")) or request.url.path == "/":
+            task_id = request.path_params.get("task_id")
+            storage_event("request", configured_backend(), str(response.status_code), task_id)
+        response.headers["X-Request-ID"] = selected
+        return response
+    finally:
+        request_id.reset(token)
+
+
+@app.exception_handler(StorageError)
+async def observation_storage_error(request: Request, exc: StorageError):
+    match = re.match(r"/tasks/(task_[A-Za-z0-9_-]+)", request.url.path)
+    return templates.TemplateResponse(
+        request, "storage_error.html",
+        {"error": str(exc), "task_url": "/tasks/" + match[1] if match else "/",
+         "version": __version__, "deployment_label": deployment_label()},
+        status_code=exc.status_code,
+    )
 
 
 def render_index(request: Request, error: Optional[str] = None, status_code: int = 200):
@@ -347,7 +399,7 @@ def render_task_index(
     status_code: int = 200,
 ):
     try:
-        tasks = observation.list_tasks(OBSERVATION_TASKS_DIR)
+        tasks = observation.list_tasks(get_observation_storage())
     except (OSError, ValueError) as exc:
         tasks = []
         error = error or f"观察任务目录无法读取：{exc}"
@@ -390,7 +442,7 @@ def render_task_workspace(
     error: Optional[str] = None,
     status_code: int = 200,
 ):
-    task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+    task = observation.load_task(get_observation_storage(), task_id)
     workspace = observation.build_workspace(
         task,
         selected_window=selected_window,
@@ -435,6 +487,27 @@ def demo_task_is_complete(task: Dict[str, object]) -> bool:
 
 
 def ensure_demo_task() -> Dict[str, object]:
+    storage = get_observation_storage()
+    if not isinstance(storage, PostgresTaskStore):
+        return _ensure_file_demo(storage)
+    try:
+        return observation.load_task(storage, DEMO_TASK_ID)
+    except FileNotFoundError:
+        pass
+    # Build the complete seed in scratch space, then publish it in one DB commit.
+    # No request depends on these files; concurrent initializers cannot overwrite
+    # a task or the human decisions already stored by another process.
+    with tempfile.TemporaryDirectory(prefix="feedback-demo-seed-") as directory:
+        seeded = _ensure_file_demo(Path(directory))
+        state = observation._read_state(seeded)
+        try:
+            storage.save(DEMO_TASK_ID, state)
+        except StorageConflict:
+            pass
+    return observation.load_task(storage, DEMO_TASK_ID)
+
+
+def _ensure_file_demo(storage_root: Path) -> Dict[str, object]:
     """Materialize a complete demo from immutable repository fixtures."""
     missing = [path.name for path in DEMO_FIXTURES.values() if not path.is_file()]
     if missing:
@@ -442,19 +515,19 @@ def ensure_demo_task() -> Dict[str, object]:
 
     with DEMO_TASK_LOCK:
         try:
-            existing = observation.load_task(OBSERVATION_TASKS_DIR, DEMO_TASK_ID)
+            existing = observation.load_task(storage_root, DEMO_TASK_ID)
             if demo_task_is_complete(existing):
                 return existing
         except (FileNotFoundError, ValueError):
             pass
 
-        demo_dir = OBSERVATION_TASKS_DIR / DEMO_TASK_ID
+        demo_dir = storage_root / DEMO_TASK_ID
         if demo_dir.exists():
             shutil.rmtree(demo_dir)
 
         try:
             task = observation.create_task(
-                OBSERVATION_TASKS_DIR,
+                storage_root,
                 name="【演示数据】Acme Copilot v2.4 发版观察",
                 product_name="Acme Copilot（演示）",
                 baseline_version="v2.3",
@@ -505,7 +578,7 @@ def ensure_demo_task() -> Dict[str, object]:
                 selected_window=48,
                 selected_source="all",
             )
-            return observation.load_task(OBSERVATION_TASKS_DIR, DEMO_TASK_ID)
+            return observation.load_task(storage_root, DEMO_TASK_ID)
         except Exception:
             shutil.rmtree(demo_dir, ignore_errors=True)
             raise
@@ -873,7 +946,7 @@ def create_observation_task(
 ):
     try:
         task = observation.create_task(
-            OBSERVATION_TASKS_DIR,
+            get_observation_storage(),
             name=clean_form_value(name, "任务名称", maximum=120, required=True),
             product_name=clean_form_value(
                 product_name,
@@ -1018,11 +1091,12 @@ def import_observation_feedback(
     source: str = Form(""),
     import_mode: str = Form("cumulative"),
     file: Optional[UploadFile] = File(None),
+    state_revision: Optional[str] = Form(None),
 ):
     try:
         if task_id == DEMO_TASK_ID:
             ensure_demo_task()
-        task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+        task = observation.load_task(get_observation_storage(), task_id)
     except FileNotFoundError as exc:
         return render_task_index(request, error=str(exc), status_code=404)
     except ValueError as exc:
@@ -1080,6 +1154,7 @@ def import_observation_feedback(
             source=clean_source,
             import_mode=clean_mode,
             filename=file.filename,
+            expected_revision=submitted_revision(state_revision, task),
         )
     except (OSError, ValueError) as exc:
         error_message = (
@@ -1153,11 +1228,12 @@ def apply_observation_cluster_action(
     note: str = Form(""),
     selected_window: Optional[str] = Form(None),
     selected_source: Optional[str] = Form(None),
+    state_revision: Optional[str] = Form(None),
 ):
     try:
         if task_id == DEMO_TASK_ID:
             ensure_demo_task()
-        task = observation.load_task(OBSERVATION_TASKS_DIR, task_id)
+        task = observation.load_task(get_observation_storage(), task_id)
     except FileNotFoundError as exc:
         return render_task_index(request, error=str(exc), status_code=404)
     except ValueError as exc:
@@ -1235,6 +1311,7 @@ def apply_observation_cluster_action(
             actor="human",
             selected_window=window,
             selected_source=source,
+            expected_revision=submitted_revision(state_revision, task),
         )
     except (OSError, ValueError) as exc:
         error_message = (
@@ -1289,20 +1366,41 @@ def apply_observation_cluster_action(
 
 @app.get("/healthz")
 def healthz():
-    return {
-        "status": "ok",
+    backend = configured_backend()
+    available, storage_status = False, "unavailable"
+    try:
+        storage = get_observation_storage()
+        if isinstance(storage, PostgresTaskStore):
+            storage.available()
+        else:
+            storage.mkdir(parents=True, exist_ok=True)
+            # Check real access with a disposable file, not only os.access().
+            with tempfile.TemporaryFile(dir=storage) as probe:
+                probe.write(b"health")
+        available, storage_status = True, "available"
+    except StorageError as exc:
+        storage_status = exc.code
+    except OSError:
+        pass
+    payload = {
+        "status": "ok" if available else "unavailable",
         "version": __version__,
+        **runtime_identity(),
+        "storage_backend": backend,
+        "storage_available": available,
+        "storage_status": storage_status,
         "sample_feedback_available": SAMPLE_FEEDBACK_PATH.exists(),
         "ai_reviews_available": AI_REVIEWS_PATH.exists(),
         "web_runs_dir": str(WEB_RUNS_DIR),
-        "observation_tasks_dir": str(OBSERVATION_TASKS_DIR),
-        "observation_storage": "temporary" if os.getenv("VERCEL") else "local_files",
+        "observation_tasks_dir": str(OBSERVATION_TASKS_DIR) if backend == "json" else None,
+        "observation_storage": "local_files" if backend == "json" else "postgresql",
         "run_retention_hours": RUN_RETENTION_HOURS,
         "max_web_runs": MAX_WEB_RUNS,
         "web_llm_enabled": web_llm_enabled(),
         "deepseek_api_key_present": web_llm_status()["deepseek_api_key_present"],
         "web_llm_flag_enabled": web_llm_status()["web_llm_flag_enabled"],
     }
+    return JSONResponse(payload, status_code=200 if available else 503)
 
 
 @app.post("/run")

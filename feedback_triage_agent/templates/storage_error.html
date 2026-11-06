@@ -1,0 +1,10 @@
+{% extends "risk_base.html" %}
+{% block title %}观察任务操作未完成{% endblock %}
+{% block content %}
+<section class="risk-section">
+  <h1>观察任务操作未完成</h1>
+  <div class="risk-alert risk-alert-error" role="alert"><p>{{ error }}</p></div>
+  <p>请重新打开任务核对当前记录，再提交需要的操作。</p>
+  <a class="risk-button risk-button-primary" href="{{ task_url }}">重新打开任务或任务列表</a>
+</section>
+{% endblock %}
