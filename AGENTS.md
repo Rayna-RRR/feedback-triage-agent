@@ -46,5 +46,8 @@ python -m feedback_triage_agent.web_app
 - 分类和优先级规则优先改 `feedback_triage_agent/rules.py`；LLM 请求与解析优先改 `llm_client.py` / `prompts.py`。
 - 新增工具步骤须返回 ToolResult 并登记固定计划；修改输出字段须同步 exporters、文档和必要回归。
 - 高风险、P0、低置信度、多意图或判断冲突不能自动闭环；人工决定追加留痕，不覆盖证据和初始判断。
-- 本地使用 JSON / 文件持久化；Vercel 的 /tmp 为临时存储。不扩展数据库、登录、权限、多租户、爬虫、复杂 RAG、向量数据库或外部平台写入。
+- 本地默认使用兼容旧任务的 JSON / 文件持久化。仅为观察任务持久化允许 PostgreSQL 及相应数据库读写，线上覆盖创建、列表、读取、导入、人工处理、审计与示例初始化；状态与审计须原子提交并检查 revision，冲突不能静默覆盖。
+- Vercel 观察任务必须使用 PostgreSQL，未配置或不可用时明确报错，不回退 /tmp。Preview 使用隔离数据库或 preview 命名空间，不能写 production 命名空间。/tmp 仅作临时上传、示例构建及旧 CLI 运行输出。
+- 此授权不包括登录、权限、多租户、爬虫、复杂 RAG、向量数据库、其他外部平台写入或自行购买服务/开通付费套餐。日志只记录提交/部署/进程/请求标识、任务 ID、后端与结果，不记录正文、连接串或驱动异常原文。
+- PostgreSQL 集成测试使用 TEST_POSTGRES_DSN 或 TEST_POSTGRES_DSN_FILE 指向一次性测试库；CI 提供独立 PostgreSQL 服务。没有数据库时应报告跳过数，不能称为真实数据库验证。配置与初始化见 docs/postgresql_observation_storage.md。
 - 保留用户已有修改，使用独立分支隔离工作，不 reset --hard 或清理用户文件。

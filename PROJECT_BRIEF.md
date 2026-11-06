@@ -90,11 +90,13 @@ Feedback Triage Agent 是分析与审计引擎；Version Feedback Risk Radar 的
 
 ## 存储与部署边界
 
-第一版不接数据库或付费服务。
+仅为观察任务持久化允许 PostgreSQL。其余范围不变，不自动开通付费服务。
 
 - 本地观察任务使用 JSON 和文件目录持久化，默认保存在 `data/observation_tasks/`。
 - 可以通过 `FEEDBACK_RISK_TASKS_DIR` 指定其他本地可写目录。
-- Vercel 使用 `/tmp/feedback-risk-tasks/`，属于临时存储，重启或实例回收后可能丢失。
+- Vercel 观察任务必须使用共享 PostgreSQL，覆盖任务、导入、人工动作、规则和审计；缺配置或不可用时明确失败，不回退 `/tmp`。
+- 状态与审计原子提交并检查 revision；冲突需刷新核对，不能静默覆盖。Preview 采用隔离命名空间。旧 CLI/Web 单批次文件输出范围不变。
+- 配置与验证边界见 `docs/postgresql_observation_storage.md`；`/healthz` 提供实际 commit_sha、存储后端和可用状态。
 - 线上 Demo 不应上传隐私、商业秘密或生产反馈。
 
 ## 兼容的旧能力

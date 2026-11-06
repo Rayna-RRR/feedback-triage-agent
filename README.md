@@ -6,7 +6,7 @@
 
 `feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
 
-当前交付状态：v1.0 已完成本地独立验收并上线线上 Demo：[打开完整演示任务](https://feedback-triage-agent.vercel.app/demo)。仓库名、GitHub 地址和 Vercel 项目绑定保持不变。
+运行方式：本地观察任务默认使用 JSON 文件；Vercel 观察任务需要已初始化的 PostgreSQL。[线上 Demo](https://feedback-triage-agent.vercel.app/demo) 的实际部署状态与本地/Preview 验证须分别核对，不能以本地通过代替线上验收。仓库及 Vercel 项目绑定保持不变。
 
 ## 界面预览
 
@@ -240,11 +240,12 @@ export FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
 
 ## 存储与部署
 
-当前版本不接数据库、登录、权限、多租户或付费存储。
+仅观察任务持久化支持 PostgreSQL；不扩展登录、权限、多租户或其他外部平台写入，不自动购买服务或发布到生产。
 
 - 本地：观察任务保存在 `data/observation_tasks/`，旧单批次运行保存在 `data/web_runs/`。
-- Vercel：观察任务默认写入 `/tmp/feedback-risk-tasks/`，旧运行写入 `/tmp/feedback-triage-runs/`。
-- Vercel 的 `/tmp` 是临时存储，平台重启或实例回收后任务可能丢失，因此线上 Demo 只适合展示流程。
+- Vercel：观察任务必须使用共享 PostgreSQL；缺配置、连接失败或表未初始化时返回 503，不回退临时文件。旧单批次运行仍写入 `/tmp/feedback-triage-runs/`。
+- 完整任务状态和审计在同一事务提交，并检查 revision；并发或旧页面冲突返回 409。Preview 使用隔离命名空间。
+- 配置、Neon 控制台最少步骤、初始化 SQL 和真实数据库验证见 [PostgreSQL 观察任务存储](docs/postgresql_observation_storage.md)。`/healthz` 返回实际 commit_sha、后端和可用状态，缺少提交信息时明确为 unknown。
 
 可以指定可写目录：
 

@@ -13,6 +13,8 @@ import pandas as pd
 from pydantic import ValidationError
 
 from feedback_triage_agent.models import FeedbackRecord
+from feedback_triage_agent.task_storage import DatabaseTaskRef, PostgresTaskStore, StorageConflict
+from feedback_triage_agent.storage_runtime import storage_event
 from feedback_triage_agent.rules import (
     classify_feedback_record,
     content_loss_events,
@@ -317,7 +319,7 @@ def _special_topic_for_text(text: str) -> Optional[Tuple[str, str, str]]:
         return ("login-failure", "登录失败", "账号、隐私与数据问题")
     return None
 
-TaskRef = Union[str, Path, Dict[str, Any]]
+TaskRef = Union[str, Path, Dict[str, Any], DatabaseTaskRef, PostgresTaskStore]
 
 
 def _now() -> str:
@@ -444,11 +446,19 @@ def _public_task(task: Dict[str, Any]) -> Dict[str, Any]:
     return public
 
 
-def _task_dir_from_ref(task_ref: TaskRef, task_id: Optional[str] = None) -> Path:
+def _task_dir_from_ref(task_ref: TaskRef, task_id: Optional[str] = None):
+    if isinstance(task_ref, PostgresTaskStore):
+        if task_id is None:
+            raise ValueError("缺少任务 ID。")
+        return task_ref.ref(task_id)
+    if isinstance(task_ref, DatabaseTaskRef):
+        return task_ref
     if isinstance(task_ref, dict):
         directory = task_ref.get("task_dir") or task_ref.get("_task_dir")
         if not directory:
             raise ValueError("任务对象缺少 task_dir。")
+        if isinstance(directory, DatabaseTaskRef):
+            return directory
         return Path(str(directory))
 
     path = Path(task_ref)
@@ -466,8 +476,15 @@ def _state_path(task_ref: TaskRef, task_id: Optional[str] = None) -> Path:
 
 
 def _read_state(task_ref: TaskRef, task_id: Optional[str] = None) -> Dict[str, Any]:
+    location = _task_dir_from_ref(task_ref, task_id)
+    if isinstance(location, DatabaseTaskRef):
+        state = location.store.load(location.task_id)
+        if state.get("schema_version") != SCHEMA_VERSION or "task" not in state:
+            raise ValueError("观察任务状态版本不受支持。")
+        return state
     path = _state_path(task_ref, task_id)
     if not path.exists():
+        storage_event("read", "json", "not_found", path.parent.name)
         raise FileNotFoundError("找不到这个观察任务。")
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
@@ -475,12 +492,17 @@ def _read_state(task_ref: TaskRef, task_id: Optional[str] = None) -> Dict[str, A
         raise ValueError("观察任务状态文件无法读取。") from exc
     if state.get("schema_version") != SCHEMA_VERSION or "task" not in state:
         raise ValueError("观察任务状态版本不受支持。")
+    storage_event("read", "json", "success", path.parent.name)
     return state
 
 
-def _write_state(task_dir: Path, state: Dict[str, Any]) -> None:
+def _write_state(task_dir: Union[Path, DatabaseTaskRef], state: Dict[str, Any]) -> None:
+    if isinstance(task_dir, DatabaseTaskRef):
+        task_dir.store.save(task_dir.task_id, state)
+        return
     task_dir.mkdir(parents=True, exist_ok=True)
     destination = task_dir / STATE_FILENAME
+    operation = "save" if destination.exists() else "create"
     temporary = task_dir / f".{STATE_FILENAME}.{uuid4().hex}.tmp"
     try:
         temporary.write_text(
@@ -488,8 +510,25 @@ def _write_state(task_dir: Path, state: Dict[str, Any]) -> None:
             encoding="utf-8",
         )
         temporary.replace(destination)
+        storage_event(operation, "json", "success", task_dir.name)
+    except OSError:
+        storage_event(operation, "json", "unavailable", task_dir.name)
+        raise
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _check_revision(state, expected_revision):
+    if expected_revision is not None and state.get("_storage_revision") != expected_revision:
+        storage_event("save", "postgresql", "conflict", state["task"]["task_id"])
+        raise StorageConflict()
+
+
+def _attach_storage_ref(task, location, state):
+    task["task_dir"] = location if isinstance(location, DatabaseTaskRef) else str(location)
+    if isinstance(location, DatabaseTaskRef):
+        task["storage_revision"] = state["_storage_revision"]
+    return task
 
 
 def _audit(
@@ -513,7 +552,7 @@ def _audit(
 
 
 def create_task(
-    storage_root: Union[str, Path],
+    storage_root: Union[str, Path, PostgresTaskStore],
     *,
     name: str,
     product_name: str,
@@ -580,8 +619,9 @@ def create_task(
     if basis == "other" and not note:
         raise ValueError("使用其他比较口径时必须填写口径说明。")
 
-    root = Path(storage_root)
-    root.mkdir(parents=True, exist_ok=True)
+    root = storage_root if isinstance(storage_root, PostgresTaskStore) else Path(storage_root)
+    if isinstance(root, Path):
+        root.mkdir(parents=True, exist_ok=True)
     generated_id = task_id or (
         "task_"
         + datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -592,8 +632,8 @@ def create_task(
     )
     if not re.fullmatch(r"task_[A-Za-z0-9_-]+", generated_id):
         raise ValueError("任务 ID 不合法。")
-    task_dir = root / generated_id
-    if task_dir.exists():
+    task_dir = root.ref(generated_id) if isinstance(root, PostgresTaskStore) else root / generated_id
+    if isinstance(task_dir, Path) and task_dir.exists():
         raise ValueError("同名任务目录已存在，请更换任务名称后重试。")
 
     created_at = _now()
@@ -652,7 +692,7 @@ def load_task(
     task_dir = _task_dir_from_ref(root_or_task_dir, task_id)
     state = _read_state(task_dir)
     task = _public_task(state["task"])
-    task["task_dir"] = str(task_dir)
+    _attach_storage_ref(task, task_dir, state)
     task["imports"] = [_public_import(item) for item in state.get("imports", [])]
     task["audit_events"] = deepcopy(state.get("audit_events", []))
     task["available_windows"] = sorted(
@@ -672,14 +712,16 @@ def load_task(
     return task
 
 
-def list_tasks(storage_root: Union[str, Path]) -> List[Dict[str, Any]]:
-    root = Path(storage_root)
-    if not root.exists():
-        return []
+def list_tasks(storage_root: Union[str, Path, PostgresTaskStore]) -> List[Dict[str, Any]]:
+    if isinstance(storage_root, PostgresTaskStore):
+        locations = storage_root.task_refs()
+    else:
+        root = Path(storage_root)
+        if not root.exists():
+            return []
+        locations = [path for path in sorted(root.glob("task_*")) if path.is_dir()]
     tasks: List[Dict[str, Any]] = []
-    for task_dir in sorted(root.glob("task_*")):
-        if not task_dir.is_dir():
-            continue
+    for task_dir in locations:
         try:
             task = load_task(task_dir)
             latest = max(task["available_windows"], default=0)
@@ -1011,9 +1053,11 @@ def add_import(
     source: str,
     import_mode: str = "cumulative",
     filename: str = "",
+    expected_revision: Optional[int] = None,
 ) -> Dict[str, Any]:
     task_dir = _task_dir_from_ref(task_ref)
     state = _read_state(task_dir)
+    _check_revision(state, expected_revision)
     role = window_kind.strip().lower()
     mode = (import_mode or "cumulative").strip().lower()
     clean_source = source.strip()
@@ -1865,6 +1909,8 @@ def build_workspace(
     task_ref: TaskRef,
     selected_window: int = 72,
     selected_source: str = "all",
+    *,
+    _state: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     try:
         window = int(selected_window)
@@ -1874,7 +1920,7 @@ def build_workspace(
         raise ValueError("观察窗口必须是 24、48 或 72 小时。")
 
     task_dir = _task_dir_from_ref(task_ref)
-    state = _read_state(task_dir)
+    state = _read_state(task_dir) if _state is None else _state
     source = selected_source.strip() or "all"
     available_sources = sorted(
         {
@@ -1935,7 +1981,7 @@ def build_workspace(
         for item in reversed(state.get("imports", []))
     ]
     task = _public_task(state["task"])
-    task["task_dir"] = str(task_dir)
+    _attach_storage_ref(task, task_dir, state)
     return {
         "task": task,
         "selected_window": window,
@@ -1975,9 +2021,11 @@ def apply_cluster_action(
     actor: str = "human",
     selected_window: int = 72,
     selected_source: str = "all",
+    expected_revision: Optional[int] = None,
 ) -> Dict[str, Any]:
     task_dir = _task_dir_from_ref(task_ref)
     state = _read_state(task_dir)
+    _check_revision(state, expected_revision)
     action_name = action.strip().lower()
     if action_name not in SUPPORTED_ACTIONS:
         raise ValueError("不支持这项人工操作。")
@@ -1985,6 +2033,7 @@ def apply_cluster_action(
         task_dir,
         selected_window=selected_window,
         selected_source=selected_source,
+        _state=state,
     )
     indexed = {item["cluster_id"]: item for item in workspace["clusters"]}
     cluster = indexed.get(cluster_id)
