@@ -15,7 +15,7 @@ dist/
 .env.local
 *.key
 
-# copied source data from old project
+# Legacy local copies; committed public samples live in data/ai_app_feedback/
 data/source_ai_app_feedback/
 
 # generated Web App runs
@@ -31,3 +31,7 @@ data/harness_output_ci/
 data/output/
 data/output_ask/
 .vercel
+
+# Reproducible local integration runs (source QA/summary snapshots remain tracked)
+data/ai_app_feedback/generated/triage/
+data/ai_app_feedback/generated/harness/

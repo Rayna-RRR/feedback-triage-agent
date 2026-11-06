@@ -160,6 +160,20 @@ load_feedback
 
 旧流程继续输出 `triage_results.csv`、`issue_cards.md`、`qa_report.md`、`run_log.md`、`weekly_summary.md` 和人工复核文件。它保留为兼容和单批次诊断能力，不再是合并后产品的主页面。
 
+## 公开评论与完整标注资料
+
+公开分析资料已纳入仓库：30 条原始评论、14 字段完整标注、5 条排除样本、编码指南、原报告与 9 条人工 QA 理由均保留固定来源提交和文件哈希。[查看来源、字段映射与完整复现流程](docs/ai_app_feedback/README.md)。
+
+干净 checkout 可直接准备原有五字段输入并重跑原标签 QA / 汇总，不需要 API key、网络或仓库外目录：
+
+```bash
+python scripts/prepare_ai_app_reviews.py
+python scripts/label_quality_check.py
+python scripts/summarize_reviews.py
+```
+
+完整资料位于 `data/ai_app_feedback/`；人工 QA 位于 `docs/ai_app_feedback/source/qa_report.md`，自动 QA 单独写入 `data/ai_app_feedback/generated/qa_report.md`。`data/ai_app_reviews.csv` 只保留兼容输入字段，不能替代完整标注。这组公开评论缺少完整版本和观察窗口，只用于单批次分诊及方法展示，不作为发版前后或因果验证数据。
+
 ## 本地运行
 
 项目要求 Python 3.9+。
