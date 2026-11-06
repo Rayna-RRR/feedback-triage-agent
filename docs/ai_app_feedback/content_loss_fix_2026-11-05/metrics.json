@@ -1,0 +1,60 @@
+{
+  "baseline_product_commit": "10b92b25305ee884addf2220e48862873af0e429",
+  "verified_product_commit": "1c136f6ba564ae297e60b8c5444074eb402493ed",
+  "rules_sha256": "d6b308d898bd4965f8b757836eff219ddfdd3f8551f463e809004f9ccdd8a779",
+  "observation_sha256": "e7ae5c0c24e56108f021eea61dfcb40d4e914aeb5805aedf879f298f50671687",
+  "frozen_contract_sha256": "2a3e5af5800cda098241117708ea8bc919e8a1a01e308eab8c3af6ef00fa2dd4",
+  "additional_regressions_sha256": "a87976a46df3b916a912ae47dffd2ef28dffc55a6fc0ff960964ba403cdde40a",
+  "baseline_expected_test_result": "33 failed, 24 passed in 1.31s",
+  "local_full_pytest": "239 passed",
+  "local_targeted_pytest": "79 passed",
+  "synthetic_scenarios_each_revision": 39,
+  "server_html_checks_each_revision": 39,
+  "llm_attempted_count": 0,
+  "golden_before": {
+    "samples": 24,
+    "category_accuracy": 1.0,
+    "priority_accuracy": 1.0,
+    "human_review_accuracy": 1.0,
+    "p0_precision": 1.0,
+    "p0_recall": 1.0
+  },
+  "golden_after": {
+    "samples": 24,
+    "category_accuracy": 1.0,
+    "priority_accuracy": 1.0,
+    "human_review_accuracy": 1.0,
+    "p0_precision": 1.0,
+    "p0_recall": 1.0
+  },
+  "adversarial_before": {
+    "samples": 15,
+    "category_accuracy": 0.6666666666666666,
+    "priority_accuracy": 0.6,
+    "human_review_accuracy": 0.8,
+    "p0_precision": 1.0,
+    "p0_recall": 0.6
+  },
+  "adversarial_after": {
+    "samples": 15,
+    "category_accuracy": 0.8666666666666667,
+    "priority_accuracy": 0.6666666666666666,
+    "human_review_accuracy": 0.9333333333333333,
+    "p0_precision": 1.0,
+    "p0_recall": 1.0
+  },
+  "new_mismatches_against_unchanged_existing_labels": [
+    {
+      "dataset": "adversarial",
+      "id": "adv011",
+      "fields": [
+        "new_priority_mismatch"
+      ]
+    }
+  ],
+  "public_30_changed_ids": [
+    "DS_009"
+  ],
+  "source_and_label_changes": false,
+  "scope_note": "Only this data-event contract is approved; no incident is confirmed. Exploratory set mismatches retained; no gates/labels changed."
+}

@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from feedback_triage_agent.models import FeedbackRecord
 from feedback_triage_agent.rules import (
     classify_feedback_record,
+    content_loss_events,
     detect_human_review_reasons,
 )
 
@@ -1257,6 +1258,13 @@ def _cluster_id(category: str, topic_id: str) -> str:
 
 
 def _record_categories(record: Dict[str, Any]) -> List[str]:
+    # Positive wording/high stars must not hide a reported, unresolved
+    # data event. Keep rule category members; risk/review thresholds stay intact.
+    if any(event.status == "reported" for event in content_loss_events(record["review_text"])):
+        return [
+            category for category in record.get("matched_categories", [])
+            if category != POSITIVE_CATEGORY
+        ]
     special = _special_topic_for_text(record["review_text"])
     if special:
         return [special[2]]

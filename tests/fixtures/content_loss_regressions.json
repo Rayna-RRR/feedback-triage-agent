@@ -1,0 +1,123 @@
+{
+  "note": "Additional guards frozen before correcting the first implementation; initial 28-case contract remains byte-identical. R01 is an existing golden expectation, not a revised label.",
+  "cases": [
+    {
+      "id": "R01",
+      "text": "登录后同步失败，换设备找不到聊天记录。",
+      "rating": 2,
+      "origin": "Existing golden ev012, unchanged P1/needs-review expectation",
+      "priority": "P1",
+      "review": true,
+      "no_active_data_reason": true
+    },
+    {
+      "id": "R02",
+      "text": "旧设备的聊天记录还在，新手机尚未同步，暂时找不到历史记录。",
+      "rating": 3,
+      "origin": "Synthetic new-device sync visibility, known original still present",
+      "priority": "not_P0",
+      "no_active_data_reason": true
+    },
+    {
+      "id": "R03",
+      "text": "我的聊天记录没有丢失，读取也一直正常。",
+      "rating": 5,
+      "origin": "Synthetic negation with a typed record noun",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "R04",
+      "text": "我的文档丢失过，现在已经恢复了；但另一份刚保存的草稿仍然不见。",
+      "rating": 5,
+      "origin": "Synthetic recovery must not resolve a different object",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R05",
+      "text": "竞品的聊天记录全丢了，这款记录一直正常。",
+      "rating": 4,
+      "origin": "Synthetic competitor-only loss is not target-product loss",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "R06",
+      "text": "我保存的文档消失了会自己回来吗",
+      "rating": 4,
+      "origin": "Synthetic actual loss followed by a recovery question; not a pure hypothetical",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R07",
+      "text": "没保存的草稿不见了，但昨天存下的草稿也消失了。",
+      "rating": 5,
+      "origin": "Synthetic unsaved object does not negate a different persisted instance",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R08",
+      "text": "如果点保存刚写的文档每次都会消失，已经遇到三次了。",
+      "rating": 4,
+      "origin": "Synthetic conditional reproduction with repeated actual occurrences",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R09",
+      "text": "保存的草稿今早消失了，如果已经找回就不用担心，但现在还没恢复。",
+      "rating": 5,
+      "origin": "Synthetic hypothetical recovery must not resolve a reported missing draft",
+      "priority": "P0",
+      "review": true,
+      "category": "账号、隐私与数据问题",
+      "members": [
+        "账号、隐私与数据问题"
+      ],
+      "review_reason": "疑似内容丢失、可恢复性待核查"
+    },
+    {
+      "id": "R10",
+      "text": "我保存的笔记并非丢失，只是改了名字，内容还在。",
+      "rating": 4,
+      "origin": "Synthetic direct negation; renamed persisted object still present",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    },
+    {
+      "id": "R11",
+      "text": "担心已保存的草稿将来可能会消失，希望提供备份。",
+      "rating": 5,
+      "origin": "Synthetic future concern, not an observed disappearance",
+      "priority": "not_P0",
+      "no_active_data_reason": true,
+      "no_data_cluster": true
+    }
+  ]
+}
