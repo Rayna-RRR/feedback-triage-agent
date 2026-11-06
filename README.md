@@ -6,7 +6,9 @@
 
 `feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
 
-当前交付状态：v1.0 已完成本地独立验收并上线线上 Demo：[打开完整演示任务](https://feedback-triage-agent.vercel.app/demo)。仓库名、GitHub 地址和 Vercel 项目绑定保持不变。
+**第一次使用：[本地使用教程：启动、演示、CSV 导入与保存](docs/usage.md)** · [线上临时预览](https://feedback-triage-agent.vercel.app/demo)
+
+当前 main 的完整流程可在本地操作，任务以 JSON 文件保存。当前线上仅供临时体验：创建或跳转后也可能无法读取任务，不保证保存。[PR #14](https://github.com/Rayna-RRR/feedback-triage-agent/pull/14) 的持久化实现已通过本地验证与 CI，尚未完成云端验收、合并或上线；本次教程更新不代表线上故障已修复。云数据库配置和生产发布继续暂停。
 
 ## 界面预览
 
@@ -176,11 +178,11 @@ python scripts/summarize_reviews.py
 
 ## 本地运行
 
-项目要求 Python 3.9+。
+项目要求 Python 3.9+，基础流程不需要模型 API Key。首次使用请先看[简短使用教程](docs/usage.md)。
 
 ```bash
 cd feedback-triage-agent
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
 python -m feedback_triage_agent.web_app
@@ -244,7 +246,7 @@ export FEEDBACK_TRIAGE_WEB_LLM_ENABLED=true
 
 - 本地：观察任务保存在 `data/observation_tasks/`，旧单批次运行保存在 `data/web_runs/`。
 - Vercel：观察任务默认写入 `/tmp/feedback-risk-tasks/`，旧运行写入 `/tmp/feedback-triage-runs/`。
-- Vercel 的 `/tmp` 是临时存储，平台重启或实例回收后任务可能丢失，因此线上 Demo 只适合展示流程。
+- 当前 Vercel 线上入口使用临时存储，创建或跳转后也可能无法读取任务，刷新、重启或实例回收后也不保证保存；仅标为临时预览。
 
 可以指定可写目录：
 
@@ -253,11 +255,7 @@ export FEEDBACK_RISK_TASKS_DIR="/path/to/observation_tasks"
 export FEEDBACK_TRIAGE_WEB_RUNS_DIR="/path/to/web_runs"
 ```
 
-Vercel 入口为 `app.py`。部署命令：
-
-```bash
-vercel --prod
-```
+Vercel 入口为 `app.py`。当前暂停云数据库配置和生产发布；PR #14 保留未合并，不能据本地与 CI 通过宣称云端已验收或修复已上线。
 
 ## 测试与代表性 badcase 回归
 
@@ -279,5 +277,6 @@ python -m feedback_triage_agent.cli evaluate \
 
 ## 项目链接
 
-- [Online Demo](https://feedback-triage-agent.vercel.app/demo)
+- [使用教程](docs/usage.md)
+- [线上临时预览（不保证任务读取或保存）](https://feedback-triage-agent.vercel.app/demo)
 - [GitHub](https://github.com/Rayna-RRR/feedback-triage-agent)
