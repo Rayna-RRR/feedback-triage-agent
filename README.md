@@ -6,7 +6,7 @@
 
 `feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
 
-**第一次使用：[本地使用教程：启动、演示、CSV 导入与保存](docs/usage.md)** · [线上临时预览](https://feedback-triage-agent.vercel.app/demo)
+**第一次使用：[本地使用教程：启动、演示、CSV 导入与保存](docs/usage.md)** · [线上临时预览（中国大陆网络环境可能无法访问）](https://feedback-triage-agent.vercel.app/demo)
 
 当前 main 的完整流程可在本地操作，任务以 JSON 文件保存。当前线上仅供临时体验：创建或跳转后也可能无法读取任务，不保证保存。[PR #14](https://github.com/Rayna-RRR/feedback-triage-agent/pull/14) 的持久化实现已通过本地验证与 CI，尚未完成云端验收、合并或上线；本次教程更新不代表线上故障已修复。云数据库配置和生产发布继续暂停。
 
@@ -278,5 +278,5 @@ python -m feedback_triage_agent.cli evaluate \
 ## 项目链接
 
 - [使用教程](docs/usage.md)
-- [线上临时预览（不保证任务读取或保存）](https://feedback-triage-agent.vercel.app/demo)
+- [线上临时预览（不保证任务读取或保存；中国大陆网络环境可能无法访问）](https://feedback-triage-agent.vercel.app/demo)
 - [GitHub](https://github.com/Rayna-RRR/feedback-triage-agent)

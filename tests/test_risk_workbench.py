@@ -87,8 +87,10 @@ def test_workbench_homepage_and_storage_boundary(
     assert "累计快照" in response.text
     assert "还没有观察任务" in response.text
     assert "相关不等于因果" in response.text
-    assert str(web_app.OBSERVATION_TASKS_DIR) in response.text
-    assert "当前版本不接数据库、账号或付费存储" in response.text
+    assert str(web_app.OBSERVATION_TASKS_DIR) not in response.text
+    assert "任务保存在本地文件目录" in response.text
+    assert "保存位置可通过 FEEDBACK_RISK_TASKS_DIR 配置" in response.text
+    assert "当前版本不接数据库、账号或云端备份" in response.text
 
     monkeypatch.setenv("VERCEL", "1")
     online_response = client.get("/")
@@ -117,6 +119,8 @@ def test_home_demo_entry_builds_complete_repeatable_fixture_task(
 
     demo = client.get("/demo")
     assert demo.status_code == 200
+    assert str(web_app.OBSERVATION_TASKS_DIR) not in demo.text
+    assert "任务保存在本地文件目录" in demo.text
     assert "这是可重复生成的示例任务" in demo.text
     assert "【演示数据】Acme Copilot v2.4 发版观察" in demo.text
     assert "当前相对基线" in demo.text
