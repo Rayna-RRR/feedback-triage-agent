@@ -178,7 +178,7 @@ def deployment_label() -> str:
 def storage_notice() -> str:
     if os.getenv("VERCEL"):
         return "线上 Demo 使用临时文件存储；平台重启或实例回收后任务可能丢失，请勿上传敏感或生产数据。"
-    return f"任务保存在本机 {OBSERVATION_TASKS_DIR}；当前版本不接数据库、账号或付费存储。"
+    return "任务保存在本地文件目录；保存位置可通过 FEEDBACK_RISK_TASKS_DIR 配置。当前版本不接数据库、账号或云端备份。"
 
 
 def yes_no_label(value: object) -> str:
