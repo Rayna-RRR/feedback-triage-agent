@@ -14,7 +14,7 @@ python -m http.server 8765 --bind 127.0.0.1 --directory netlify-demo/dist
 
 打开 [本机静态预览](http://127.0.0.1:8765/)。
 
-Git 构建使用根目录的 [netlify.toml](../netlify.toml)。Netlify 的 Base directory 选仓库根目录，Publish directory 为 `netlify-demo/dist`。构建输出只有 HTML、CSS 和 JS，可将整个 `dist` 目录作为一个独立站点的站点根目录发布。当前仅执行了本地预览。 [Netlify 构建配置](https://docs.netlify.com/build/configure-builds/file-based-configuration/) · [Netlify 手动部署](https://docs.netlify.com/deploy/create-deploys/)
+Git 构建使用根目录的 [netlify.toml](../netlify.toml)。Netlify 的 Base directory 选仓库根目录，Publish directory 为 `netlify-demo/dist`。构建输出只有 HTML、CSS 和 JS，可将整个 `dist` 目录作为一个独立站点的站点根目录发布。公开展示入口为 [Netlify 静态交互演示](https://rayna-release-feedback-workbench.netlify.app/)。 [Netlify 构建配置](https://docs.netlify.com/build/configure-builds/file-based-configuration/) · [Netlify 手动部署](https://docs.netlify.com/deploy/create-deploys/)
 
 ## 支持范围
 
