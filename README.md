@@ -6,9 +6,11 @@
 
 `feedback-triage-agent` 继续承担字段标准化、分类、优先级、badcase、规则 fallback、QA、运行日志和评测等分析与审计能力；这些能力与新版工作台共享数据和状态，不是两个 Demo 的跳转或页面拼接。
 
-**第一次使用：[本地使用教程：启动、演示、CSV 导入与保存](docs/usage.md)** · [线上临时预览（中国大陆网络环境可能无法访问）](https://feedback-triage-agent.vercel.app/demo)
+**首选演示：[Netlify 静态交互演示](https://rayna-release-feedback-workbench.netlify.app/)** · [本地使用教程](docs/usage.md) · [Vercel 临时预览](https://feedback-triage-agent.vercel.app/demo)
 
-当前 main 的完整流程可在本地操作，任务以 JSON 文件保存。当前线上仅供临时体验：创建或跳转后也可能无法读取任务，不保证保存。[PR #14](https://github.com/Rayna-RRR/feedback-triage-agent/pull/14) 的持久化实现已通过本地验证与 CI，尚未完成云端验收、合并或上线；本次教程更新不代表线上故障已修复。云数据库配置和生产发布继续暂停。
+Netlify 使用仓库预生成的验收样例，可查看风险总览、问题簇和原始证据，预览人工复核，并比较后续窗口。任务创建和 CSV 导入表单仅供查看，复核结果仅在当前页面预览，刷新即清除。
+
+完整 Python/FastAPI 工作台可按本地教程运行，任务保存在本机 JSON 文件中。原有 Vercel 部署继续提供临时预览，使用临时存储，创建或跳转后也可能读不到任务，中国大陆网络环境可能无法访问。[PostgreSQL PR #14](https://github.com/Rayna-RRR/feedback-triage-agent/pull/14) 尚未合并，云端数据库尚未验收。
 
 ## 界面预览
 
@@ -277,6 +279,7 @@ python -m feedback_triage_agent.cli evaluate \
 
 ## 项目链接
 
-- [使用教程](docs/usage.md)
-- [线上临时预览（不保证任务读取或保存；中国大陆网络环境可能无法访问）](https://feedback-triage-agent.vercel.app/demo)
+- [Netlify 静态交互演示](https://rayna-release-feedback-workbench.netlify.app/)
+- [本地使用教程](docs/usage.md)
+- [Vercel 临时预览（任务读取和保存无保证）](https://feedback-triage-agent.vercel.app/demo)
 - [GitHub](https://github.com/Rayna-RRR/feedback-triage-agent)
