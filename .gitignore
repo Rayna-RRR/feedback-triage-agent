@@ -35,3 +35,6 @@ data/output_ask/
 # Reproducible local integration runs (source QA/summary snapshots remain tracked)
 data/ai_app_feedback/generated/triage/
 data/ai_app_feedback/generated/harness/
+
+# Local Netlify folder
+.netlify/

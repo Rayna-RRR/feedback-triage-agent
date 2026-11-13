@@ -1,0 +1,31 @@
+.risk-sidebar {
+  overflow-y: auto;
+}
+
+.risk-file-input:disabled + .risk-file-picker,
+.risk-segmented label:has(input:disabled) {
+  cursor: default;
+}
+
+.risk-segmented input:disabled:not(:checked) + span {
+  opacity: 0.6;
+}
+
+[data-demo-review-result] > div {
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+
+[data-demo-review-result] .risk-button {
+  margin-top: 10px;
+}
+
+@media (max-width: 920px) {
+  html {
+    scroll-padding-top: 65px;
+  }
+
+  .risk-sidebar:not(.is-open) {
+    visibility: hidden;
+  }
+}
